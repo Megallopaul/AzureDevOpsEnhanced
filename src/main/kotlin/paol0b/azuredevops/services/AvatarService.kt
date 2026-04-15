@@ -12,8 +12,10 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
 import javax.imageio.ImageIO
 import javax.swing.Icon
+import kotlin.concurrent.withLock
 
 /**
  * Service for loading, caching, and serving user avatars from Azure DevOps.
@@ -31,9 +33,16 @@ class AvatarService(private val project: Project) {
 
     /**
      * Shared delegating icons keyed by sized URL.
+     * Uses an LRU cache with a maximum size to prevent unbounded growth.
      * Every caller for the same URL+size gets the exact same [DelegatingIcon].
      */
-    private val icons = ConcurrentHashMap<String, DelegatingIcon>()
+    private val maxCacheSize = 200
+    private val cacheLock = ReentrantLock()
+    private val icons: LinkedHashMap<String, DelegatingIcon> = object : LinkedHashMap<String, DelegatingIcon>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, DelegatingIcon>?): Boolean {
+            return size > maxCacheSize
+        }
+    }
 
     /** URLs currently being fetched (prevents duplicate network requests). */
     private val loading = ConcurrentHashMap.newKeySet<String>()
@@ -67,7 +76,9 @@ class AvatarService(private val project: Project) {
         val sizedUrl = appendSizeParam(imageUrl, physicalSize)
 
         // Get or create the shared wrapper for this URL+size
-        val wrapper = icons.computeIfAbsent(sizedUrl) { DelegatingIcon(PLACEHOLDER_ICON, size) }
+        val wrapper = cacheLock.withLock {
+            icons.computeIfAbsent(sizedUrl) { DelegatingIcon(PLACEHOLDER_ICON, size) }
+        }
 
         // If the delegate is already the real icon, fire callback and return
         if (wrapper.isLoaded) {
@@ -108,7 +119,9 @@ class AvatarService(private val project: Project) {
         val physicalSize = size * FETCH_SCALE
         val sizedUrl = appendSizeParam(imageUrl, physicalSize)
 
-        val wrapper = icons.computeIfAbsent(sizedUrl) { DelegatingIcon(PLACEHOLDER_ICON, size) }
+        val wrapper = cacheLock.withLock {
+            icons.computeIfAbsent(sizedUrl) { DelegatingIcon(PLACEHOLDER_ICON, size) }
+        }
         if (wrapper.isLoaded) return wrapper
 
         return try {
