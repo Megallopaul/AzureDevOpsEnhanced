@@ -1,5 +1,6 @@
 package paol0b.azuredevops.toolwindow.review.timeline
 
+import com.intellij.openapi.diagnostic.Logger
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -7,6 +8,8 @@ import java.util.*
  * Shared utility functions for the timeline components.
  */
 object TimelineUtils {
+
+    private val logger = Logger.getInstance(TimelineUtils::class.java)
 
     /**
      * Format a raw ISO-8601 timestamp into a human-readable "time ago" string.
@@ -23,7 +26,12 @@ object TimelineUtils {
             var date: Date? = null
             for (fmt in formats) {
                 fmt.timeZone = TimeZone.getTimeZone("UTC")
-                try { date = fmt.parse(raw.take(30)); break } catch (_: Exception) {}
+                try {
+                    date = fmt.parse(raw.take(30))
+                    break
+                } catch (_: Exception) {
+                    // Try next format
+                }
             }
             if (date == null) return raw.take(16).replace('T', ' ')
 
@@ -40,7 +48,8 @@ object TimelineUtils {
                 diffDays < 7 -> "${diffDays}d ago"
                 else -> SimpleDateFormat("MMM d, yyyy", Locale.US).format(date)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.debug("Failed to parse date string: '$raw'")
             raw.take(16).replace('T', ' ')
         }
     }
@@ -56,7 +65,8 @@ object TimelineUtils {
             }
             val date = parser.parse(raw.take(19))
             SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(date)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.debug("Failed to parse date string: '$raw'")
             raw.take(16).replace('T', ' ')
         }
     }

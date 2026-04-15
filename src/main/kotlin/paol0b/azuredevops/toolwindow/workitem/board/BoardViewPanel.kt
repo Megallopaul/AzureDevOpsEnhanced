@@ -169,7 +169,9 @@ class BoardViewPanel(
                 col.color?.let { hex ->
                     try {
                         stateColorMap[name] = Color(Integer.parseInt(hex.removePrefix("#"), 16))
-                    } catch (_: NumberFormatException) { }
+                    } catch (e: NumberFormatException) {
+                        // Skip invalid hex colors from Azure DevOps
+                    }
                 }
             }
         }

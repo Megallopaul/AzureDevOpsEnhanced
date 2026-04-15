@@ -1,5 +1,6 @@
 package paol0b.azuredevops.listeners
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.BranchChangeListener
 import paol0b.azuredevops.services.AzureDevOpsRepositoryDetector
@@ -10,6 +11,8 @@ import paol0b.azuredevops.services.WorkItemBranchDetector
  * Listener to invalidate the detection cache when the Git repository changes
  */
 class GitRepositoryChangeListener(private val project: Project) : BranchChangeListener {
+
+    private val logger = Logger.getInstance(GitRepositoryChangeListener::class.java)
 
     override fun branchWillChange(branchName: String) {
         // Not needed
@@ -27,6 +30,8 @@ class GitRepositoryChangeListener(private val project: Project) : BranchChangeLi
         // Immediately refresh build status in status bar on branch switch
         try {
             AzureDevOpsStatusBarService.getInstance(project).refreshBuildStatusOnly()
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            logger.warn("Failed to refresh build status after branch change to '$branchName'", e)
+        }
     }
 }

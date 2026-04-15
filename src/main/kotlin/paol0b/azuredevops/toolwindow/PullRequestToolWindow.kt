@@ -1,5 +1,6 @@
 package paol0b.azuredevops.toolwindow
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import paol0b.azuredevops.model.PullRequest
@@ -14,6 +15,7 @@ import javax.swing.JPanel
  */
 class PullRequestToolWindow(private val project: Project) {
 
+    private val logger = Logger.getInstance(PullRequestToolWindow::class.java)
     private val mainPanel: SimpleToolWindowPanel
     private val pullRequestListPanel: PullRequestListPanel
     private val pollingService = paol0b.azuredevops.services.PullRequestsPollingService.getInstance(project)
@@ -74,12 +76,16 @@ class PullRequestToolWindow(private val project: Project) {
             if (java.awt.Desktop.isDesktopSupported()) {
                 java.awt.Desktop.getDesktop().browse(java.net.URI(url))
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            logger.warn("Failed to open URL in browser: $url", e)
+        }
     }
 
     fun dispose() {
         try {
             pollingService.stopPolling()
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            logger.warn("Failed to stop polling during dispose", e)
+        }
     }
 }
