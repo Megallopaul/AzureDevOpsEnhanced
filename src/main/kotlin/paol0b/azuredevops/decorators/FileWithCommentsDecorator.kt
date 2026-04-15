@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.JBColor
 import com.intellij.ui.SimpleTextAttributes
+import paol0b.azuredevops.services.CommentsVisibilityService
 import paol0b.azuredevops.services.PullRequestCommentsTracker
 import java.awt.Color
 
@@ -30,8 +31,11 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
 
     override fun decorate(node: ProjectViewNode<*>, data: PresentationData) {
         try {
+            // Respect visibility setting - don't decorate if comments are hidden
+            if (!CommentsVisibilityService.getInstance(project).isCommentsVisible()) return
+
             val file = node.virtualFile ?: return
-            
+
             if (file.isDirectory) {
                 decorateDirectory(file, data)
             } else {
@@ -47,7 +51,6 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
         val (totalComments, activeComments) = countCommentsInDirectory(dir)
 
         if (totalComments > 0) {
-            // Add icon and count badge AFTER the folder name
             val icon = if (activeComments > 0) {
                 AllIcons.Toolwindows.ToolWindowMessages
             } else {
@@ -59,8 +62,7 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
             } else {
                 JBColor(Color(100, 200, 100), Color(80, 150, 80)) // Green for resolved
             }
-
-            // Preserve the original folder name and append the badge
+// Preserve the original folder name and append the badge
             val originalText = data.presentableText ?: dir.name
             val badgeText = " ($activeComments)"
             
@@ -68,16 +70,12 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
             data.clearText()
             data.addText(originalText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
             data.addText(badgeText, SimpleTextAttributes(
-                SimpleTextAttributes.STYLE_BOLD,
+                SimpleTextAttributes.STYLE_PLAIN,
                 badgeColor
             ))
-
-            // Set appropriate icon
             if (activeComments > 0) {
                 data.setIcon(combineIcons(data.getIcon(false), icon))
             }
-
-            // Enhanced tooltip
             data.tooltip = buildDirectoryTooltip(totalComments, activeComments)
         }
     }
@@ -98,8 +96,7 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
             } else {
                 JBColor(Color(100, 200, 100), Color(80, 150, 80)) // Green
             }
-
-            // Preserve the original file name and append the badge
+// Preserve the original file name and append the badge
             val originalText = data.presentableText ?: file.name
             val badgeText = " ($activeCount)"
             
@@ -107,16 +104,12 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
             data.clearText()
             data.addText(originalText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
             data.addText(badgeText, SimpleTextAttributes(
-                SimpleTextAttributes.STYLE_BOLD,
+                SimpleTextAttributes.STYLE_PLAIN,
                 badgeColor
             ))
-
-            // Set icon overlay (show comment icon alongside file icon)
             if (activeCount > 0) {
                 data.setIcon(combineIcons(data.getIcon(false), icon))
             }
-
-            // Enhanced tooltip
             data.tooltip = buildFileTooltip(commentCount, activeCount, file.name)
         }
     }
