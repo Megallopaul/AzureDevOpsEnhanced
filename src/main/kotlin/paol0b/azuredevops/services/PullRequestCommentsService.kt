@@ -232,7 +232,7 @@ class PullRequestCommentsService(private val project: Project) {
     /**
      * Replies to a comment
      */
-    fun replyToComment(pullRequest: PullRequest, threadId: Int, content: String, onSuccess: () -> Unit) {
+    fun replyToComment(pullRequest: PullRequest, threadId: Int, content: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
@@ -243,12 +243,14 @@ class PullRequestCommentsService(private val project: Project) {
                     pullRequest.repository?.project?.name,
                     pullRequest.repository?.id
                 )
-                
+
                 ApplicationManager.getApplication().invokeLater {
                     onSuccess()
                 }
             } catch (e: AzureDevOpsApiException) {
-                // Handle error
+                ApplicationManager.getApplication().invokeLater {
+                    onError(e.message ?: "Failed to reply to comment")
+                }
             }
         }
     }
@@ -256,7 +258,7 @@ class PullRequestCommentsService(private val project: Project) {
     /**
      * Resolves a comment thread
      */
-    fun resolveThread(pullRequest: PullRequest, threadId: Int, onSuccess: () -> Unit) {
+    fun resolveThread(pullRequest: PullRequest, threadId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
@@ -267,12 +269,14 @@ class PullRequestCommentsService(private val project: Project) {
                     pullRequest.repository?.project?.name,
                     pullRequest.repository?.id
                 )
-                
+
                 ApplicationManager.getApplication().invokeLater {
                     onSuccess()
                 }
             } catch (e: AzureDevOpsApiException) {
-                // Handle error
+                ApplicationManager.getApplication().invokeLater {
+                    onError(e.message ?: "Failed to resolve thread")
+                }
             }
         }
     }
@@ -280,7 +284,7 @@ class PullRequestCommentsService(private val project: Project) {
     /**
      * Re-activates a comment thread
      */
-    fun unresolveThread(pullRequest: PullRequest, threadId: Int, onSuccess: () -> Unit) {
+    fun unresolveThread(pullRequest: PullRequest, threadId: Int, onSuccess: () -> Unit, onError: (String) -> Unit) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
@@ -291,12 +295,14 @@ class PullRequestCommentsService(private val project: Project) {
                     pullRequest.repository?.project?.name,
                     pullRequest.repository?.id
                 )
-                
+
                 ApplicationManager.getApplication().invokeLater {
                     onSuccess()
                 }
             } catch (e: AzureDevOpsApiException) {
-                // Handle error
+                ApplicationManager.getApplication().invokeLater {
+                    onError(e.message ?: "Failed to unresolve thread")
+                }
             }
         }
     }
