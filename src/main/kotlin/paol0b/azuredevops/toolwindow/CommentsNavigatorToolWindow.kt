@@ -370,13 +370,16 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                     val activeCount = allComments.count { !it.isResolved }
                     val totalCount = allComments.size
                     updateStatus("$activeCount active, $totalCount total in PR #${pullRequest.pullRequestId} · Auto-refresh: ON")
-                    
+
                     // Show or hide comments based on toggle state
                     if (showCommentsToggle.isSelected) {
                         showCommentsInAllOpenFiles()
                     } else {
                         hideCommentsFromAllFiles()
                     }
+
+                    // Refresh ProjectView to trigger decorator re-evaluation
+                    com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
                 }
             } catch (e: Exception) {
                 logger.error("Failed to load comments", e)
@@ -534,13 +537,14 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
     
     private fun showCommentsInAllOpenFiles() {
         if (currentPullRequest == null) return
-        
+
         val fileEditorManager = FileEditorManager.getInstance(project)
         val openFiles = fileEditorManager.openFiles
         val commentsService = PullRequestCommentsService.getInstance(project)
-        
+
         logger.info("Showing comments in ${openFiles.size} open files")
-        
+
+        // Load comments in all open files (async - each call updates tracker on completion)
         openFiles.forEach { file ->
             val editors = fileEditorManager.getEditors(file)
             editors.forEach { fileEditor ->
@@ -549,12 +553,24 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                 }
             }
         }
+
+        // Refresh ProjectView after a short delay to let async loading populate the tracker
+        ApplicationManager.getApplication().invokeLater {
+            com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+            logger.info("ProjectView refreshed after showing comments")
+        }
     }
-    
+
     private fun hideCommentsFromAllFiles() {
         logger.info("Hiding comments from all files")
         val commentsService = PullRequestCommentsService.getInstance(project)
         commentsService.clearAllComments()
+
+        // Refresh ProjectView to remove badges
+        ApplicationManager.getApplication().invokeLater {
+            com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+            logger.info("ProjectView refreshed after hiding comments")
+        }
     }
     
     private fun registerFileChangeListener() {
@@ -571,6 +587,10 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                     if (editor != null) {
                         val commentsService = PullRequestCommentsService.getInstance(project)
                         commentsService.loadCommentsInEditor(editor, file, currentPullRequest!!)
+                        // Refresh ProjectView after a delay to let async loading complete
+                        ApplicationManager.getApplication().invokeLater {
+                            com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+                        }
                     }
                 }
             }
