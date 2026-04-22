@@ -13,17 +13,18 @@ data class PolicyEvaluation(
     @SerializedName("status")
     val status: String?, // "approved", "rejected", "running", "queued", "notApplicable", "broken"
     @SerializedName("context")
-    val context: PolicyContext?
+    val context: PolicyContext?,
 ) {
     fun isApproved(): Boolean = status == "approved"
+
     fun isRejected(): Boolean = status == "rejected"
+
     fun isRunning(): Boolean = status == "running" || status == "queued"
-    
-    fun getDisplayName(): String {
-        return configuration?.type?.displayName 
-            ?: configuration?.settings?.displayName 
+
+    fun getDisplayName(): String =
+        configuration?.type?.displayName
+            ?: configuration?.settings?.displayName
             ?: "Unknown Policy"
-    }
 }
 
 data class PolicyConfiguration(
@@ -36,14 +37,14 @@ data class PolicyConfiguration(
     @SerializedName("isEnabled")
     val isEnabled: Boolean?,
     @SerializedName("isBlocking")
-    val isBlocking: Boolean?
+    val isBlocking: Boolean?,
 )
 
 data class PolicyType(
     @SerializedName("id")
     val id: String?,
     @SerializedName("displayName")
-    val displayName: String?
+    val displayName: String?,
 )
 
 data class PolicySettings(
@@ -64,19 +65,19 @@ data class PolicySettings(
     @SerializedName("statusName")
     val statusName: String?,
     @SerializedName("statusGenre")
-    val statusGenre: String?
+    val statusGenre: String?,
 )
 
 data class PolicyContext(
     @SerializedName("isExpired")
     val isExpired: Boolean?,
     @SerializedName("buildDefinitionName")
-    val buildDefinitionName: String?
+    val buildDefinitionName: String?,
 )
 
 data class PolicyEvaluationListResponse(
     val value: List<PolicyEvaluation>?,
-    val count: Int?
+    val count: Int?,
 )
 
 /**
@@ -92,7 +93,7 @@ data class GitCommitRef(
     @SerializedName("committer")
     val committer: GitUserDate?,
     @SerializedName("url")
-    val url: String?
+    val url: String?,
 )
 
 data class GitUserDate(
@@ -101,10 +102,10 @@ data class GitUserDate(
     @SerializedName("email")
     val email: String?,
     @SerializedName("date")
-    val date: String?
+    val date: String?,
 )
 
 data class GitCommitListResponse(
     val value: List<GitCommitRef>?,
-    val count: Int?
+    val count: Int?,
 )

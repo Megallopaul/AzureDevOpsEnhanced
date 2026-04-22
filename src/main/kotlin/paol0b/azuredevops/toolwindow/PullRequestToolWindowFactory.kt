@@ -23,8 +23,9 @@ import java.util.concurrent.ConcurrentHashMap
  * The first (non-closable) content tab is the PR list.
  * Additional closable tabs are opened when the user double-clicks a PR.
  */
-class PullRequestToolWindowFactory : ToolWindowFactory, DumbAware {
-
+class PullRequestToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
     companion object {
         private const val TOOL_WINDOW_ID = "Azure DevOps PRs"
         private const val METRICS_TAB_TITLE = "Metrics & Trends"
@@ -65,10 +66,11 @@ class PullRequestToolWindowFactory : ToolWindowFactory, DumbAware {
             val panel = CreatePullRequestPanel(project)
             createPrTabs[projectKey] = panel
 
-            val content = contentManager.factory.createContent(panel, CREATE_PR_TAB_TITLE, false).apply {
-                isCloseable = true
-                description = "Create a new Pull Request"
-            }
+            val content =
+                contentManager.factory.createContent(panel, CREATE_PR_TAB_TITLE, false).apply {
+                    isCloseable = true
+                    description = "Create a new Pull Request"
+                }
 
             // When PR is created, close this tab and refresh
             panel.onPullRequestCreated = {
@@ -107,10 +109,11 @@ class PullRequestToolWindowFactory : ToolWindowFactory, DumbAware {
             val panel = PrMetricsDashboardPanel(project)
             metricsTabs[projectKey] = panel
 
-            val content = contentManager.factory.createContent(panel.getComponent(), METRICS_TAB_TITLE, false).apply {
-                isCloseable = true
-                description = "PR metrics and trends dashboard"
-            }
+            val content =
+                contentManager.factory.createContent(panel.getComponent(), METRICS_TAB_TITLE, false).apply {
+                    isCloseable = true
+                    description = "PR metrics and trends dashboard"
+                }
             contentManager.addContent(content)
             contentManager.setSelectedContent(content, true)
             toolWindow.activate(null)
@@ -122,7 +125,10 @@ class PullRequestToolWindowFactory : ToolWindowFactory, DumbAware {
         /**
          * Open (or focus) a review tab for the given PR inside the tool window.
          */
-        fun openPrReviewTab(project: Project, pullRequest: PullRequest) {
+        fun openPrReviewTab(
+            project: Project,
+            pullRequest: PullRequest,
+        ) {
             val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
             val contentManager = toolWindow.contentManager
 
@@ -146,10 +152,11 @@ class PullRequestToolWindowFactory : ToolWindowFactory, DumbAware {
             reviewTabs[pullRequest.pullRequestId] = panel
 
             val tabTitle = "#${pullRequest.pullRequestId}"
-            val content = contentManager.factory.createContent(panel, tabTitle, false).apply {
-                isCloseable = true
-                description = pullRequest.title
-            }
+            val content =
+                contentManager.factory.createContent(panel, tabTitle, false).apply {
+                    isCloseable = true
+                    description = pullRequest.title
+                }
             contentManager.addContent(content)
             contentManager.setSelectedContent(content, true)
 
@@ -157,82 +164,97 @@ class PullRequestToolWindowFactory : ToolWindowFactory, DumbAware {
         }
     }
 
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         val pullRequestToolWindow = PullRequestToolWindow(project)
-        val content = toolWindow.contentManager.factory.createContent(
-            pullRequestToolWindow.getContent(), "Pull Requests", false
-        ).apply {
-            isCloseable = false          // main list tab is never closable
-        }
+        val content =
+            toolWindow.contentManager.factory
+                .createContent(
+                    pullRequestToolWindow.getContent(),
+                    "Pull Requests",
+                    false,
+                ).apply {
+                    isCloseable = false // main list tab is never closable
+                }
         toolWindow.contentManager.addContent(content)
 
         // Place actions in the native tool window title bar (like JetBrains GitHub plugin)
-        toolWindow.setTitleActions(listOf(
-            object : AnAction("New Pull Request", "Create a new Pull Request", AllIcons.General.Add) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    openCreatePrTab(project)
-                }
-            },
-            object : AnAction("Refresh", "Refresh Pull Requests", AllIcons.Actions.Refresh) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    pullRequestToolWindow.refreshPullRequests()
-                    // Also refresh the metrics tab if it's open
-                    val projectKey = System.identityHashCode(project)
-                    metricsTabs[projectKey]?.loadMetrics()
-                }
-            },
-            object : AnAction("Open in Browser", "Open selected PR in browser", AllIcons.Ide.External_link_arrow) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    pullRequestToolWindow.openSelectedPrInBrowser()
-                }
-                override fun update(e: AnActionEvent) {
-                    e.presentation.isEnabled = pullRequestToolWindow.getSelectedPullRequest() != null
-                }
-                override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-            },
-            object : AnAction("Metrics & Trends", "Open PR metrics dashboard", AllIcons.Actions.GroupByModule) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    openMetricsDashboard(project)
-                }
-            }
-        ))
+        toolWindow.setTitleActions(
+            listOf(
+                object : AnAction("New Pull Request", "Create a new Pull Request", AllIcons.General.Add) {
+                    override fun actionPerformed(e: AnActionEvent) {
+                        openCreatePrTab(project)
+                    }
+                },
+                object : AnAction("Refresh", "Refresh Pull Requests", AllIcons.Actions.Refresh) {
+                    override fun actionPerformed(e: AnActionEvent) {
+                        pullRequestToolWindow.refreshPullRequests()
+                        // Also refresh the metrics tab if it's open
+                        val projectKey = System.identityHashCode(project)
+                        metricsTabs[projectKey]?.loadMetrics()
+                    }
+                },
+                object : AnAction("Open in Browser", "Open selected PR in browser", AllIcons.Ide.External_link_arrow) {
+                    override fun actionPerformed(e: AnActionEvent) {
+                        pullRequestToolWindow.openSelectedPrInBrowser()
+                    }
+
+                    override fun update(e: AnActionEvent) {
+                        e.presentation.isEnabled = pullRequestToolWindow.getSelectedPullRequest() != null
+                    }
+
+                    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                },
+                object : AnAction("Metrics & Trends", "Open PR metrics dashboard", AllIcons.Actions.GroupByModule) {
+                    override fun actionPerformed(e: AnActionEvent) {
+                        openMetricsDashboard(project)
+                    }
+                },
+            ),
+        )
 
         // Load PRs when the list tab becomes visible
-        toolWindow.addContentManagerListener(object : ContentManagerListener {
-            override fun selectionChanged(event: ContentManagerEvent) {
-                if (event.content == content &&
-                    event.operation == ContentManagerEvent.ContentOperation.add
-                ) {
-                    pullRequestToolWindow.loadPullRequestsIfNeeded()
+        toolWindow.addContentManagerListener(
+            object : ContentManagerListener {
+                override fun selectionChanged(event: ContentManagerEvent) {
+                    if (event.content == content &&
+                        event.operation == ContentManagerEvent.ContentOperation.add
+                    ) {
+                        pullRequestToolWindow.loadPullRequestsIfNeeded()
+                    }
                 }
-            }
-        })
+            },
+        )
 
         // Dispose resources when content is removed
-        toolWindow.contentManager.addContentManagerListener(object : ContentManagerListener {
-            override fun contentRemoved(event: ContentManagerEvent) {
-                if (event.content == content) {
-                    pullRequestToolWindow.dispose()
-                    return
-                }
+        toolWindow.contentManager.addContentManagerListener(
+            object : ContentManagerListener {
+                override fun contentRemoved(event: ContentManagerEvent) {
+                    if (event.content == content) {
+                        pullRequestToolWindow.dispose()
+                        return
+                    }
 
-                // Clean up review tab entries
-                val removedComponent = event.content.component
-                if (removedComponent is PrReviewTabPanel) {
-                    removedComponent.dispose()
-                    reviewTabs.entries.removeIf { it.value == removedComponent }
-                }
+                    // Clean up review tab entries
+                    val removedComponent = event.content.component
+                    if (removedComponent is PrReviewTabPanel) {
+                        removedComponent.dispose()
+                        reviewTabs.entries.removeIf { it.value == removedComponent }
+                    }
 
-                // Clean up metrics tab entries
-                metricsTabs.entries.removeIf { it.value.getComponent() == removedComponent }
+                    // Clean up metrics tab entries
+                    metricsTabs.entries.removeIf { it.value.getComponent() == removedComponent }
 
-                // Clean up create PR tab entries
-                if (removedComponent is CreatePullRequestPanel) {
-                    removedComponent.dispose()
-                    createPrTabs.entries.removeIf { it.value == removedComponent }
+                    // Clean up create PR tab entries
+                    if (removedComponent is CreatePullRequestPanel) {
+                        removedComponent.dispose()
+                        createPrTabs.entries.removeIf { it.value == removedComponent }
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun shouldBeAvailable(project: Project): Boolean = true

@@ -32,8 +32,9 @@ import javax.swing.*
  * │ Top Authors (leaderboard) │  Top Reviewers (leader)  │
  * └──────────────────────────────────────────────────────┘
  */
-class PrMetricsDashboardPanel(private val project: Project) {
-
+class PrMetricsDashboardPanel(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(PrMetricsDashboardPanel::class.java)
 
     private val mainPanel: JPanel
@@ -58,38 +59,46 @@ class PrMetricsDashboardPanel(private val project: Project) {
     private val reviewerLeaderboard = LeaderboardComponent("Top Reviewers", JBColor(Color(0x2DA44E), Color(0x3FB950)))
 
     init {
-        statusLabel = JBLabel("Click Refresh to load metrics").apply {
-            foreground = JBColor.GRAY
-            font = font.deriveFont(Font.PLAIN, 11f)
-        }
+        statusLabel =
+            JBLabel("Click Refresh to load metrics").apply {
+                foreground = JBColor.GRAY
+                font = font.deriveFont(Font.PLAIN, 11f)
+            }
 
-        scopeToggle = JComboBox(arrayOf("All Organization", "Current Repository")).apply {
-            selectedIndex = 0
-            addActionListener { loadMetrics() }
-        }
+        scopeToggle =
+            JComboBox(arrayOf("All Organization", "Current Repository")).apply {
+                selectedIndex = 0
+                addActionListener { loadMetrics() }
+            }
 
-        contentPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            border = JBUI.Borders.empty(16)
-            background = UIUtil.getPanelBackground()
-        }
+        contentPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                border = JBUI.Borders.empty(16)
+                background = UIUtil.getPanelBackground()
+            }
 
         buildLayout()
 
-        mainPanel = JPanel(BorderLayout()).apply {
-            val toolbar = JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
-                add(JBLabel("Scope:"))
-                add(scopeToggle)
-                add(statusLabel)
-                border = JBUI.Borders.empty(4, 8)
+        mainPanel =
+            JPanel(BorderLayout()).apply {
+                val toolbar =
+                    JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
+                        add(JBLabel("Scope:"))
+                        add(scopeToggle)
+                        add(statusLabel)
+                        border = JBUI.Borders.empty(4, 8)
+                    }
+                add(toolbar, BorderLayout.NORTH)
+                add(
+                    JBScrollPane(contentPanel).apply {
+                        border = JBUI.Borders.empty()
+                        verticalScrollBar.unitIncrement = 16
+                        horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+                    },
+                    BorderLayout.CENTER,
+                )
             }
-            add(toolbar, BorderLayout.NORTH)
-            add(JBScrollPane(contentPanel).apply {
-                border = JBUI.Borders.empty()
-                verticalScrollBar.unitIncrement = 16
-                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-            }, BorderLayout.CENTER)
-        }
     }
 
     fun getComponent(): JPanel = mainPanel
@@ -98,62 +107,79 @@ class PrMetricsDashboardPanel(private val project: Project) {
         statusLabel.text = "Loading PR data..."
         statusLabel.icon = AllIcons.Process.Step_1
 
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(
+                project,
+                "Computing PR Metrics...",
+                false,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
+                    try {
+                        val apiClient = AzureDevOpsApiClient.getInstance(project)
+                        val useOrgScope = scopeToggle.selectedIndex == 0
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project, "Computing PR Metrics...", false
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                try {
-                    val apiClient = AzureDevOpsApiClient.getInstance(project)
-                    val useOrgScope = scopeToggle.selectedIndex == 0
+                        indicator.text = "Fetching completed PRs..."
+                        val completed =
+                            if (useOrgScope) {
+                                apiClient.getAllOrganizationPullRequests(status = "completed", top = 100)
+                            } else {
+                                apiClient.getPullRequests(status = "completed", top = 100)
+                            }
 
-                    indicator.text = "Fetching completed PRs..."
-                    val completed = if (useOrgScope)
-                        apiClient.getAllOrganizationPullRequests(status = "completed", top = 100)
-                    else
-                        apiClient.getPullRequests(status = "completed", top = 100)
+                        indicator.text = "Fetching active PRs..."
+                        val active =
+                            if (useOrgScope) {
+                                apiClient.getAllOrganizationPullRequests(status = "active", top = 100)
+                            } else {
+                                apiClient.getPullRequests(status = "active", top = 100)
+                            }
 
-                    indicator.text = "Fetching active PRs..."
-                    val active = if (useOrgScope)
-                        apiClient.getAllOrganizationPullRequests(status = "active", top = 100)
-                    else
-                        apiClient.getPullRequests(status = "active", top = 100)
+                        indicator.text = "Fetching abandoned PRs..."
+                        val abandoned =
+                            if (useOrgScope) {
+                                apiClient.getAllOrganizationPullRequests(status = "abandoned", top = 100)
+                            } else {
+                                apiClient.getPullRequests(status = "abandoned", top = 100)
+                            }
 
-                    indicator.text = "Fetching abandoned PRs..."
-                    val abandoned = if (useOrgScope)
-                        apiClient.getAllOrganizationPullRequests(status = "abandoned", top = 100)
-                    else
-                        apiClient.getPullRequests(status = "abandoned", top = 100)
+                        val allPrs = completed + active + abandoned
 
-                    val allPrs = completed + active + abandoned
+                        indicator.text = "Computing metrics..."
+                        val metrics = PrMetricsService.compute(allPrs)
 
-                    indicator.text = "Computing metrics..."
-                    val metrics = PrMetricsService.compute(allPrs)
-
-                    ApplicationManager.getApplication().invokeLater {
-                        applyMetrics(metrics, allPrs.size)
-                    }
-                } catch (e: Exception) {
-                    logger.warn("Failed to load PR metrics", e)
-                    ApplicationManager.getApplication().invokeLater {
-                        statusLabel.text = "Error: ${e.message?.take(80)}"
-                        statusLabel.icon = AllIcons.General.Error
-                
+                        ApplicationManager.getApplication().invokeLater {
+                            applyMetrics(metrics, allPrs.size)
+                        }
+                    } catch (e: Exception) {
+                        logger.warn("Failed to load PR metrics", e)
+                        ApplicationManager.getApplication().invokeLater {
+                            statusLabel.text = "Error: ${e.message?.take(80)}"
+                            statusLabel.icon = AllIcons.General.Error
+                        }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
-    private fun applyMetrics(metrics: PrMetrics, totalLoaded: Int) {
+    private fun applyMetrics(
+        metrics: PrMetrics,
+        totalLoaded: Int,
+    ) {
         // Update cards in-place
         totalCard.update(metrics.totalPrs.toString(), "${metrics.draftPrs} drafts")
         activeCard.update(metrics.activePrs.toString(), "open now")
         mergedCard.update(metrics.completedPrs.toString(), "${metrics.abandonedPrs} abandoned")
         avgTimeCard.update(formatHours(metrics.avgHoursToMerge), "median ${formatHours(metrics.medianHoursToMerge)}")
-        throughputCard.update(String.format("%.1f", metrics.mergesPerWeek), "avg reviewers: ${String.format("%.1f", metrics.avgReviewerCount)}")
-        conflictCard.update(String.format("%.0f%%", metrics.conflictRate), "auto-complete: ${String.format("%.0f%%", metrics.autoCompleteRate)}")
+        throughputCard.update(
+            String.format("%.1f", metrics.mergesPerWeek),
+            "avg reviewers: ${String.format("%.1f", metrics.avgReviewerCount)}",
+        )
+        conflictCard.update(
+            String.format("%.0f%%", metrics.conflictRate),
+            "auto-complete: ${String.format("%.0f%%", metrics.autoCompleteRate)}",
+        )
 
         // Update charts
         weeklyVolumeChart.setData(metrics.weeklyVolume)
@@ -166,24 +192,24 @@ class PrMetricsDashboardPanel(private val project: Project) {
         statusLabel.text = "Analyzed $totalLoaded PRs"
         statusLabel.icon = AllIcons.General.InspectionsOK
 
-
         contentPanel.revalidate()
         contentPanel.repaint()
     }
 
     private fun buildLayout() {
         // === Summary Cards ===
-        val cardsRow = JPanel(GridLayout(1, 6, JBUI.scale(8), 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(95))
-            add(totalCard)
-            add(activeCard)
-            add(mergedCard)
-            add(avgTimeCard)
-            add(throughputCard)
-            add(conflictCard)
-        }
+        val cardsRow =
+            JPanel(GridLayout(1, 6, JBUI.scale(8), 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(95))
+                add(totalCard)
+                add(activeCard)
+                add(mergedCard)
+                add(avgTimeCard)
+                add(throughputCard)
+                add(conflictCard)
+            }
         contentPanel.add(cardsRow)
         contentPanel.add(Box.createVerticalStrut(JBUI.scale(16)))
 
@@ -204,19 +230,24 @@ class PrMetricsDashboardPanel(private val project: Project) {
         contentPanel.add(Box.createVerticalGlue())
     }
 
-    private fun createChartRow(left: JPanel, right: JPanel, leftWeight: Double): JPanel {
-        return JPanel(GridBagLayout()).apply {
+    private fun createChartRow(
+        left: JPanel,
+        right: JPanel,
+        leftWeight: Double,
+    ): JPanel =
+        JPanel(GridBagLayout()).apply {
             isOpaque = false
             alignmentX = Component.LEFT_ALIGNMENT
             maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(220))
             preferredSize = Dimension(0, JBUI.scale(220))
 
-            val gbc = GridBagConstraints().apply {
-                fill = GridBagConstraints.BOTH
-                gridy = 0
-                weighty = 1.0
-                insets = Insets(0, 0, 0, JBUI.scale(8))
-            }
+            val gbc =
+                GridBagConstraints().apply {
+                    fill = GridBagConstraints.BOTH
+                    gridy = 0
+                    weighty = 1.0
+                    insets = Insets(0, 0, 0, JBUI.scale(8))
+                }
 
             gbc.gridx = 0
             gbc.weightx = leftWeight
@@ -227,24 +258,22 @@ class PrMetricsDashboardPanel(private val project: Project) {
             gbc.insets = Insets(0, 0, 0, 0)
             add(wrapInCard(right), gbc)
         }
-    }
 
-    private fun wrapInCard(inner: JPanel): JPanel {
-        return JPanel(BorderLayout()).apply {
-            border = BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(JBColor.border(), 1),
-                JBUI.Borders.empty(10, 12)
-            )
+    private fun wrapInCard(inner: JPanel): JPanel =
+        JPanel(BorderLayout()).apply {
+            border =
+                BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(JBColor.border(), 1),
+                    JBUI.Borders.empty(10, 12),
+                )
             background = UIUtil.getPanelBackground()
             add(inner, BorderLayout.CENTER)
         }
-    }
 
-    private fun formatHours(hours: Double): String {
-        return when {
+    private fun formatHours(hours: Double): String =
+        when {
             hours < 1 -> "${(hours * 60).toInt()}m"
             hours < 24 -> String.format("%.1fh", hours)
             else -> String.format("%.1fd", hours / 24)
         }
-    }
 }

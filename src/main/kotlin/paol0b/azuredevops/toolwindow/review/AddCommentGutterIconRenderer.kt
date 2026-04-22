@@ -14,9 +14,8 @@ import javax.swing.Icon
  */
 class AddCommentGutterIconRenderer(
     private val line: Int,
-    private val onAddComment: (Int) -> Unit
+    private val onAddComment: (Int) -> Unit,
 ) : GutterIconRenderer() {
-
     override fun getIcon(): Icon = AllIcons.General.Add
 
     override fun getTooltipText(): String = "Add comment"
@@ -25,13 +24,12 @@ class AddCommentGutterIconRenderer(
 
     override fun getAlignment(): Alignment = Alignment.RIGHT
 
-    override fun getClickAction(): AnAction {
-        return object : AnAction() {
+    override fun getClickAction(): AnAction =
+        object : AnAction() {
             override fun actionPerformed(e: AnActionEvent) {
                 onAddComment(line)
             }
         }
-    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

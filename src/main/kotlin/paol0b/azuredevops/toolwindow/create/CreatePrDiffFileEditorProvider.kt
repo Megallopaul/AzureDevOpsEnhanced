@@ -10,15 +10,18 @@ import com.intellij.openapi.vfs.VirtualFile
 /**
  * Provider that creates a [CreatePrDiffFileEditor] for [CreatePrDiffVirtualFile] instances.
  */
-class CreatePrDiffFileEditorProvider : FileEditorProvider, DumbAware {
+class CreatePrDiffFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is CreatePrDiffVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is CreatePrDiffVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-        return CreatePrDiffFileEditor(project, file as CreatePrDiffVirtualFile)
-    }
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor = CreatePrDiffFileEditor(project, file as CreatePrDiffVirtualFile)
 
     override fun getEditorTypeId(): String = "azuredevops-create-pr-diff"
 

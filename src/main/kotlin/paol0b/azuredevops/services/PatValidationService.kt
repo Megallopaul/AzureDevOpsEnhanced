@@ -22,7 +22,6 @@ import java.util.Base64
  */
 @Service(Service.Level.APP)
 class PatValidationService {
-
     private val logger = Logger.getInstance(PatValidationService::class.java)
     private val gson = Gson()
 
@@ -31,9 +30,7 @@ class PatValidationService {
         private const val CONNECT_TIMEOUT = 10_000
         private const val READ_TIMEOUT = 10_000
 
-        fun getInstance(): PatValidationService {
-            return ApplicationManager.getApplication().getService(PatValidationService::class.java)
-        }
+        fun getInstance(): PatValidationService = ApplicationManager.getApplication().getService(PatValidationService::class.java)
     }
 
     /**
@@ -44,7 +41,7 @@ class PatValidationService {
         val canListProjects: Boolean = false,
         val canListRepos: Boolean = false,
         val canListPullRequests: Boolean = false,
-        val message: String
+        val message: String,
     )
 
     /**
@@ -54,7 +51,10 @@ class PatValidationService {
      * @param serverUrl Organisation base URL, e.g. `https://dev.azure.com/myorg`
      * @param pat       The Personal Access Token to validate
      */
-    fun validate(serverUrl: String, pat: String): ValidationResult {
+    fun validate(
+        serverUrl: String,
+        pat: String,
+    ): ValidationResult {
         val normalizedUrl = serverUrl.trimEnd('/')
         val authHeader = createBasicAuthHeader(pat)
 
@@ -64,7 +64,7 @@ class PatValidationService {
         if (!projectsResult.success) {
             return ValidationResult(
                 valid = false,
-                message = describeHttpError(projectsResult.statusCode, "list projects")
+                message = describeHttpError(projectsResult.statusCode, "list projects"),
             )
         }
 
@@ -74,7 +74,7 @@ class PatValidationService {
             return ValidationResult(
                 valid = true,
                 canListProjects = true,
-                message = "PAT is valid but no projects found in the organization."
+                message = "PAT is valid but no projects found in the organization.",
             )
         }
 
@@ -100,7 +100,7 @@ class PatValidationService {
                 canListProjects = true,
                 canListRepos = true,
                 canListPullRequests = true,
-                message = "PAT validated — Clone and Pull Request access confirmed."
+                message = "PAT validated — Clone and Pull Request access confirmed.",
             )
         } else {
             ValidationResult(
@@ -108,17 +108,24 @@ class PatValidationService {
                 canListProjects = true,
                 canListRepos = canListRepos,
                 canListPullRequests = canListPrs,
-                message = "PAT is missing permissions: ${issues.joinToString("; ")}"
+                message = "PAT is missing permissions: ${issues.joinToString("; ")}",
             )
         }
     }
 
     // ---- internal helpers ----
 
-    private data class HttpResult(val success: Boolean, val statusCode: Int, val body: String)
+    private data class HttpResult(
+        val success: Boolean,
+        val statusCode: Int,
+        val body: String,
+    )
 
-    private fun executeGet(url: String, authHeader: String): HttpResult {
-        return try {
+    private fun executeGet(
+        url: String,
+        authHeader: String,
+    ): HttpResult =
+        try {
             val connection = URI.create(url).toURL().openConnection() as java.net.HttpURLConnection
             try {
                 connection.requestMethod = "GET"
@@ -128,11 +135,12 @@ class PatValidationService {
                 connection.readTimeout = READ_TIMEOUT
 
                 val code = connection.responseCode
-                val body = if (code in 200..299) {
-                    connection.inputStream.bufferedReader().use { it.readText() }
-                } else {
-                    connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                }
+                val body =
+                    if (code in 200..299) {
+                        connection.inputStream.bufferedReader().use { it.readText() }
+                    } else {
+                        connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                    }
                 HttpResult(code in 200..299, code, body)
             } finally {
                 connection.disconnect()
@@ -141,19 +149,19 @@ class PatValidationService {
             logger.warn("PAT validation request failed: ${e.message}")
             HttpResult(false, -1, e.message ?: "Connection error")
         }
-    }
 
-    private fun extractFirstProjectName(json: String): String? {
-        return try {
+    private fun extractFirstProjectName(json: String): String? =
+        try {
             val obj = gson.fromJson(json, JsonObject::class.java)
             val arr = obj.getAsJsonArray("value")
             if (arr != null && arr.size() > 0) {
                 arr[0].asJsonObject.get("name")?.asString
-            } else null
+            } else {
+                null
+            }
         } catch (_: Exception) {
             null
         }
-    }
 
     private fun createBasicAuthHeader(pat: String): String {
         val credentials = ":$pat"
@@ -161,17 +169,20 @@ class PatValidationService {
         return "Basic $encoded"
     }
 
-    private fun encodePathSegment(value: String): String {
-        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8.toString()).replace("+", "%20")
-    }
+    private fun encodePathSegment(value: String): String =
+        java.net.URLEncoder
+            .encode(value, StandardCharsets.UTF_8.toString())
+            .replace("+", "%20")
 
-    private fun describeHttpError(statusCode: Int, action: String): String {
-        return when (statusCode) {
+    private fun describeHttpError(
+        statusCode: Int,
+        action: String,
+    ): String =
+        when (statusCode) {
             401 -> "Authentication failed (401). The PAT is invalid or revoked."
             403 -> "Insufficient permissions (403) to $action."
             404 -> "Organization not found (404). Please check the URL."
-            -1  -> "Could not connect to Azure DevOps. Please check the URL and your network."
+            -1 -> "Could not connect to Azure DevOps. Please check the URL and your network."
             else -> "HTTP $statusCode while trying to $action."
         }
-    }
 }

@@ -11,16 +11,22 @@ import paol0b.azuredevops.services.PrReviewTabService
 /**
  * Provider that creates a [PrTimelineFileEditor] for [PrTimelineVirtualFile] instances.
  */
-class PrTimelineFileEditorProvider : FileEditorProvider, DumbAware {
+class PrTimelineFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is PrTimelineVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is PrTimelineVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor {
         val timelineFile = file as PrTimelineVirtualFile
-        val pullRequest = PrReviewTabService.getInstance(project).getPullRequest(file)
-            ?: throw IllegalStateException("Missing pull request data for timeline PR #${timelineFile.pullRequestId}")
+        val pullRequest =
+            PrReviewTabService.getInstance(project).getPullRequest(file)
+                ?: throw IllegalStateException("Missing pull request data for timeline PR #${timelineFile.pullRequestId}")
         return PrTimelineFileEditor(project, file, pullRequest)
     }
 

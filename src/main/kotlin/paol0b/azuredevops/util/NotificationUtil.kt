@@ -9,23 +9,40 @@ import com.intellij.openapi.project.Project
  * Uses the single notification group registered in plugin.xml.
  */
 object NotificationUtil {
-
     private const val NOTIFICATION_GROUP_ID = "AzureDevOps.Notifications"
 
-    fun info(project: Project?, title: String, content: String) {
+    fun info(
+        project: Project?,
+        title: String,
+        content: String,
+    ) {
         notify(project, title, content, NotificationType.INFORMATION)
     }
 
-    fun warning(project: Project?, title: String, content: String) {
+    fun warning(
+        project: Project?,
+        title: String,
+        content: String,
+    ) {
         notify(project, title, content, NotificationType.WARNING)
     }
 
-    fun error(project: Project?, title: String, content: String) {
+    fun error(
+        project: Project?,
+        title: String,
+        content: String,
+    ) {
         notify(project, title, content, NotificationType.ERROR)
     }
 
-    fun notify(project: Project?, title: String, content: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
+    fun notify(
+        project: Project?,
+        title: String,
+        content: String,
+        type: NotificationType,
+    ) {
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP_ID)
             .createNotification(title, content, type)
             .notify(project)
@@ -39,11 +56,13 @@ object NotificationUtil {
         title: String,
         content: String,
         type: NotificationType,
-        vararg actions: com.intellij.openapi.actionSystem.AnAction
+        vararg actions: com.intellij.openapi.actionSystem.AnAction,
     ) {
-        val notification = NotificationGroupManager.getInstance()
-            .getNotificationGroup(NOTIFICATION_GROUP_ID)
-            .createNotification(title, content, type)
+        val notification =
+            NotificationGroupManager
+                .getInstance()
+                .getNotificationGroup(NOTIFICATION_GROUP_ID)
+                .createNotification(title, content, type)
 
         actions.forEach { notification.addAction(it) }
         notification.notify(project)

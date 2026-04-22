@@ -61,9 +61,9 @@ class DiffViewerPanel(
     private val project: Project,
     private val pullRequestId: Int,
     private val externalProjectName: String? = null,
-    private val externalRepositoryId: String? = null
-) : JPanel(BorderLayout()), Disposable {
-
+    private val externalRepositoryId: String? = null,
+) : JPanel(BorderLayout()),
+    Disposable {
     private val logger = Logger.getInstance(DiffViewerPanel::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
     private val diffContentFactory = DiffContentFactory.getInstance()
@@ -91,46 +91,57 @@ class DiffViewerPanel(
     private var hoverHighlighterBase: RangeHighlighter? = null
     private var hoverHighlighterChanges: RangeHighlighter? = null
 
-    private val placeholderLabel = JBLabel("Select a file to view diff").apply {
-        horizontalAlignment = JBLabel.CENTER
-        border = JBUI.Borders.empty(20)
-    }
+    private val placeholderLabel =
+        JBLabel("Select a file to view diff").apply {
+            horizontalAlignment = JBLabel.CENTER
+            border = JBUI.Borders.empty(20)
+        }
 
     init {
         minimumSize = Dimension(400, 0)
         preferredSize = Dimension(600, 0)
         add(placeholderLabel, BorderLayout.CENTER)
 
-        logger.info("DiffViewerPanel created: pullRequestId=$pullRequestId, externalProject=$externalProjectName, externalRepo=$externalRepositoryId")
+        logger.info(
+            "DiffViewerPanel created: pullRequestId=$pullRequestId, externalProject=$externalProjectName, externalRepo=$externalRepositoryId",
+        )
 
         // Listen for editor creation to attach interaction listeners
-        EditorFactory.getInstance().addEditorFactoryListener(object : EditorFactoryListener {
-            override fun editorCreated(event: EditorFactoryEvent) {
-                val editor = event.editor
-                if (editor.document != baseDocument && editor.document != changesDocument) return
+        EditorFactory.getInstance().addEditorFactoryListener(
+            object : EditorFactoryListener {
+                override fun editorCreated(event: EditorFactoryEvent) {
+                    val editor = event.editor
+                    if (editor.document != baseDocument && editor.document != changesDocument) return
 
-                if (editor.document == baseDocument) baseEditor = editor
-                else changesEditor = editor
-
-                // Show existing comments
-                ApplicationManager.getApplication().invokeLater {
-                    addInlineCommentsToEditor(editor)
-                }
-
-                // ── Hover "+" gutter icon (GitHub-style) ──
-                editor.addEditorMouseMotionListener(object : EditorMouseMotionListener {
-                    override fun mouseMoved(e: EditorMouseEvent) {
-                        val logicalPos = editor.xyToLogicalPosition(e.mouseEvent.point)
-                        val line = logicalPos.line
-                        if (line < 0 || line >= editor.document.lineCount) {
-                            removeHoverHighlighter(editor)
-                            return
-                        }
-                        showHoverAddIcon(editor, line)
+                    if (editor.document == baseDocument) {
+                        baseEditor = editor
+                    } else {
+                        changesEditor = editor
                     }
-                })
-            }
-        }, this)
+
+                    // Show existing comments
+                    ApplicationManager.getApplication().invokeLater {
+                        addInlineCommentsToEditor(editor)
+                    }
+
+                    // ── Hover "+" gutter icon (GitHub-style) ──
+                    editor.addEditorMouseMotionListener(
+                        object : EditorMouseMotionListener {
+                            override fun mouseMoved(e: EditorMouseEvent) {
+                                val logicalPos = editor.xyToLogicalPosition(e.mouseEvent.point)
+                                val line = logicalPos.line
+                                if (line < 0 || line >= editor.document.lineCount) {
+                                    removeHoverHighlighter(editor)
+                                    return
+                                }
+                                showHoverAddIcon(editor, line)
+                            }
+                        },
+                    )
+                }
+            },
+            this,
+        )
     }
 
     // ==================================================================
@@ -140,7 +151,10 @@ class DiffViewerPanel(
     /**
      * Show or move the "+" add-comment gutter icon on the hovered line.
      */
-    private fun showHoverAddIcon(editor: Editor, line: Int) {
+    private fun showHoverAddIcon(
+        editor: Editor,
+        line: Int,
+    ) {
         val isBase = editor.document == baseDocument
         val existing = if (isBase) hoverHighlighterBase else hoverHighlighterChanges
 
@@ -156,28 +170,37 @@ class DiffViewerPanel(
         if (line >= editor.document.lineCount) return
         val offset = editor.document.getLineStartOffset(line)
 
-        val highlighter = editor.markupModel.addRangeHighlighter(
-            offset, offset,
-            HighlighterLayer.LAST + 100,
-            null,
-            HighlighterTargetArea.LINES_IN_RANGE
-        )
+        val highlighter =
+            editor.markupModel.addRangeHighlighter(
+                offset,
+                offset,
+                HighlighterLayer.LAST + 100,
+                null,
+                HighlighterTargetArea.LINES_IN_RANGE,
+            )
 
-        highlighter.gutterIconRenderer = AddCommentGutterIconRenderer(line) { clickedLine ->
-            removeHoverHighlighter(editor)
-            showInlineCommentEditor(editor, clickedLine)
+        highlighter.gutterIconRenderer =
+            AddCommentGutterIconRenderer(line) { clickedLine ->
+                removeHoverHighlighter(editor)
+                showInlineCommentEditor(editor, clickedLine)
+            }
+
+        if (isBase) {
+            hoverHighlighterBase = highlighter
+        } else {
+            hoverHighlighterChanges = highlighter
         }
-
-        if (isBase) hoverHighlighterBase = highlighter
-        else hoverHighlighterChanges = highlighter
     }
 
     private fun removeHoverHighlighter(editor: Editor) {
         val isBase = editor.document == baseDocument
         val hl = if (isBase) hoverHighlighterBase else hoverHighlighterChanges
         if (hl != null && hl.isValid) hl.dispose()
-        if (isBase) hoverHighlighterBase = null
-        else hoverHighlighterChanges = null
+        if (isBase) {
+            hoverHighlighterBase = null
+        } else {
+            hoverHighlighterChanges = null
+        }
     }
 
     // ==================================================================
@@ -187,7 +210,10 @@ class DiffViewerPanel(
     /**
      * Show the GitHub-style "Add Review Comment" editor below the specified line.
      */
-    private fun showInlineCommentEditor(editor: Editor, line0based: Int) {
+    private fun showInlineCommentEditor(
+        editor: Editor,
+        line0based: Int,
+    ) {
         val filePath = currentChange?.effectivePath()?.takeIf { it.isNotBlank() }
         if (filePath.isNullOrBlank()) return
 
@@ -198,33 +224,36 @@ class DiffViewerPanel(
         // Use a holder so the lambda can capture it before the popup is built.
         var popupRef: com.intellij.openapi.ui.popup.JBPopup? = null
 
-        val component = InlineCommentEditorComponent(
-            project = project,
-            apiClient = apiClient,
-            pullRequestId = pullRequestId,
-            filePath = filePath,
-            lineNumber = lineNumber,
-            isLeftSide = isBase,
-            projectName = externalProjectName,
-            repositoryId = externalRepositoryId,
-            changeTrackingId = currentChange?.changeTrackingId,
-            onCommentAdded = {
-                popupRef?.cancel()
-                refreshInlineComments()
-            },
-            onCancel = { popupRef?.cancel() }
-        )
+        val component =
+            InlineCommentEditorComponent(
+                project = project,
+                apiClient = apiClient,
+                pullRequestId = pullRequestId,
+                filePath = filePath,
+                lineNumber = lineNumber,
+                isLeftSide = isBase,
+                projectName = externalProjectName,
+                repositoryId = externalRepositoryId,
+                changeTrackingId = currentChange?.changeTrackingId,
+                onCommentAdded = {
+                    popupRef?.cancel()
+                    refreshInlineComments()
+                },
+                onCancel = { popupRef?.cancel() },
+            )
         component.preferredSize = Dimension(480, component.preferredSize.height.coerceAtLeast(150))
 
-        val popup = JBPopupFactory.getInstance()
-            .createComponentPopupBuilder(component, component)
-            .setMovable(false)
-            .setResizable(false)
-            .setRequestFocus(true)
-            .setCancelOnClickOutside(true)
-            .setCancelOnOtherWindowOpen(false)
-            .setCancelKeyEnabled(true)
-            .createPopup()
+        val popup =
+            JBPopupFactory
+                .getInstance()
+                .createComponentPopupBuilder(component, component)
+                .setMovable(false)
+                .setResizable(false)
+                .setRequestFocus(true)
+                .setCancelOnClickOutside(true)
+                .setCancelOnOtherWindowOpen(false)
+                .setCancelKeyEnabled(true)
+                .createPopup()
         popupRef = popup
 
         // Position below the target line
@@ -240,11 +269,12 @@ class DiffViewerPanel(
         val isBase = editor.document == baseDocument
         val filePath = currentChange?.effectivePath()?.takeIf { it.isNotBlank() } ?: return
 
-        val relevantThreads = cachedThreads.filter { thread ->
-            val ctx = thread.pullRequestThreadContext ?: thread.threadContext
-            val isLeftSide = ctx?.leftFileStart != null && ctx.rightFileStart == null
-            isLeftSide == isBase
-        }
+        val relevantThreads =
+            cachedThreads.filter { thread ->
+                val ctx = thread.pullRequestThreadContext ?: thread.threadContext
+                val isLeftSide = ctx?.leftFileStart != null && ctx.rightFileStart == null
+                isLeftSide == isBase
+            }
 
         logger.info("Adding ${relevantThreads.size} inline comments to ${if (isBase) "base" else "changes"} editor for $filePath")
 
@@ -256,7 +286,10 @@ class DiffViewerPanel(
     /**
      * Add a persistent comment bubble gutter icon + line highlight for an existing thread.
      */
-    private fun addGutterIconForThread(editor: Editor, thread: CommentThread) {
+    private fun addGutterIconForThread(
+        editor: Editor,
+        thread: CommentThread,
+    ) {
         val ctx = thread.pullRequestThreadContext ?: thread.threadContext ?: return
         val startLine = ctx.rightFileStart?.line ?: ctx.leftFileStart?.line ?: return
         val endLine = ctx.rightFileEnd?.line ?: ctx.leftFileEnd?.line ?: startLine
@@ -273,45 +306,56 @@ class DiffViewerPanel(
         val endOffset = editor.document.getLineEndOffset(endLine0)
 
         // Subtle line highlight
-        val highlightColor = if (thread.isActive()) {
-            JBColor(Color(255, 248, 200, 50), Color(80, 70, 30, 50))
-        } else {
-            JBColor(Color(200, 255, 200, 50), Color(30, 60, 30, 50))
-        }
+        val highlightColor =
+            if (thread.isActive()) {
+                JBColor(Color(255, 248, 200, 50), Color(80, 70, 30, 50))
+            } else {
+                JBColor(Color(200, 255, 200, 50), Color(30, 60, 30, 50))
+            }
 
-        val highlighter = editor.markupModel.addRangeHighlighter(
-            startOffset, endOffset,
-            HighlighterLayer.SELECTION - 1,
-            TextAttributes().apply { backgroundColor = highlightColor },
-            HighlighterTargetArea.LINES_IN_RANGE
-        )
+        val highlighter =
+            editor.markupModel.addRangeHighlighter(
+                startOffset,
+                endOffset,
+                HighlighterLayer.SELECTION - 1,
+                TextAttributes().apply { backgroundColor = highlightColor },
+                HighlighterTargetArea.LINES_IN_RANGE,
+            )
 
         // Comment bubble gutter icon
         val icon = if (thread.isActive()) AllIcons.General.Balloon else AllIcons.General.InspectionsOK
         val commentCount = thread.comments?.size ?: 0
-        val authorName = thread.comments?.firstOrNull()?.author?.displayName ?: "Unknown"
+        val authorName =
+            thread.comments
+                ?.firstOrNull()
+                ?.author
+                ?.displayName ?: "Unknown"
 
-        highlighter.gutterIconRenderer = object : GutterIconRenderer() {
-            override fun getIcon() = icon
-            override fun getTooltipText() = "$authorName ($commentCount ${if (commentCount == 1) "comment" else "comments"}) — click to view"
-            override fun isNavigateAction() = true
-            override fun getAlignment() = Alignment.LEFT
+        highlighter.gutterIconRenderer =
+            object : GutterIconRenderer() {
+                override fun getIcon() = icon
 
-            override fun getClickAction(): AnAction {
-                return object : AnAction() {
-                    override fun actionPerformed(e: AnActionEvent) {
-                        showCommentThreadPopup(editor, thread, startLine0)
+                override fun getTooltipText() =
+                    "$authorName ($commentCount ${if (commentCount == 1) "comment" else "comments"}) — click to view"
+
+                override fun isNavigateAction() = true
+
+                override fun getAlignment() = Alignment.LEFT
+
+                override fun getClickAction(): AnAction =
+                    object : AnAction() {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            showCommentThreadPopup(editor, thread, startLine0)
+                        }
                     }
+
+                override fun equals(other: Any?): Boolean {
+                    if (other !is GutterIconRenderer) return false
+                    return this.hashCode() == other.hashCode()
                 }
-            }
 
-            override fun equals(other: Any?): Boolean {
-                if (other !is GutterIconRenderer) return false
-                return this.hashCode() == other.hashCode()
+                override fun hashCode() = 31 * (thread.id ?: 0) + "comment_gutter".hashCode()
             }
-
-            override fun hashCode() = 31 * (thread.id ?: 0) + "comment_gutter".hashCode()
-        }
 
         activeHighlighters.add(highlighter)
         logger.info("Added comment gutter icon for thread ${thread.id} at lines $startLine-$endLine")
@@ -321,30 +365,38 @@ class DiffViewerPanel(
      * Show a comment thread in a lightweight popup positioned below the line.
      * Styled borderless to feel embedded, matching GitHub plugin behavior.
      */
-    private fun showCommentThreadPopup(editor: Editor, thread: CommentThread, lineIndex: Int) {
-        val commentComponent = InlineCommentComponent(
-            thread = thread,
-            apiClient = apiClient,
-            pullRequestId = pullRequestId,
-            projectName = externalProjectName,
-            repositoryId = externalRepositoryId,
-            onStatusChanged = { refreshInlineComments() },
-            onReplyAdded = { refreshInlineComments() }
-        )
+    private fun showCommentThreadPopup(
+        editor: Editor,
+        thread: CommentThread,
+        lineIndex: Int,
+    ) {
+        val commentComponent =
+            InlineCommentComponent(
+                thread = thread,
+                apiClient = apiClient,
+                pullRequestId = pullRequestId,
+                projectName = externalProjectName,
+                repositoryId = externalRepositoryId,
+                onStatusChanged = { refreshInlineComments() },
+                onReplyAdded = { refreshInlineComments() },
+            )
 
-        commentComponent.preferredSize = Dimension(
-            480,
-            commentComponent.preferredSize.height.coerceAtLeast(120)
-        )
+        commentComponent.preferredSize =
+            Dimension(
+                480,
+                commentComponent.preferredSize.height.coerceAtLeast(120),
+            )
 
-        val popup = JBPopupFactory.getInstance()
-            .createComponentPopupBuilder(commentComponent, commentComponent)
-            .setMovable(true)
-            .setResizable(true)
-            .setRequestFocus(true)
-            .setCancelOnClickOutside(true)
-            .setCancelOnOtherWindowOpen(false)
-            .createPopup()
+        val popup =
+            JBPopupFactory
+                .getInstance()
+                .createComponentPopupBuilder(commentComponent, commentComponent)
+                .setMovable(true)
+                .setResizable(true)
+                .setRequestFocus(true)
+                .setCancelOnClickOutside(true)
+                .setCancelOnOtherWindowOpen(false)
+                .createPopup()
 
         val lineY = editor.logicalPositionToXY(LogicalPosition(lineIndex + 1, 0))
         popup.show(RelativePoint(editor.contentComponent, Point(40, lineY.y)))
@@ -355,10 +407,11 @@ class DiffViewerPanel(
     // ==================================================================
 
     fun loadDiff(change: PullRequestChange) {
-        val filePath = change.effectivePath().takeIf { it.isNotBlank() } ?: run {
-            showError("Invalid file path")
-            return
-        }
+        val filePath =
+            change.effectivePath().takeIf { it.isNotBlank() } ?: run {
+                showError("Invalid file path")
+                return
+            }
 
         clearDiff()
         currentChange = change
@@ -383,15 +436,14 @@ class DiffViewerPanel(
         }
     }
 
-    private fun fetchCommentThreads(filePath: String): List<CommentThread> {
-        return try {
+    private fun fetchCommentThreads(filePath: String): List<CommentThread> =
+        try {
             val allThreads = apiClient.getCommentThreads(pullRequestId, externalProjectName, externalRepositoryId)
             allThreads.filter { it.getFilePath() == filePath && it.isDeleted != true }
         } catch (e: Exception) {
             logger.warn("Failed to fetch comment threads for $filePath: ${e.message}")
             emptyList()
         }
-    }
 
     private fun fetchFileContents(change: PullRequestChange): Pair<String, String> {
         // effectivePath() handles deleted files where item may be null (falls back to originalPath)
@@ -406,30 +458,62 @@ class DiffViewerPanel(
 
         return when {
             change.hasChangeType("add") && !change.hasChangeType("delete") -> {
-                val newContent = if (sourceCommit != null) {
-                    try { apiClient.getFileContent(sourceCommit, filePath, externalProjectName, externalRepositoryId) }
-                    catch (_: Exception) { "" }
-                } else ""
+                val newContent =
+                    if (sourceCommit != null) {
+                        try {
+                            apiClient.getFileContent(sourceCommit, filePath, externalProjectName, externalRepositoryId)
+                        } catch (
+                            _: Exception,
+                        ) {
+                            ""
+                        }
+                    } else {
+                        ""
+                    }
                 "" to newContent
             }
             change.hasChangeType("delete") && !change.hasChangeType("add") -> {
                 val oldPath = change.previousPath()
-                val oldContent = if (targetCommit != null) {
-                    try { apiClient.getFileContent(targetCommit, oldPath, externalProjectName, externalRepositoryId) }
-                    catch (_: Exception) { "" }
-                } else ""
+                val oldContent =
+                    if (targetCommit != null) {
+                        try {
+                            apiClient.getFileContent(targetCommit, oldPath, externalProjectName, externalRepositoryId)
+                        } catch (
+                            _: Exception,
+                        ) {
+                            ""
+                        }
+                    } else {
+                        ""
+                    }
                 oldContent to ""
             }
             change.hasChangeType("edit") || change.hasChangeType("rename") -> {
                 val oldPath = change.previousPath()
-                val oldContent = if (targetCommit != null) {
-                    try { apiClient.getFileContent(targetCommit, oldPath, externalProjectName, externalRepositoryId) }
-                    catch (_: Exception) { "" }
-                } else ""
-                val newContent = if (sourceCommit != null) {
-                    try { apiClient.getFileContent(sourceCommit, filePath, externalProjectName, externalRepositoryId) }
-                    catch (_: Exception) { "" }
-                } else ""
+                val oldContent =
+                    if (targetCommit != null) {
+                        try {
+                            apiClient.getFileContent(targetCommit, oldPath, externalProjectName, externalRepositoryId)
+                        } catch (
+                            _: Exception,
+                        ) {
+                            ""
+                        }
+                    } else {
+                        ""
+                    }
+                val newContent =
+                    if (sourceCommit != null) {
+                        try {
+                            apiClient.getFileContent(sourceCommit, filePath, externalProjectName, externalRepositoryId)
+                        } catch (
+                            _: Exception,
+                        ) {
+                            ""
+                        }
+                    } else {
+                        ""
+                    }
                 oldContent to newContent
             }
             else -> {
@@ -439,7 +523,12 @@ class DiffViewerPanel(
         }
     }
 
-    private fun displayDiff(filePath: String, oldContent: String, newContent: String, changeType: String) {
+    private fun displayDiff(
+        filePath: String,
+        oldContent: String,
+        newContent: String,
+        changeType: String,
+    ) {
         removeAll()
 
         val fileName = filePath.substringAfterLast('/')
@@ -454,19 +543,25 @@ class DiffViewerPanel(
         val pr = cachedPullRequest
         val targetBranch = pr?.targetRefName?.substringAfterLast('/') ?: "Base"
         val sourceBranch = pr?.sourceRefName?.substringAfterLast('/') ?: "Changes"
-        val (leftTitle, rightTitle) = currentChange?.diffSideTitles(targetBranch, sourceBranch)
-            ?: ("Base ($targetBranch)" to "Changes ($sourceBranch)")
+        val (leftTitle, rightTitle) =
+            currentChange?.diffSideTitles(targetBranch, sourceBranch)
+                ?: ("Base ($targetBranch)" to "Changes ($sourceBranch)")
         val diffTitleSuffix = currentChange?.displayChangeLabel()?.let { " [$it]" }.orEmpty()
 
-        val diffRequest = SimpleDiffRequest(
-            "PR #$pullRequestId: $fileName$diffTitleSuffix",
-            content1, content2, leftTitle, rightTitle
-        )
+        val diffRequest =
+            SimpleDiffRequest(
+                "PR #$pullRequestId: $fileName$diffTitleSuffix",
+                content1,
+                content2,
+                leftTitle,
+                rightTitle,
+            )
 
         val diffManager = DiffManager.getInstance()
-        val panel = diffManager.createRequestPanel(project, this, null).apply {
-            setRequest(diffRequest)
-        }
+        val panel =
+            diffManager.createRequestPanel(project, this, null).apply {
+                setRequest(diffRequest)
+            }
         currentDiffPanel = panel
 
         add(panel.component, BorderLayout.CENTER)
@@ -538,20 +633,26 @@ class DiffViewerPanel(
 
     private fun showLoading(fileName: String) {
         removeAll()
-        add(JBLabel("Loading diff for $fileName…").apply {
-            horizontalAlignment = JBLabel.CENTER
-            border = JBUI.Borders.empty(20)
-        }, BorderLayout.CENTER)
+        add(
+            JBLabel("Loading diff for $fileName…").apply {
+                horizontalAlignment = JBLabel.CENTER
+                border = JBUI.Borders.empty(20)
+            },
+            BorderLayout.CENTER,
+        )
         revalidate()
         repaint()
     }
 
     private fun showError(message: String) {
         removeAll()
-        add(JBLabel("❌ $message").apply {
-            horizontalAlignment = JBLabel.CENTER
-            border = JBUI.Borders.empty(20)
-        }, BorderLayout.CENTER)
+        add(
+            JBLabel("❌ $message").apply {
+                horizontalAlignment = JBLabel.CENTER
+                border = JBUI.Borders.empty(20)
+            },
+            BorderLayout.CENTER,
+        )
         revalidate()
         repaint()
     }

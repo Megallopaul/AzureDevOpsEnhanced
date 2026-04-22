@@ -18,8 +18,9 @@ import javax.swing.*
  * Uses the same filter-panel + JBList approach as the PR tool window.
  * Board view opens as a full editor tab for maximum space.
  */
-class WorkItemToolWindow(private val project: Project) {
-
+class WorkItemToolWindow(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(WorkItemToolWindow::class.java)
     private val mainPanel: SimpleToolWindowPanel
     val workItemListPanel: WorkItemListPanel
@@ -36,10 +37,11 @@ class WorkItemToolWindow(private val project: Project) {
         workItemListPanel = WorkItemListPanel(project)
         contentPanel.add(workItemListPanel.getComponent(), VIEW_LIST)
 
-        mainPanel = SimpleToolWindowPanel(true, true).apply {
-            toolbar = createToolbar()
-            setContent(contentPanel)
-        }
+        mainPanel =
+            SimpleToolWindowPanel(true, true).apply {
+                toolbar = createToolbar()
+                setContent(contentPanel)
+            }
 
         loadIterations()
     }
@@ -58,74 +60,90 @@ class WorkItemToolWindow(private val project: Project) {
     fun getContent(): JPanel = mainPanel
 
     private fun createToolbar(): JPanel {
-        val actionGroup = DefaultActionGroup().apply {
-            add(object : AnAction("New Work Item", "Create a new work item", AllIcons.General.Add) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    CreateWorkItemDialog.showDialog(project) { created ->
-                        if (created != null) {
-                            workItemListPanel.refreshWorkItems()
-                        }
-                    }
-                }
-            })
-
-            addSeparator()
-
-            add(object : AnAction("Refresh", "Refresh work items", AllIcons.Actions.Refresh) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    refreshAll()
-                }
-            })
-
-            addSeparator()
-
-            // View modes
-            add(object : AnAction("List View", "Show as flat list", AllIcons.Actions.GroupBy) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    sprintViewPanel?.stopAutoRefresh()
-                    val cardLayout = contentPanel.layout as CardLayout
-                    cardLayout.show(contentPanel, VIEW_LIST)
-                }
-            })
-            add(object : AnAction("Sprint View", "Show grouped by sprint state", AllIcons.Actions.GroupByPackage) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    val panel = sprintViewPanel ?: SprintViewPanel(project).also {
-                        sprintViewPanel = it
-                        contentPanel.add(it.getComponent(), VIEW_SPRINT)
-                    }
-                    panel.refresh()
-                    val cardLayout = contentPanel.layout as CardLayout
-                    cardLayout.show(contentPanel, VIEW_SPRINT)
-                }
-            })
-            add(object : AnAction("Open Board", "Open Kanban board as editor tab", AllIcons.Actions.MoveToWindow) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    WorkItemTabService.getInstance(project).openBoardTab(null, "")
-                }
-            })
-
-            addSeparator()
-
-            add(object : AnAction("Open in Browser", "Open selected work item in browser", AllIcons.Ide.External_link_arrow) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    workItemListPanel.getSelectedWorkItem()?.getWebUrl()?.let { url ->
-                        if (url.isNotBlank()) {
-                            try {
-                                if (java.awt.Desktop.isDesktopSupported()) {
-                                    java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+        val actionGroup =
+            DefaultActionGroup().apply {
+                add(
+                    object : AnAction("New Work Item", "Create a new work item", AllIcons.General.Add) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            CreateWorkItemDialog.showDialog(project) { created ->
+                                if (created != null) {
+                                    workItemListPanel.refreshWorkItems()
                                 }
-                            } catch (ex: Exception) {
-                                logger.warn("Failed to open in browser: ${ex.message}")
                             }
                         }
-                    }
-                }
+                    },
+                )
 
-                override fun update(e: AnActionEvent) {
-                    e.presentation.isEnabled = workItemListPanel.getSelectedWorkItem() != null
-                }
-            })
-        }
+                addSeparator()
+
+                add(
+                    object : AnAction("Refresh", "Refresh work items", AllIcons.Actions.Refresh) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            refreshAll()
+                        }
+                    },
+                )
+
+                addSeparator()
+
+                // View modes
+                add(
+                    object : AnAction("List View", "Show as flat list", AllIcons.Actions.GroupBy) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            sprintViewPanel?.stopAutoRefresh()
+                            val cardLayout = contentPanel.layout as CardLayout
+                            cardLayout.show(contentPanel, VIEW_LIST)
+                        }
+                    },
+                )
+                add(
+                    object : AnAction("Sprint View", "Show grouped by sprint state", AllIcons.Actions.GroupByPackage) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            val panel =
+                                sprintViewPanel ?: SprintViewPanel(project).also {
+                                    sprintViewPanel = it
+                                    contentPanel.add(it.getComponent(), VIEW_SPRINT)
+                                }
+                            panel.refresh()
+                            val cardLayout = contentPanel.layout as CardLayout
+                            cardLayout.show(contentPanel, VIEW_SPRINT)
+                        }
+                    },
+                )
+                add(
+                    object : AnAction("Open Board", "Open Kanban board as editor tab", AllIcons.Actions.MoveToWindow) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            WorkItemTabService.getInstance(project).openBoardTab(null, "")
+                        }
+                    },
+                )
+
+                addSeparator()
+
+                add(
+                    object : AnAction("Open in Browser", "Open selected work item in browser", AllIcons.Ide.External_link_arrow) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            workItemListPanel.getSelectedWorkItem()?.getWebUrl()?.let { url ->
+                                if (url.isNotBlank()) {
+                                    try {
+                                        if (java.awt.Desktop.isDesktopSupported()) {
+                                            java.awt.Desktop
+                                                .getDesktop()
+                                                .browse(java.net.URI(url))
+                                        }
+                                    } catch (ex: Exception) {
+                                        logger.warn("Failed to open in browser: ${ex.message}")
+                                    }
+                                }
+                            }
+                        }
+
+                        override fun update(e: AnActionEvent) {
+                            e.presentation.isEnabled = workItemListPanel.getSelectedWorkItem() != null
+                        }
+                    },
+                )
+            }
 
         val toolbar = ActionManager.getInstance().createActionToolbar("AzureDevOpsWorkItemToolbar", actionGroup, true)
         toolbar.targetComponent = mainPanel

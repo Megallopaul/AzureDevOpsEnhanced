@@ -7,18 +7,16 @@ import java.net.URI
  * Shared utility functions used across the plugin.
  */
 object PluginUtil {
-
     /**
      * Returns true if the IDE is running in internal/dev mode.
      */
-    fun isDevMode(): Boolean {
-        return try {
+    fun isDevMode(): Boolean =
+        try {
             val app = ApplicationManager.getApplication()
             app != null && app.isInternal
         } catch (_: Throwable) {
             false
         }
-    }
 
     /**
      * Extracts the organization name from an Azure DevOps URL.
@@ -60,7 +58,9 @@ object PluginUtil {
         return when {
             message.contains("TF401027") -> "Branch policies are not met. Consider using auto-complete or override policies."
             message.contains("TF401171") -> "You don't have permission to perform this action."
-            message.contains("TF401179") -> "Only the pull request author can perform this action, or the PR must have at least one approved reviewer."
+            message.contains(
+                "TF401179",
+            ) -> "Only the pull request author can perform this action, or the PR must have at least one approved reviewer."
             message.contains("TF401181") -> "Required reviewers must approve before completion."
             else -> message.take(200)
         }

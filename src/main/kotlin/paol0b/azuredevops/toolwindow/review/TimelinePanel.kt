@@ -34,9 +34,8 @@ import javax.swing.*
  */
 class TimelinePanel(
     private val project: Project,
-    private val pullRequest: PullRequest
+    private val pullRequest: PullRequest,
 ) : JPanel(BorderLayout()) {
-
     private val logger = Logger.getInstance(TimelinePanel::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
     private val avatarService = AvatarService.getInstance(project)
@@ -44,20 +43,23 @@ class TimelinePanel(
     // ── UI containers ──
     private val voteBadgePanel = VoteBadgePanel(project)
 
-    private val timelineContainer = object : JPanel() {
-        init {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            isOpaque = true
-            border = JBUI.Borders.empty(8, 14)
+    private val timelineContainer =
+        object : JPanel() {
+            init {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = true
+                border = JBUI.Borders.empty(8, 14)
+            }
+
+            override fun getBackground(): Color = TimelineTheme.SURFACE
         }
-        override fun getBackground(): Color = TimelineTheme.SURFACE
-    }
 
     private lateinit var scrollPane: JBScrollPane
 
     // ── Polling state ──
     private var scheduler: ScheduledExecutorService? = null
     private var lastDataHash: Int = 0
+
     @Volatile private var latestPullRequest: PullRequest = pullRequest
 
     companion object;
@@ -74,61 +76,73 @@ class TimelinePanel(
     // ==================================================================
 
     private fun setupUI() {
-        val topPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-        }
+        val topPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+            }
 
         // ── Header row ──
-        val header = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(8, 14, 2, 14)
-            maximumSize = Dimension(Int.MAX_VALUE, 36)
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
-        header.add(JBLabel("Timeline — PR #${pullRequest.pullRequestId}").apply {
-            icon = AllIcons.Vcs.History
-            font = font.deriveFont(Font.BOLD, 14f)
-        }, BorderLayout.WEST)
+        val header =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(8, 14, 2, 14)
+                maximumSize = Dimension(Int.MAX_VALUE, 36)
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
+        header.add(
+            JBLabel("Timeline — PR #${pullRequest.pullRequestId}").apply {
+                icon = AllIcons.Vcs.History
+                font = font.deriveFont(Font.BOLD, 14f)
+            },
+            BorderLayout.WEST,
+        )
 
         // Refresh button
-        val refreshBtn = JButton().apply {
-            icon = AllIcons.Actions.Refresh
-            toolTipText = "Refresh timeline"
-            isBorderPainted = false
-            isContentAreaFilled = false
-            preferredSize = Dimension(28, 28)
-            addActionListener { loadTimeline() }
-        }
+        val refreshBtn =
+            JButton().apply {
+                icon = AllIcons.Actions.Refresh
+                toolTipText = "Refresh timeline"
+                isBorderPainted = false
+                isContentAreaFilled = false
+                preferredSize = Dimension(28, 28)
+                addActionListener { loadTimeline() }
+            }
         header.add(refreshBtn, BorderLayout.EAST)
 
         topPanel.add(header)
 
         // ── Vote badges ──
-        val badgeWrapper = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(0, 14, 0, 14)
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val badgeWrapper =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(0, 14, 0, 14)
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
         badgeWrapper.add(voteBadgePanel, BorderLayout.CENTER)
         topPanel.add(badgeWrapper)
 
         // ── Separator ──
-        topPanel.add(JSeparator().apply {
-            maximumSize = Dimension(Int.MAX_VALUE, 1)
-            alignmentX = Component.LEFT_ALIGNMENT
-        })
+        topPanel.add(
+            JSeparator().apply {
+                maximumSize = Dimension(Int.MAX_VALUE, 1)
+                alignmentX = Component.LEFT_ALIGNMENT
+            },
+        )
 
         // ── Time direction indicator ──
-        val dirLabel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 2)).apply {
-            background = UIUtil.getPanelBackground()
-            alignmentX = Component.LEFT_ALIGNMENT
-            border = JBUI.Borders.empty(4, 14, 0, 14)
-        }
-        dirLabel.add(JBLabel("▲ Older").apply {
-            foreground = JBColor.GRAY
-            font = font.deriveFont(Font.ITALIC, 10f)
-        })
+        val dirLabel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 2)).apply {
+                background = UIUtil.getPanelBackground()
+                alignmentX = Component.LEFT_ALIGNMENT
+                border = JBUI.Borders.empty(4, 14, 0, 14)
+            }
+        dirLabel.add(
+            JBLabel("▲ Older").apply {
+                foreground = JBColor.GRAY
+                font = font.deriveFont(Font.ITALIC, 10f)
+            },
+        )
         topPanel.add(dirLabel)
 
         add(topPanel, BorderLayout.NORTH)
@@ -136,22 +150,26 @@ class TimelinePanel(
         // ── Loading placeholder ──
         timelineContainer.add(createLoadingLabel())
 
-        scrollPane = JBScrollPane(timelineContainer).apply {
-            border = JBUI.Borders.empty()
-            verticalScrollBar.unitIncrement = 20
-            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-        }
+        scrollPane =
+            JBScrollPane(timelineContainer).apply {
+                border = JBUI.Borders.empty()
+                verticalScrollBar.unitIncrement = 20
+                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+            }
         add(scrollPane, BorderLayout.CENTER)
 
         // ── Bottom direction indicator ──
-        val bottomDir = JPanel(FlowLayout(FlowLayout.LEFT, 6, 2)).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(2, 14, 6, 14)
-        }
-        bottomDir.add(JBLabel("▼ Newer").apply {
-            foreground = JBColor.GRAY
-            font = font.deriveFont(Font.ITALIC, 10f)
-        })
+        val bottomDir =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 2)).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(2, 14, 6, 14)
+            }
+        bottomDir.add(
+            JBLabel("▼ Newer").apply {
+                foreground = JBColor.GRAY
+                font = font.deriveFont(Font.ITALIC, 10f)
+            },
+        )
         add(bottomDir, BorderLayout.SOUTH)
     }
 
@@ -167,13 +185,16 @@ class TimelinePanel(
             try {
                 val threads = apiClient.getCommentThreads(pullRequest.pullRequestId, projectName, repositoryId)
                 // Re-fetch PR for up-to-date reviewers
-                val freshPr = try {
-                    apiClient.getPullRequest(pullRequest.pullRequestId, projectName, repositoryId)
-                } catch (_: Exception) { pullRequest }
+                val freshPr =
+                    try {
+                        apiClient.getPullRequest(pullRequest.pullRequestId, projectName, repositoryId)
+                    } catch (_: Exception) {
+                        pullRequest
+                    }
                 latestPullRequest = freshPr
 
                 val hash = TimelineConverter.calculateHash(threads, freshPr.reviewers)
-                if (hash == lastDataHash) return@executeOnPooledThread    // nothing changed
+                if (hash == lastDataHash) return@executeOnPooledThread // nothing changed
                 lastDataHash = hash
 
                 val entries = TimelineConverter.buildEntries(freshPr, threads)
@@ -195,10 +216,12 @@ class TimelinePanel(
                 logger.error("Failed to load timeline", e)
                 ApplicationManager.getApplication().invokeLater {
                     timelineContainer.removeAll()
-                    timelineContainer.add(JBLabel("Failed to load timeline: ${e.message}").apply {
-                        foreground = JBColor.RED
-                        alignmentX = Component.LEFT_ALIGNMENT
-                    })
+                    timelineContainer.add(
+                        JBLabel("Failed to load timeline: ${e.message}").apply {
+                            foreground = JBColor.RED
+                            alignmentX = Component.LEFT_ALIGNMENT
+                        },
+                    )
                     timelineContainer.revalidate()
                     timelineContainer.repaint()
                 }
@@ -210,7 +233,11 @@ class TimelinePanel(
     //  Rendering
     // ==================================================================
 
-    private fun renderTimeline(entries: List<TimelineEntry>, voteSummaries: List<ReviewerVoteSummary>, prSnapshot: PullRequest) {
+    private fun renderTimeline(
+        entries: List<TimelineEntry>,
+        voteSummaries: List<ReviewerVoteSummary>,
+        prSnapshot: PullRequest,
+    ) {
         // Remember scroll position
         val scrollBar = scrollPane.verticalScrollBar
         val wasAtBottom = scrollBar.value + scrollBar.visibleAmount >= scrollBar.maximum - 20
@@ -223,21 +250,25 @@ class TimelinePanel(
         timelineContainer.removeAll()
 
         if (entries.isEmpty()) {
-            timelineContainer.add(JBLabel("No timeline events found.").apply {
-                foreground = JBColor.GRAY
-                alignmentX = Component.LEFT_ALIGNMENT
-            })
+            timelineContainer.add(
+                JBLabel("No timeline events found.").apply {
+                    foreground = JBColor.GRAY
+                    alignmentX = Component.LEFT_ALIGNMENT
+                },
+            )
         } else {
             for (entry in entries) {
                 when (entry.type) {
                     TimelineEntryType.COMMENT_THREAD -> {
-                        timelineContainer.add(CommentCardComponent(
-                            project = project,
-                            entry = entry,
-                            pullRequest = prSnapshot,
-                            onReply = { threadId, content -> handleReply(threadId, content) },
-                            onStatusChange = { threadId, status -> handleStatusChange(threadId, status) }
-                        ))
+                        timelineContainer.add(
+                            CommentCardComponent(
+                                project = project,
+                                entry = entry,
+                                pullRequest = prSnapshot,
+                                onReply = { threadId, content -> handleReply(threadId, content) },
+                                onStatusChange = { threadId, status -> handleStatusChange(threadId, status) },
+                            ),
+                        )
                     }
                     TimelineEntryType.VOTE_EVENT -> {
                         timelineContainer.add(createVoteEventRow(entry))
@@ -273,37 +304,48 @@ class TimelinePanel(
         card.maximumSize = Dimension(Int.MAX_VALUE, 48)
 
         val avatarIcon = avatarService.getAvatar(entry.authorImageUrl, 22) { card.repaint() }
-        card.add(JBLabel(avatarIcon).apply {
-            verticalAlignment = SwingConstants.CENTER
-        }, BorderLayout.WEST)
+        card.add(
+            JBLabel(avatarIcon).apply {
+                verticalAlignment = SwingConstants.CENTER
+            },
+            BorderLayout.WEST,
+        )
 
-        val row = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
-        row.add(JBLabel(entry.author).apply {
-            font = font.deriveFont(Font.BOLD, 11f)
-            foreground = TimelineTheme.PRIMARY_FG
-        })
+        val row =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
+        row.add(
+            JBLabel(entry.author).apply {
+                font = font.deriveFont(Font.BOLD, 11f)
+                foreground = TimelineTheme.PRIMARY_FG
+            },
+        )
 
-        val typeIcon = when (entry.type) {
-            TimelineEntryType.PR_CREATED -> AllIcons.General.Add
-            TimelineEntryType.VOTE_EVENT -> AllIcons.Actions.Checked
-            TimelineEntryType.SYSTEM_EVENT -> AllIcons.General.Information
-            else -> AllIcons.General.Balloon
-        }
+        val typeIcon =
+            when (entry.type) {
+                TimelineEntryType.PR_CREATED -> AllIcons.General.Add
+                TimelineEntryType.VOTE_EVENT -> AllIcons.Actions.Checked
+                TimelineEntryType.SYSTEM_EVENT -> AllIcons.General.Information
+                else -> AllIcons.General.Balloon
+            }
         row.add(JBLabel(typeIcon))
-        row.add(JBLabel(entry.content).apply {
-            foreground = TimelineTheme.SECONDARY_FG
-            font = font.deriveFont(Font.ITALIC, 11f)
-        })
+        row.add(
+            JBLabel(entry.content).apply {
+                foreground = TimelineTheme.SECONDARY_FG
+                font = font.deriveFont(Font.ITALIC, 11f)
+            },
+        )
 
         val ts = TimelineUtils.formatTimeAgo(entry.timestamp)
         if (ts.isNotEmpty()) {
-            row.add(JBLabel("· $ts").apply {
-                foreground = TimelineTheme.MUTED_FG
-                font = font.deriveFont(10f)
-            })
+            row.add(
+                JBLabel("· $ts").apply {
+                    foreground = TimelineTheme.MUTED_FG
+                    font = font.deriveFont(10f)
+                },
+            )
         }
 
         card.add(row, BorderLayout.CENTER)
@@ -314,12 +356,13 @@ class TimelinePanel(
         val voteStatus = ReviewerVote.fromVoteValue(entry.voteValue)
 
         // Accent color on the top edge of the card based on vote type
-        val accent = when (voteStatus) {
-            ReviewerVote.Approved, ReviewerVote.ApprovedWithSuggestions -> TimelineTheme.VOTE_APPROVED_ACCENT
-            ReviewerVote.WaitingForAuthor -> TimelineTheme.VOTE_WARN_ACCENT
-            ReviewerVote.Rejected -> TimelineTheme.VOTE_REJECT_ACCENT
-            ReviewerVote.NoVote -> null
-        }
+        val accent =
+            when (voteStatus) {
+                ReviewerVote.Approved, ReviewerVote.ApprovedWithSuggestions -> TimelineTheme.VOTE_APPROVED_ACCENT
+                ReviewerVote.WaitingForAuthor -> TimelineTheme.VOTE_WARN_ACCENT
+                ReviewerVote.Rejected -> TimelineTheme.VOTE_REJECT_ACCENT
+                ReviewerVote.NoVote -> null
+            }
 
         val card = ElevatedCard(accent)
         card.layout = BorderLayout(10, 0)
@@ -328,47 +371,59 @@ class TimelinePanel(
         card.maximumSize = Dimension(Int.MAX_VALUE, 48)
 
         val avatarIcon = avatarService.getAvatar(entry.authorImageUrl, 22) { card.repaint() }
-        card.add(JBLabel(avatarIcon).apply {
-            verticalAlignment = SwingConstants.CENTER
-        }, BorderLayout.WEST)
+        card.add(
+            JBLabel(avatarIcon).apply {
+                verticalAlignment = SwingConstants.CENTER
+            },
+            BorderLayout.WEST,
+        )
 
-        val row = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
-        row.add(JBLabel(entry.author).apply {
-            font = font.deriveFont(Font.BOLD, 11f)
-            foreground = TimelineTheme.PRIMARY_FG
-        })
+        val row =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
+        row.add(
+            JBLabel(entry.author).apply {
+                font = font.deriveFont(Font.BOLD, 11f)
+                foreground = TimelineTheme.PRIMARY_FG
+            },
+        )
 
-        val voteIcon = when (voteStatus) {
-            ReviewerVote.Approved -> AllIcons.RunConfigurations.TestPassed
-            ReviewerVote.ApprovedWithSuggestions -> AllIcons.General.Information
-            ReviewerVote.WaitingForAuthor -> AllIcons.General.Warning
-            ReviewerVote.Rejected -> AllIcons.RunConfigurations.TestFailed
-            ReviewerVote.NoVote -> AllIcons.Debugger.ThreadSuspended
-        }
+        val voteIcon =
+            when (voteStatus) {
+                ReviewerVote.Approved -> AllIcons.RunConfigurations.TestPassed
+                ReviewerVote.ApprovedWithSuggestions -> AllIcons.General.Information
+                ReviewerVote.WaitingForAuthor -> AllIcons.General.Warning
+                ReviewerVote.Rejected -> AllIcons.RunConfigurations.TestFailed
+                ReviewerVote.NoVote -> AllIcons.Debugger.ThreadSuspended
+            }
 
-        val voteColor = when (voteStatus) {
-            ReviewerVote.Approved -> TimelineTheme.APPROVED_FG
-            ReviewerVote.ApprovedWithSuggestions -> TimelineTheme.SUGGEST_FG
-            ReviewerVote.WaitingForAuthor -> TimelineTheme.WAIT_FG
-            ReviewerVote.Rejected -> TimelineTheme.REJECT_FG
-            ReviewerVote.NoVote -> TimelineTheme.MUTED_FG
-        }
+        val voteColor =
+            when (voteStatus) {
+                ReviewerVote.Approved -> TimelineTheme.APPROVED_FG
+                ReviewerVote.ApprovedWithSuggestions -> TimelineTheme.SUGGEST_FG
+                ReviewerVote.WaitingForAuthor -> TimelineTheme.WAIT_FG
+                ReviewerVote.Rejected -> TimelineTheme.REJECT_FG
+                ReviewerVote.NoVote -> TimelineTheme.MUTED_FG
+            }
 
         row.add(JBLabel(voteIcon))
-        row.add(JBLabel(voteStatus.getDisplayName()).apply {
-            foreground = voteColor
-            font = font.deriveFont(Font.BOLD, 11f)
-        })
+        row.add(
+            JBLabel(voteStatus.getDisplayName()).apply {
+                foreground = voteColor
+                font = font.deriveFont(Font.BOLD, 11f)
+            },
+        )
 
         val ts = TimelineUtils.formatTimeAgo(entry.timestamp)
         if (ts.isNotEmpty()) {
-            row.add(JBLabel("· $ts").apply {
-                foreground = TimelineTheme.MUTED_FG
-                font = font.deriveFont(10f)
-            })
+            row.add(
+                JBLabel("· $ts").apply {
+                    foreground = TimelineTheme.MUTED_FG
+                    font = font.deriveFont(10f)
+                },
+            )
         }
 
         card.add(row, BorderLayout.CENTER)
@@ -379,7 +434,10 @@ class TimelinePanel(
     //  Actions (reply, status change)
     // ==================================================================
 
-    private fun handleReply(threadId: Int, content: String) {
+    private fun handleReply(
+        threadId: Int,
+        content: String,
+    ) {
         val projectName = pullRequest.repository?.project?.name
         val repositoryId = pullRequest.repository?.id
 
@@ -390,7 +448,7 @@ class TimelinePanel(
                     threadId,
                     content,
                     projectName,
-                    repositoryId
+                    repositoryId,
                 )
                 logger.info("Reply added to thread #$threadId")
                 // Force hash reset so next poll picks up change immediately
@@ -402,7 +460,10 @@ class TimelinePanel(
         }
     }
 
-    private fun handleStatusChange(threadId: Int, newStatus: ThreadStatus) {
+    private fun handleStatusChange(
+        threadId: Int,
+        newStatus: ThreadStatus,
+    ) {
         val projectName = pullRequest.repository?.project?.name
         val repositoryId = pullRequest.repository?.id
 
@@ -413,7 +474,7 @@ class TimelinePanel(
                     threadId,
                     newStatus,
                     projectName,
-                    repositoryId
+                    repositoryId,
                 )
                 logger.info("Thread #$threadId status → $newStatus")
                 lastDataHash = 0
@@ -459,11 +520,10 @@ class TimelinePanel(
     //  Helpers
     // ==================================================================
 
-    private fun createLoadingLabel(): JComponent {
-        return JBLabel("Loading timeline...").apply {
+    private fun createLoadingLabel(): JComponent =
+        JBLabel("Loading timeline...").apply {
             foreground = JBColor.GRAY
             alignmentX = Component.LEFT_ALIGNMENT
             icon = AllIcons.Process.Step_1
         }
-    }
 }

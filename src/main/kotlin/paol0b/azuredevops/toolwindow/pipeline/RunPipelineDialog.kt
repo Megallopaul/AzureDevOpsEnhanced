@@ -10,7 +10,6 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import paol0b.azuredevops.model.BuildDefinition
 import paol0b.azuredevops.services.AzureDevOpsApiClient
-import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.*
 
@@ -20,16 +19,16 @@ import javax.swing.*
  */
 class RunPipelineDialog(
     private val project: Project,
-    initialDefinitions: List<BuildDefinition>
+    initialDefinitions: List<BuildDefinition>,
 ) : DialogWrapper(project) {
-
     private val logger = Logger.getInstance(RunPipelineDialog::class.java)
 
     private val definitionComboBox = ComboBox<BuildDefinition>()
-    private val branchField = JBTextField().apply {
-        emptyText.text = "Leave empty for default branch"
-        toolTipText = "Source branch (e.g., refs/heads/main). Leave empty for the pipeline's default."
-    }
+    private val branchField =
+        JBTextField().apply {
+            emptyText.text = "Leave empty for default branch"
+            toolTipText = "Source branch (e.g., refs/heads/main). Leave empty for the pipeline's default."
+        }
 
     private var definitions: List<BuildDefinition> = initialDefinitions
 
@@ -41,32 +40,39 @@ class RunPipelineDialog(
     }
 
     override fun createCenterPanel(): JComponent {
-        val panel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            border = JBUI.Borders.empty(8, 12, 8, 12)
-            preferredSize = Dimension(420, 150)
-        }
+        val panel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                border = JBUI.Borders.empty(8, 12, 8, 12)
+                preferredSize = Dimension(420, 150)
+            }
 
         // Definition selector
-        panel.add(JBLabel("Pipeline:").apply {
-            alignmentX = JComponent.LEFT_ALIGNMENT
-            border = JBUI.Borders.emptyBottom(4)
-        })
+        panel.add(
+            JBLabel("Pipeline:").apply {
+                alignmentX = JComponent.LEFT_ALIGNMENT
+                border = JBUI.Borders.emptyBottom(4)
+            },
+        )
         definitionComboBox.apply {
             alignmentX = JComponent.LEFT_ALIGNMENT
             maximumSize = Dimension(Int.MAX_VALUE, 32)
-            renderer = object : DefaultListCellRenderer() {
-                override fun getListCellRendererComponent(
-                    list: JList<*>?, value: Any?, index: Int,
-                    isSelected: Boolean, cellHasFocus: Boolean
-                ): java.awt.Component {
-                    val component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                    if (value is BuildDefinition) {
-                        text = value.getDisplayName()
+            renderer =
+                object : DefaultListCellRenderer() {
+                    override fun getListCellRendererComponent(
+                        list: JList<*>?,
+                        value: Any?,
+                        index: Int,
+                        isSelected: Boolean,
+                        cellHasFocus: Boolean,
+                    ): java.awt.Component {
+                        val component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                        if (value is BuildDefinition) {
+                            text = value.getDisplayName()
+                        }
+                        return component
                     }
-                    return component
                 }
-            }
         }
         // Populate with initial definitions
         definitions.sortedBy { it.name }.forEach { definitionComboBox.addItem(it) }
@@ -75,10 +81,12 @@ class RunPipelineDialog(
         panel.add(Box.createVerticalStrut(12))
 
         // Branch field
-        panel.add(JBLabel("Branch (optional):").apply {
-            alignmentX = JComponent.LEFT_ALIGNMENT
-            border = JBUI.Borders.emptyBottom(4)
-        })
+        panel.add(
+            JBLabel("Branch (optional):").apply {
+                alignmentX = JComponent.LEFT_ALIGNMENT
+                border = JBUI.Borders.emptyBottom(4)
+            },
+        )
         branchField.apply {
             alignmentX = JComponent.LEFT_ALIGNMENT
             maximumSize = Dimension(Int.MAX_VALUE, 32)
@@ -109,9 +117,7 @@ class RunPipelineDialog(
         }
     }
 
-    fun getSelectedDefinitionId(): Int? {
-        return (definitionComboBox.selectedItem as? BuildDefinition)?.id
-    }
+    fun getSelectedDefinitionId(): Int? = (definitionComboBox.selectedItem as? BuildDefinition)?.id
 
     fun getSelectedBranch(): String? {
         val text = branchField.text.trim()

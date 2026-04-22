@@ -36,9 +36,8 @@ import javax.swing.tree.DefaultTreeModel
  */
 class PipelineDetailTabPanel(
     private val project: Project,
-    private val build: PipelineBuild
+    private val build: PipelineBuild,
 ) : JPanel(BorderLayout()) {
-
     private val logger = Logger.getInstance(PipelineDetailTabPanel::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
     private val avatarService = AvatarService.getInstance(project)
@@ -50,7 +49,7 @@ class PipelineDetailTabPanel(
 
     private var timeline: BuildTimeline? = null
     private var refreshTimer: Timer? = null
-    private val REFRESH_INTERVAL_RUNNING = 10_000  // 10s while running
+    private val REFRESH_INTERVAL_RUNNING = 10_000 // 10s while running
     private val REFRESH_INTERVAL_FINISHED = 30_000 // 30s when finished
 
     // Change detection
@@ -78,11 +77,12 @@ class PipelineDetailTabPanel(
     // ========================
 
     private fun setupUI() {
-        val scrollContent = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(0)
-        }
+        val scrollContent =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(0)
+            }
 
         // Header
         scrollContent.add(createHeaderPanel())
@@ -99,11 +99,12 @@ class PipelineDetailTabPanel(
         // Timeline tree
         scrollContent.add(createTimelineTreeSection())
 
-        val scrollPane = JBScrollPane(scrollContent).apply {
-            border = JBUI.Borders.empty()
-            verticalScrollBar.unitIncrement = 16
-            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-        }
+        val scrollPane =
+            JBScrollPane(scrollContent).apply {
+                border = JBUI.Borders.empty()
+                verticalScrollBar.unitIncrement = 16
+                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+            }
 
         add(scrollPane, BorderLayout.CENTER)
     }
@@ -113,61 +114,73 @@ class PipelineDetailTabPanel(
     // ========================
 
     private fun createHeaderPanel(): JPanel {
-        val header = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(12, 14, 8, 14)
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val header =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(12, 14, 8, 14)
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
 
         // Pipeline name + build number
         val titleText = "${escapeHtml(build.getDefinitionName())} #${escapeHtml(build.buildNumber ?: "")}"
-        val titleLabel = JBLabel("<html><b style='font-size:13px;'>$titleText</b></html>").apply {
-            alignmentX = Component.LEFT_ALIGNMENT
-            border = JBUI.Borders.emptyBottom(6)
-        }
+        val titleLabel =
+            JBLabel("<html><b style='font-size:13px;'>$titleText</b></html>").apply {
+                alignmentX = Component.LEFT_ALIGNMENT
+                border = JBUI.Borders.emptyBottom(6)
+            }
         header.add(titleLabel)
 
         // Branch + repo info
-        val branchPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
-            background = UIUtil.getPanelBackground()
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val branchPanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+                background = UIUtil.getPanelBackground()
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
 
         val repoName = build.repository?.name
         if (!repoName.isNullOrBlank()) {
-            branchPanel.add(JBLabel(repoName).apply {
-                icon = AllIcons.Vcs.Branch
-                foreground = JBColor(Color(70, 130, 180), Color(100, 149, 237))
-                font = font.deriveFont(Font.BOLD, 12f)
-            })
-            branchPanel.add(JBLabel(" / ").apply {
-                foreground = JBColor.GRAY
-            })
+            branchPanel.add(
+                JBLabel(repoName).apply {
+                    icon = AllIcons.Vcs.Branch
+                    foreground = JBColor(Color(70, 130, 180), Color(100, 149, 237))
+                    font = font.deriveFont(Font.BOLD, 12f)
+                },
+            )
+            branchPanel.add(
+                JBLabel(" / ").apply {
+                    foreground = JBColor.GRAY
+                },
+            )
         }
 
-        branchPanel.add(JBLabel(build.getBranchName()).apply {
-            icon = AllIcons.Vcs.BranchNode
-            foreground = JBColor(Color(34, 139, 34), Color(50, 200, 50))
-            font = font.deriveFont(Font.BOLD, 12f)
-        })
+        branchPanel.add(
+            JBLabel(build.getBranchName()).apply {
+                icon = AllIcons.Vcs.BranchNode
+                foreground = JBColor(Color(34, 139, 34), Color(50, 200, 50))
+                font = font.deriveFont(Font.BOLD, 12f)
+            },
+        )
 
         if (!build.sourceVersion.isNullOrBlank()) {
             branchPanel.add(Box.createHorizontalStrut(12))
-            branchPanel.add(JBLabel(build.sourceVersion.take(8)).apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(Font.PLAIN, 11f)
-                toolTipText = build.sourceVersion
-            })
+            branchPanel.add(
+                JBLabel(build.sourceVersion.take(8)).apply {
+                    foreground = JBColor.GRAY
+                    font = font.deriveFont(Font.PLAIN, 11f)
+                    toolTipText = build.sourceVersion
+                },
+            )
         }
 
         header.add(branchPanel)
 
         // Result badge
-        val badgePanel = JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
-            background = UIUtil.getPanelBackground()
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val badgePanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
+                background = UIUtil.getPanelBackground()
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
         val resultBadge = createResultBadge(build)
         badgePanel.add(resultBadge)
 
@@ -185,32 +198,39 @@ class PipelineDetailTabPanel(
     // ========================
 
     private fun createInfoPanel(): JPanel {
-        val info = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(8, 14, 8, 14)
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val info =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(8, 14, 8, 14)
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
 
         // Requested by (with avatar)
         val requester = build.requestedFor ?: build.requestedBy
         if (requester != null) {
-            val requesterRow = JPanel(FlowLayout(FlowLayout.LEFT, 8, 2)).apply {
-                background = UIUtil.getPanelBackground()
-                alignmentX = Component.LEFT_ALIGNMENT
-            }
-            requesterRow.add(JBLabel("Requested by:").apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(11f)
-            })
+            val requesterRow =
+                JPanel(FlowLayout(FlowLayout.LEFT, 8, 2)).apply {
+                    background = UIUtil.getPanelBackground()
+                    alignmentX = Component.LEFT_ALIGNMENT
+                }
+            requesterRow.add(
+                JBLabel("Requested by:").apply {
+                    foreground = JBColor.GRAY
+                    font = font.deriveFont(11f)
+                },
+            )
 
-            val avatarIcon = avatarService.getAvatar(requester.imageUrl, 22) {
-                requesterRow.repaint()
-            }
+            val avatarIcon =
+                avatarService.getAvatar(requester.imageUrl, 22) {
+                    requesterRow.repaint()
+                }
             requesterRow.add(JBLabel(avatarIcon))
-            requesterRow.add(JBLabel(requester.displayName ?: "Unknown").apply {
-                font = font.deriveFont(Font.BOLD, 12f)
-            })
+            requesterRow.add(
+                JBLabel(requester.displayName ?: "Unknown").apply {
+                    font = font.deriveFont(Font.BOLD, 12f)
+                },
+            )
             info.add(requesterRow)
         }
 
@@ -231,65 +251,75 @@ class PipelineDetailTabPanel(
         return info
     }
 
-    private fun createInfoRow(label: String, value: String): JPanel {
-        return JPanel(FlowLayout(FlowLayout.LEFT, 6, 1)).apply {
+    private fun createInfoRow(
+        label: String,
+        value: String,
+    ): JPanel =
+        JPanel(FlowLayout(FlowLayout.LEFT, 6, 1)).apply {
             background = UIUtil.getPanelBackground()
             alignmentX = Component.LEFT_ALIGNMENT
             maximumSize = Dimension(Int.MAX_VALUE, 24)
 
-            add(JBLabel(label).apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(11f)
-            })
-            add(JBLabel(value).apply {
-                font = font.deriveFont(12f)
-            })
+            add(
+                JBLabel(label).apply {
+                    foreground = JBColor.GRAY
+                    font = font.deriveFont(11f)
+                },
+            )
+            add(
+                JBLabel(value).apply {
+                    font = font.deriveFont(12f)
+                },
+            )
         }
-    }
 
     // ========================
     //  Actions
     // ========================
 
     private fun createActionsPanel(): JPanel {
-        val actions = JPanel(FlowLayout(FlowLayout.LEFT, 8, 6)).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(4, 14, 4, 14)
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val actions =
+            JPanel(FlowLayout(FlowLayout.LEFT, 8, 6)).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(4, 14, 4, 14)
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
 
         // Show Diagram
-        val diagramButton = JButton("Show Diagram").apply {
-            icon = AllIcons.Graph.Layout
-            toolTipText = "Open a visual stage diagram for this build"
-            addActionListener { openDiagram() }
-        }
+        val diagramButton =
+            JButton("Show Diagram").apply {
+                icon = AllIcons.Graph.Layout
+                toolTipText = "Open a visual stage diagram for this build"
+                addActionListener { openDiagram() }
+            }
         actions.add(diagramButton)
 
         // Re-run Pipeline
-        val rerunButton = JButton("Re-run Pipeline").apply {
-            icon = AllIcons.Actions.Restart
-            toolTipText = "Queue a new run of this pipeline"
-            addActionListener { rerunPipeline() }
-        }
+        val rerunButton =
+            JButton("Re-run Pipeline").apply {
+                icon = AllIcons.Actions.Restart
+                toolTipText = "Queue a new run of this pipeline"
+                addActionListener { rerunPipeline() }
+            }
         actions.add(rerunButton)
 
         // Open in Browser
         val webUrl = build.getWebUrl()
         if (webUrl.isNotBlank()) {
-            val browserButton = JButton("Open in Browser").apply {
-                icon = AllIcons.Ide.External_link_arrow
-                toolTipText = "View this build in Azure DevOps"
-                addActionListener {
-                    try {
-                        if (Desktop.isDesktopSupported()) {
-                            Desktop.getDesktop().browse(java.net.URI(webUrl))
+            val browserButton =
+                JButton("Open in Browser").apply {
+                    icon = AllIcons.Ide.External_link_arrow
+                    toolTipText = "View this build in Azure DevOps"
+                    addActionListener {
+                        try {
+                            if (Desktop.isDesktopSupported()) {
+                                Desktop.getDesktop().browse(java.net.URI(webUrl))
+                            }
+                        } catch (ex: Exception) {
+                            logger.warn("Failed to open browser: ${ex.message}")
                         }
-                    } catch (ex: Exception) {
-                        logger.warn("Failed to open browser: ${ex.message}")
                     }
                 }
-            }
             actions.add(browserButton)
         }
 
@@ -301,19 +331,23 @@ class PipelineDetailTabPanel(
     // ========================
 
     private fun createTimelineTreeSection(): JPanel {
-        val section = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(4, 14, 14, 14)
-            alignmentX = Component.LEFT_ALIGNMENT
-            preferredSize = Dimension(0, 400)
-            minimumSize = Dimension(0, 200)
-        }
+        val section =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(4, 14, 14, 14)
+                alignmentX = Component.LEFT_ALIGNMENT
+                preferredSize = Dimension(0, 400)
+                minimumSize = Dimension(0, 200)
+            }
 
         // Section title
-        section.add(JBLabel("Stages / Jobs / Tasks").apply {
-            font = font.deriveFont(Font.BOLD, 12f)
-            border = JBUI.Borders.emptyBottom(4)
-        }, BorderLayout.NORTH)
+        section.add(
+            JBLabel("Stages / Jobs / Tasks").apply {
+                font = font.deriveFont(Font.BOLD, 12f)
+                border = JBUI.Borders.emptyBottom(4)
+            },
+            BorderLayout.NORTH,
+        )
 
         // Configure tree
         timelineTree.apply {
@@ -322,22 +356,25 @@ class PipelineDetailTabPanel(
             cellRenderer = TimelineTreeCellRenderer()
 
             // Click on a task opens its log
-            addMouseListener(object : MouseAdapter() {
-                override fun mouseClicked(e: MouseEvent) {
-                    if (e.clickCount >= 1) {
-                        val node = lastSelectedPathComponent as? DefaultMutableTreeNode ?: return
-                        val record = node.userObject as? TimelineRecord ?: return
-                        if (record.type == "Task" && record.hasLog()) {
-                            openLog(record)
+            addMouseListener(
+                object : MouseAdapter() {
+                    override fun mouseClicked(e: MouseEvent) {
+                        if (e.clickCount >= 1) {
+                            val node = lastSelectedPathComponent as? DefaultMutableTreeNode ?: return
+                            val record = node.userObject as? TimelineRecord ?: return
+                            if (record.type == "Task" && record.hasLog()) {
+                                openLog(record)
+                            }
                         }
                     }
-                }
-            })
+                },
+            )
         }
 
-        val treeScrollPane = JBScrollPane(timelineTree).apply {
-            border = JBUI.Borders.empty()
-        }
+        val treeScrollPane =
+            JBScrollPane(timelineTree).apply {
+                border = JBUI.Borders.empty()
+            }
         section.add(treeScrollPane, BorderLayout.CENTER)
 
         // Loading indicator
@@ -470,7 +507,7 @@ class PipelineDetailTabPanel(
     private fun buildRecordSubtree(
         tl: BuildTimeline,
         record: TimelineRecord,
-        visited: MutableSet<String>
+        visited: MutableSet<String>,
     ): DefaultMutableTreeNode {
         val node = DefaultMutableTreeNode(record)
         val recordId = record.id
@@ -507,13 +544,14 @@ class PipelineDetailTabPanel(
         val defId = build.definition?.id ?: return
         val branch = build.sourceBranch
 
-        val confirmed = JOptionPane.showConfirmDialog(
-            this,
-            "Re-run pipeline '${build.getDefinitionName()}' on branch '${build.getBranchName()}'?",
-            "Confirm Re-run",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
-        )
+        val confirmed =
+            JOptionPane.showConfirmDialog(
+                this,
+                "Re-run pipeline '${build.getDefinitionName()}' on branch '${build.getBranchName()}'?",
+                "Confirm Re-run",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+            )
         if (confirmed != JOptionPane.YES_OPTION) return
 
         ApplicationManager.getApplication().executeOnPooledThread {
@@ -537,12 +575,13 @@ class PipelineDetailTabPanel(
 
     private fun startAutoRefresh() {
         val interval = if (build.isRunning()) REFRESH_INTERVAL_RUNNING else REFRESH_INTERVAL_FINISHED
-        refreshTimer = Timer(interval) {
-            loadTimeline()
-        }.apply {
-            isRepeats = true
-            start()
-        }
+        refreshTimer =
+            Timer(interval) {
+                loadTimeline()
+            }.apply {
+                isRepeats = true
+                start()
+            }
     }
 
     private fun scheduleRetry() {
@@ -550,13 +589,14 @@ class PipelineDetailTabPanel(
         val delay = minOf((1000L * (1 shl retryCount)).toInt(), MAX_RETRY_DELAY)
         retryCount++
         logger.info("Scheduling timeline retry in ${delay}ms (attempt $retryCount)")
-        retryTimer = Timer(delay) {
-            retryTimer = null
-            loadTimeline()
-        }.apply {
-            isRepeats = false
-            start()
-        }
+        retryTimer =
+            Timer(delay) {
+                retryTimer = null
+                loadTimeline()
+            }.apply {
+                isRepeats = false
+                start()
+            }
     }
 
     fun dispose() {
@@ -574,14 +614,18 @@ class PipelineDetailTabPanel(
      * Renders stage/job/task nodes in the timeline tree with icons, names, durations, and result colors.
      */
     private inner class TimelineTreeCellRenderer : DefaultTreeCellRenderer() {
-
         init {
             backgroundNonSelectionColor = UIUtil.getPanelBackground()
         }
 
         override fun getTreeCellRendererComponent(
-            tree: JTree, value: Any?, selected: Boolean,
-            expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean
+            tree: JTree,
+            value: Any?,
+            selected: Boolean,
+            expanded: Boolean,
+            leaf: Boolean,
+            row: Int,
+            hasFocus: Boolean,
         ): Component {
             val component = super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus)
 
@@ -598,34 +642,37 @@ class PipelineDetailTabPanel(
                 val durationSuffix = if (duration.isNotBlank()) "  ($duration)" else ""
 
                 // Color based on result
-                foreground = when {
-                    selected -> UIUtil.getTreeSelectionForeground(true)
-                    record.isFailed() -> JBColor(Color(220, 53, 69), Color(230, 70, 70))
-                    record.isCanceled() -> JBColor(Color(180, 160, 50), Color(200, 180, 80))
-                    record.isSkipped() -> JBColor.GRAY
-                    record.isRunning() -> JBColor(Color(0, 120, 212), Color(60, 150, 240))
-                    record.isSucceeded() -> foreground // default
-                    else -> foreground
-                }
+                foreground =
+                    when {
+                        selected -> UIUtil.getTreeSelectionForeground(true)
+                        record.isFailed() -> JBColor(Color(220, 53, 69), Color(230, 70, 70))
+                        record.isCanceled() -> JBColor(Color(180, 160, 50), Color(200, 180, 80))
+                        record.isSkipped() -> JBColor.GRAY
+                        record.isRunning() -> JBColor(Color(0, 120, 212), Color(60, 150, 240))
+                        record.isSucceeded() -> foreground // default
+                        else -> foreground
+                    }
 
                 // Font based on type
-                font = when (record.type) {
-                    "Stage" -> font.deriveFont(Font.BOLD, 13f)
-                    "Job" -> font.deriveFont(Font.BOLD, 12f)
-                    else -> font.deriveFont(Font.PLAIN, 12f)
-                }
+                font =
+                    when (record.type) {
+                        "Stage" -> font.deriveFont(Font.BOLD, 13f)
+                        "Job" -> font.deriveFont(Font.BOLD, 12f)
+                        else -> font.deriveFont(Font.PLAIN, 12f)
+                    }
 
                 text = "$name$durationSuffix"
 
                 // Tooltip
-                toolTipText = buildString {
-                    append("$name (${record.type ?: ""})")
-                    if (duration.isNotBlank()) append(" — $duration")
-                    record.result?.let { append(" — $it") }
-                    if ((record.errorCount ?: 0) > 0) append(" — ${record.errorCount} error(s)")
-                    if ((record.warningCount ?: 0) > 0) append(" — ${record.warningCount} warning(s)")
-                    if (record.type == "Task" && record.hasLog()) append("\nClick to view log")
-                }
+                toolTipText =
+                    buildString {
+                        append("$name (${record.type ?: ""})")
+                        if (duration.isNotBlank()) append(" — $duration")
+                        record.result?.let { append(" — $it") }
+                        if ((record.errorCount ?: 0) > 0) append(" — ${record.errorCount} error(s)")
+                        if ((record.warningCount ?: 0) > 0) append(" — ${record.warningCount} warning(s)")
+                        if (record.type == "Task" && record.hasLog()) append("\nClick to view log")
+                    }
             } else if (record is String) {
                 icon = AllIcons.General.Information
                 text = record
@@ -634,22 +681,24 @@ class PipelineDetailTabPanel(
             return component
         }
 
-        private fun getRecordIcon(record: TimelineRecord): Icon = when {
-            record.isRunning() -> AllIcons.Process.Step_1
-            record.isSucceeded() -> AllIcons.RunConfigurations.TestPassed
-            record.isFailed() -> AllIcons.RunConfigurations.TestFailed
-            record.isCanceled() -> AllIcons.RunConfigurations.TestTerminated
-            record.isSkipped() -> AllIcons.RunConfigurations.TestSkipped
-            record.isPending() -> AllIcons.RunConfigurations.TestNotRan
-            else -> when (record.type) {
-                "Stage" -> AllIcons.Nodes.Module
-                "Phase" -> AllIcons.Nodes.Folder
-                "Checkpoint" -> AllIcons.Nodes.Folder
-                "Job" -> AllIcons.Nodes.ConfigFolder
-                "Task" -> AllIcons.Nodes.Plugin
-                else -> AllIcons.General.Information
+        private fun getRecordIcon(record: TimelineRecord): Icon =
+            when {
+                record.isRunning() -> AllIcons.Process.Step_1
+                record.isSucceeded() -> AllIcons.RunConfigurations.TestPassed
+                record.isFailed() -> AllIcons.RunConfigurations.TestFailed
+                record.isCanceled() -> AllIcons.RunConfigurations.TestTerminated
+                record.isSkipped() -> AllIcons.RunConfigurations.TestSkipped
+                record.isPending() -> AllIcons.RunConfigurations.TestNotRan
+                else ->
+                    when (record.type) {
+                        "Stage" -> AllIcons.Nodes.Module
+                        "Phase" -> AllIcons.Nodes.Folder
+                        "Checkpoint" -> AllIcons.Nodes.Folder
+                        "Job" -> AllIcons.Nodes.ConfigFolder
+                        "Task" -> AllIcons.Nodes.Plugin
+                        else -> AllIcons.General.Information
+                    }
             }
-        }
     }
 
     // ========================
@@ -657,35 +706,35 @@ class PipelineDetailTabPanel(
     // ========================
 
     private fun createResultBadge(b: PipelineBuild): JComponent {
-        val (text, color) = when {
-            b.isSucceeded() -> "SUCCEEDED" to JBColor(Color(34, 139, 34), Color(50, 200, 50))
-            b.isFailed() -> "FAILED" to JBColor(Color(220, 53, 69), Color(230, 70, 70))
-            b.isCanceled() -> "CANCELED" to JBColor(Color(180, 160, 50), Color(200, 180, 80))
-            b.isPartiallySucceeded() -> "PARTIAL" to JBColor(Color(255, 165, 0), Color(255, 140, 0))
-            b.isRunning() -> "RUNNING" to JBColor(Color(0, 120, 212), Color(60, 150, 240))
-            else -> (b.result?.getDisplayName() ?: "UNKNOWN") to JBColor.GRAY
-        }
+        val (text, color) =
+            when {
+                b.isSucceeded() -> "SUCCEEDED" to JBColor(Color(34, 139, 34), Color(50, 200, 50))
+                b.isFailed() -> "FAILED" to JBColor(Color(220, 53, 69), Color(230, 70, 70))
+                b.isCanceled() -> "CANCELED" to JBColor(Color(180, 160, 50), Color(200, 180, 80))
+                b.isPartiallySucceeded() -> "PARTIAL" to JBColor(Color(255, 165, 0), Color(255, 140, 0))
+                b.isRunning() -> "RUNNING" to JBColor(Color(0, 120, 212), Color(60, 150, 240))
+                else -> (b.result?.getDisplayName() ?: "UNKNOWN") to JBColor.GRAY
+            }
         return createBadge(text, color)
     }
 
-    private fun createBadge(text: String, color: JBColor): JComponent {
-        return JBLabel(text).apply {
+    private fun createBadge(
+        text: String,
+        color: JBColor,
+    ): JComponent =
+        JBLabel(text).apply {
             isOpaque = true
             background = color
             foreground = Color.WHITE
             border = JBUI.Borders.empty(3, 10, 3, 10)
             font = font.deriveFont(Font.BOLD, 10f)
         }
-    }
 
-    private fun createSeparator(): JComponent {
-        return JSeparator().apply {
+    private fun createSeparator(): JComponent =
+        JSeparator().apply {
             maximumSize = Dimension(Int.MAX_VALUE, 1)
             alignmentX = Component.LEFT_ALIGNMENT
         }
-    }
 
-    private fun escapeHtml(text: String): String {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    }
+    private fun escapeHtml(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 }

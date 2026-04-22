@@ -11,8 +11,10 @@ import paol0b.azuredevops.services.WorkItemBranchDetector
  * when the current branch matches a work item naming pattern.
  */
 class WorkItemCommitMessageProvider : CheckinHandlerFactory() {
-
-    override fun createHandler(panel: CheckinProjectPanel, commitContext: CommitContext): CheckinHandler {
+    override fun createHandler(
+        panel: CheckinProjectPanel,
+        commitContext: CommitContext,
+    ): CheckinHandler {
         return object : CheckinHandler() {
             override fun beforeCheckin(): ReturnResult {
                 val project = panel.project
@@ -21,11 +23,12 @@ class WorkItemCommitMessageProvider : CheckinHandlerFactory() {
 
                 val currentMessage = panel.commitMessage.trim()
                 if (currentMessage.isEmpty() || !currentMessage.startsWith(prefix)) {
-                    panel.commitMessage = if (currentMessage.isEmpty()) {
-                        "$prefix "
-                    } else {
-                        "$prefix $currentMessage"
-                    }
+                    panel.commitMessage =
+                        if (currentMessage.isEmpty()) {
+                            "$prefix "
+                        } else {
+                            "$prefix $currentMessage"
+                        }
                 }
 
                 return ReturnResult.COMMIT

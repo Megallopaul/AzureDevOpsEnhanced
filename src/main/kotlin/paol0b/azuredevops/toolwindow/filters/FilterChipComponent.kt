@@ -4,7 +4,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.ui.JBColor
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -25,9 +24,8 @@ import javax.swing.JPanel
 class FilterChipComponent(
     private val filterName: String,
     private val onShowPopup: (FilterChipComponent) -> Unit,
-    private val onClear: () -> Unit
+    private val onClear: () -> Unit,
 ) : JPanel(BorderLayout()) {
-
     private val label = JLabel()
     private val closeLabel = JLabel(AllIcons.Actions.Close)
     private var valueText: String? = null
@@ -63,38 +61,45 @@ class FilterChipComponent(
         updateDisplay()
 
         // Mouse handling for the whole chip
-        addMouseListener(object : MouseAdapter() {
-            override fun mouseEntered(e: MouseEvent) {
-                hovered = true
-                repaint()
-            }
-
-            override fun mouseExited(e: MouseEvent) {
-                hovered = false
-                repaint()
-            }
-
-            override fun mouseClicked(e: MouseEvent) {
-                // If clicked on close area and value is set, clear it
-                val closeArea = closeLabel.bounds
-                if (valueText != null && closeArea.contains(e.point)) {
-                    clearValue()
-                } else {
-                    onShowPopup(this@FilterChipComponent)
+        addMouseListener(
+            object : MouseAdapter() {
+                override fun mouseEntered(e: MouseEvent) {
+                    hovered = true
+                    repaint()
                 }
-            }
-        })
+
+                override fun mouseExited(e: MouseEvent) {
+                    hovered = false
+                    repaint()
+                }
+
+                override fun mouseClicked(e: MouseEvent) {
+                    // If clicked on close area and value is set, clear it
+                    val closeArea = closeLabel.bounds
+                    if (valueText != null && closeArea.contains(e.point)) {
+                        clearValue()
+                    } else {
+                        onShowPopup(this@FilterChipComponent)
+                    }
+                }
+            },
+        )
 
         // Direct listener on close label for precise click handling
-        closeLabel.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent) {
-                e.consume()
-                clearValue()
-            }
-        })
+        closeLabel.addMouseListener(
+            object : MouseAdapter() {
+                override fun mouseClicked(e: MouseEvent) {
+                    e.consume()
+                    clearValue()
+                }
+            },
+        )
     }
 
-    fun setValue(text: String?, icon: Icon? = null) {
+    fun setValue(
+        text: String?,
+        icon: Icon? = null,
+    ) {
         valueText = text
         valueIcon = icon
         updateDisplay()
@@ -121,7 +126,7 @@ class FilterChipComponent(
             label.font = JBUI.Fonts.smallFont().deriveFont(Font.BOLD)
             closeLabel.isVisible = true
         } else {
-            label.text = "$filterName \u25BE"  // ▾ down-pointing triangle
+            label.text = "$filterName \u25BE" // ▾ down-pointing triangle
             label.icon = null
             label.foreground = INACTIVE_FG
             label.font = JBUI.Fonts.smallFont()
@@ -142,11 +147,15 @@ class FilterChipComponent(
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
         val arc = JBUIScale.scale(6).toDouble()
-        val shape = RoundRectangle2D.Double(
-            0.0, 0.0,
-            width.toDouble() - 1, height.toDouble() - 1,
-            arc, arc
-        )
+        val shape =
+            RoundRectangle2D.Double(
+                0.0,
+                0.0,
+                width.toDouble() - 1,
+                height.toDouble() - 1,
+                arc,
+                arc,
+            )
 
         // Background
         if (valueText != null) {

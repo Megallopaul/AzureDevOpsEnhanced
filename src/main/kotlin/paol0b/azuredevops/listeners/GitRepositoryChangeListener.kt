@@ -10,8 +10,9 @@ import paol0b.azuredevops.services.WorkItemBranchDetector
 /**
  * Listener to invalidate the detection cache when the Git repository changes
  */
-class GitRepositoryChangeListener(private val project: Project) : BranchChangeListener {
-
+class GitRepositoryChangeListener(
+    private val project: Project,
+) : BranchChangeListener {
     private val logger = Logger.getInstance(GitRepositoryChangeListener::class.java)
 
     override fun branchWillChange(branchName: String) {

@@ -17,15 +17,14 @@ import kotlin.coroutines.cancellation.CancellationException
  * The scope is automatically cancelled when the project is disposed.
  */
 @Service(Service.Level.PROJECT)
-class AzureDevOpsCoroutineScope : CoroutineScope, Disposable {
-
+class AzureDevOpsCoroutineScope :
+    CoroutineScope,
+    Disposable {
     private val supervisorJob = SupervisorJob()
     override val coroutineContext = Dispatchers.Default + supervisorJob
 
     companion object {
-        fun getInstance(project: Project): AzureDevOpsCoroutineScope {
-            return project.getService(AzureDevOpsCoroutineScope::class.java)
-        }
+        fun getInstance(project: Project): AzureDevOpsCoroutineScope = project.getService(AzureDevOpsCoroutineScope::class.java)
     }
 
     override fun dispose() {

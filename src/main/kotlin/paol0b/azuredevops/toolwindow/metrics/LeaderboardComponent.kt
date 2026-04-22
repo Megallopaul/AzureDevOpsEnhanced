@@ -13,9 +13,8 @@ import javax.swing.JPanel
  */
 class LeaderboardComponent(
     private val chartTitle: String,
-    private val barColor: Color = JBColor(Color(0x3574F0), Color(0x548AF7))
+    private val barColor: Color = JBColor(Color(0x3574F0), Color(0x548AF7)),
 ) : JPanel() {
-
     private var entries: List<LeaderboardEntry> = emptyList()
 
     init {
@@ -65,12 +64,13 @@ class LeaderboardComponent(
 
             // Rank
             g2.font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 11f)
-            val rankStr = when (index) {
-                0 -> "\uD83E\uDD47" // gold medal emoji
-                1 -> "\uD83E\uDD48"
-                2 -> "\uD83E\uDD49"
-                else -> "${index + 1}."
-            }
+            val rankStr =
+                when (index) {
+                    0 -> "\uD83E\uDD47" // gold medal emoji
+                    1 -> "\uD83E\uDD48"
+                    2 -> "\uD83E\uDD49"
+                    else -> "${index + 1}."
+                }
             g2.color = UIUtil.getLabelForeground()
             g2.drawString(rankStr, x0, y + g2.fontMetrics.ascent)
 
@@ -95,7 +95,11 @@ class LeaderboardComponent(
         g2.dispose()
     }
 
-    private fun truncate(text: String, fm: FontMetrics, maxWidth: Int): String {
+    private fun truncate(
+        text: String,
+        fm: FontMetrics,
+        maxWidth: Int,
+    ): String {
         if (fm.stringWidth(text) <= maxWidth) return text
         var truncated = text
         while (truncated.isNotEmpty() && fm.stringWidth("$truncated...") > maxWidth) {

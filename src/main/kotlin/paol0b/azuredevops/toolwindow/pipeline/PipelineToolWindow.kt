@@ -15,8 +15,9 @@ import javax.swing.*
  * Uses [PipelineFilterPanel] (with [FilterChipComponent]) for filtering,
  * matching the PR tool window's UX.
  */
-class PipelineToolWindow(private val project: Project) {
-
+class PipelineToolWindow(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(PipelineToolWindow::class.java)
     private val mainPanel: SimpleToolWindowPanel
     val pipelineListPanel: PipelineListPanel
@@ -31,20 +32,23 @@ class PipelineToolWindow(private val project: Project) {
     init {
         pipelineListPanel = PipelineListPanel(project)
 
-        filterPanel = PipelineFilterPanel(project) { searchValue ->
-            pipelineListPanel.applyFilter(searchValue)
-        }
+        filterPanel =
+            PipelineFilterPanel(project) { searchValue ->
+                pipelineListPanel.applyFilter(searchValue)
+            }
 
         // Content: filter panel on top, list below
-        val contentPanel = JPanel(BorderLayout()).apply {
-            add(filterPanel.getComponent(), BorderLayout.NORTH)
-            add(pipelineListPanel.getComponent(), BorderLayout.CENTER)
-        }
+        val contentPanel =
+            JPanel(BorderLayout()).apply {
+                add(filterPanel.getComponent(), BorderLayout.NORTH)
+                add(pipelineListPanel.getComponent(), BorderLayout.CENTER)
+            }
 
-        mainPanel = SimpleToolWindowPanel(true, true).apply {
-            toolbar = createToolbar()
-            setContent(contentPanel)
-        }
+        mainPanel =
+            SimpleToolWindowPanel(true, true).apply {
+                toolbar = createToolbar()
+                setContent(contentPanel)
+            }
 
         // Load definitions in background
         loadDefinitions()
@@ -64,67 +68,76 @@ class PipelineToolWindow(private val project: Project) {
     fun getContent(): JPanel = mainPanel
 
     private fun createToolbar(): JPanel {
-        val actionGroup = DefaultActionGroup().apply {
-            add(object : AnAction("Run Pipeline", "Queue a new pipeline run", AllIcons.General.Add) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    val dialog = RunPipelineDialog(project, cachedDefinitions)
-                    if (dialog.showAndGet()) {
-                        dialog.getSelectedDefinitionId()?.let { defId ->
-                            val branch = dialog.getSelectedBranch()
-                            ApplicationManager.getApplication().executeOnPooledThread {
-                                try {
-                                    val apiClient = AzureDevOpsApiClient.getInstance(project)
-                                    apiClient.queueBuild(defId, branch)
-                                    ApplicationManager.getApplication().invokeLater {
-                                        pipelineListPanel.refreshBuilds()
-                                    }
-                                } catch (ex: Exception) {
-                                    logger.error("Failed to queue build", ex)
-                                    ApplicationManager.getApplication().invokeLater {
-                                        JOptionPane.showMessageDialog(
-                                            mainPanel,
-                                            "Failed to run pipeline: ${ex.message}",
-                                            "Error",
-                                            JOptionPane.ERROR_MESSAGE
-                                        )
+        val actionGroup =
+            DefaultActionGroup().apply {
+                add(
+                    object : AnAction("Run Pipeline", "Queue a new pipeline run", AllIcons.General.Add) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            val dialog = RunPipelineDialog(project, cachedDefinitions)
+                            if (dialog.showAndGet()) {
+                                dialog.getSelectedDefinitionId()?.let { defId ->
+                                    val branch = dialog.getSelectedBranch()
+                                    ApplicationManager.getApplication().executeOnPooledThread {
+                                        try {
+                                            val apiClient = AzureDevOpsApiClient.getInstance(project)
+                                            apiClient.queueBuild(defId, branch)
+                                            ApplicationManager.getApplication().invokeLater {
+                                                pipelineListPanel.refreshBuilds()
+                                            }
+                                        } catch (ex: Exception) {
+                                            logger.error("Failed to queue build", ex)
+                                            ApplicationManager.getApplication().invokeLater {
+                                                JOptionPane.showMessageDialog(
+                                                    mainPanel,
+                                                    "Failed to run pipeline: ${ex.message}",
+                                                    "Error",
+                                                    JOptionPane.ERROR_MESSAGE,
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            })
+                    },
+                )
 
-            addSeparator()
+                addSeparator()
 
-            add(object : AnAction("Refresh", "Refresh pipeline list", AllIcons.Actions.Refresh) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    refreshDefinitionsAndBuilds()
-                }
-            })
+                add(
+                    object : AnAction("Refresh", "Refresh pipeline list", AllIcons.Actions.Refresh) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            refreshDefinitionsAndBuilds()
+                        }
+                    },
+                )
 
-            addSeparator()
+                addSeparator()
 
-            add(object : AnAction("Open in Browser", "Open selected pipeline in browser", AllIcons.Ide.External_link_arrow) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    pipelineListPanel.getSelectedBuild()?.getWebUrl()?.let { url ->
-                        if (url.isNotBlank()) {
-                            try {
-                                if (java.awt.Desktop.isDesktopSupported()) {
-                                    java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+                add(
+                    object : AnAction("Open in Browser", "Open selected pipeline in browser", AllIcons.Ide.External_link_arrow) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            pipelineListPanel.getSelectedBuild()?.getWebUrl()?.let { url ->
+                                if (url.isNotBlank()) {
+                                    try {
+                                        if (java.awt.Desktop.isDesktopSupported()) {
+                                            java.awt.Desktop
+                                                .getDesktop()
+                                                .browse(java.net.URI(url))
+                                        }
+                                    } catch (ex: Exception) {
+                                        logger.warn("Failed to open in browser: ${ex.message}")
+                                    }
                                 }
-                            } catch (ex: Exception) {
-                                logger.warn("Failed to open in browser: ${ex.message}")
                             }
                         }
-                    }
-                }
 
-                override fun update(e: AnActionEvent) {
-                    e.presentation.isEnabled = pipelineListPanel.getSelectedBuild() != null
-                }
-            })
-        }
+                        override fun update(e: AnActionEvent) {
+                            e.presentation.isEnabled = pipelineListPanel.getSelectedBuild() != null
+                        }
+                    },
+                )
+            }
 
         val toolbar = ActionManager.getInstance().createActionToolbar("AzureDevOpsPipelineToolbar", actionGroup, true)
         toolbar.targetComponent = mainPanel

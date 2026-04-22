@@ -13,31 +13,36 @@ object AzureDevOpsUrlParser {
 
     // Pattern for HTTPS URL: https://[username@]dev.azure.com/{organization}/{project}/_git/{repository}
     // Also supports URL-encoded characters (e.g., Connettivit%C3%A0)
-    private val HTTPS_PATTERN = Pattern.compile(
-        "https://(?:[^@]+@)?dev\\.azure\\.com/([^/]+)/([^/]+)/_git/([^/]+?)(?:\\.git)?/?$"
-    )
+    private val HTTPS_PATTERN =
+        Pattern.compile(
+            "https://(?:[^@]+@)?dev\\.azure\\.com/([^/]+)/([^/]+)/_git/([^/]+?)(?:\\.git)?/?$",
+        )
 
     // Pattern for alternative HTTPS URL: https://[username@]{organization}.visualstudio.com/{project}/_git/{repository}
-    private val VISUALSTUDIO_PATTERN = Pattern.compile(
-        "https://(?:[^@]+@)?([^.]+)\\.visualstudio\\.com/([^/]+)/_git/([^/]+?)(?:\\.git)?/?$"
-    )
+    private val VISUALSTUDIO_PATTERN =
+        Pattern.compile(
+            "https://(?:[^@]+@)?([^.]+)\\.visualstudio\\.com/([^/]+)/_git/([^/]+?)(?:\\.git)?/?$",
+        )
 
     // Pattern for SSH v3: git@ssh.dev.azure.com:v3/{organization}/{project}/{repository}
-    private val SSH_V3_PATTERN = Pattern.compile(
-        "git@ssh\\.dev\\.azure\\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\\.git)?/?$"
-    )
+    private val SSH_V3_PATTERN =
+        Pattern.compile(
+            "git@ssh\\.dev\\.azure\\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\\.git)?/?$",
+        )
 
     // Pattern for legacy SSH: {organization}@vs-ssh.visualstudio.com:v3/{organization}/{project}/{repository}
-    private val SSH_LEGACY_PATTERN = Pattern.compile(
-        "[^@]+@vs-ssh\\.visualstudio\\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\\.git)?/?$"
-    )
+    private val SSH_LEGACY_PATTERN =
+        Pattern.compile(
+            "[^@]+@vs-ssh\\.visualstudio\\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\\.git)?/?$",
+        )
 
     // Pattern for self-hosted Azure DevOps Server:
     // https://[username@]server[:port][/path]/{collection}/{project}/_git/{repository}
     // The _git segment is the key marker for Azure DevOps Server repositories.
-    private val SELF_HOSTED_PATTERN = Pattern.compile(
-        "https?://(?:[^@]+@)?([^/]+)(/[^_]+)?/([^/]+)/_git/([^/]+?)(?:\\.git)?/?$"
-    )
+    private val SELF_HOSTED_PATTERN =
+        Pattern.compile(
+            "https?://(?:[^@]+@)?([^/]+)(/[^_]+)?/([^/]+)/_git/([^/]+?)(?:\\.git)?/?$",
+        )
 
     /**
      * Parses the URL to extract organization, project, and repository
@@ -51,7 +56,7 @@ object AzureDevOpsUrlParser {
                 project = urlDecode(matcher.group(2)),
                 repository = urlDecode(matcher.group(3)),
                 remoteUrl = url,
-                useVisualStudioDomain = false
+                useVisualStudioDomain = false,
             )
         }
 
@@ -63,7 +68,7 @@ object AzureDevOpsUrlParser {
                 project = urlDecode(matcher.group(2)),
                 repository = urlDecode(matcher.group(3)),
                 remoteUrl = url,
-                useVisualStudioDomain = true
+                useVisualStudioDomain = true,
             )
         }
 
@@ -75,7 +80,7 @@ object AzureDevOpsUrlParser {
                 project = urlDecode(matcher.group(2)),
                 repository = urlDecode(matcher.group(3)),
                 remoteUrl = url,
-                useVisualStudioDomain = false
+                useVisualStudioDomain = false,
             )
         }
 
@@ -87,17 +92,17 @@ object AzureDevOpsUrlParser {
                 project = urlDecode(matcher.group(2)),
                 repository = urlDecode(matcher.group(3)),
                 remoteUrl = url,
-                useVisualStudioDomain = true
+                useVisualStudioDomain = true,
             )
         }
 
         // Try self-hosted Azure DevOps Server pattern
         matcher = SELF_HOSTED_PATTERN.matcher(url)
         if (matcher.matches()) {
-            val host = matcher.group(1)                        // e.g. "tfs.company.com"
-            val collectionPath = matcher.group(2)?.trim('/') ?: ""  // e.g. "tfs/DefaultCollection"
-            val project = urlDecode(matcher.group(3))          // e.g. "MyProject"
-            val repository = urlDecode(matcher.group(4))       // e.g. "MyRepo"
+            val host = matcher.group(1) // e.g. "tfs.company.com"
+            val collectionPath = matcher.group(2)?.trim('/') ?: "" // e.g. "tfs/DefaultCollection"
+            val project = urlDecode(matcher.group(3)) // e.g. "MyProject"
+            val repository = urlDecode(matcher.group(4)) // e.g. "MyRepo"
 
             // Skip known cloud hosts — they should be caught by the patterns above
             if (host.contains("dev.azure.com") || host.endsWith(".visualstudio.com")) {
@@ -106,18 +111,20 @@ object AzureDevOpsUrlParser {
 
             // Build the self-hosted server base URL (scheme + host + collection path)
             val scheme = if (url.startsWith("https")) "https" else "http"
-            val selfHostedBaseUrl = if (collectionPath.isNotEmpty()) {
-                "$scheme://$host/$collectionPath"
-            } else {
-                "$scheme://$host"
-            }
+            val selfHostedBaseUrl =
+                if (collectionPath.isNotEmpty()) {
+                    "$scheme://$host/$collectionPath"
+                } else {
+                    "$scheme://$host"
+                }
 
             // For self-hosted, the "organization" field holds the collection/path identifier
-            val organization = if (collectionPath.isNotEmpty()) {
-                collectionPath.split("/").lastOrNull() ?: host
-            } else {
-                host
-            }
+            val organization =
+                if (collectionPath.isNotEmpty()) {
+                    collectionPath.split("/").lastOrNull() ?: host
+                } else {
+                    host
+                }
 
             return AzureDevOpsRepoInfo(
                 organization = organization,
@@ -125,7 +132,7 @@ object AzureDevOpsUrlParser {
                 repository = repository,
                 remoteUrl = url,
                 useVisualStudioDomain = false,
-                selfHostedUrl = selfHostedBaseUrl
+                selfHostedUrl = selfHostedBaseUrl,
             )
         }
 
@@ -135,12 +142,11 @@ object AzureDevOpsUrlParser {
     /**
      * Decodes a URL-encoded string (e.g., "Connettivit%C3%A0" -> "Connettività")
      */
-    private fun urlDecode(value: String): String {
-        return try {
+    private fun urlDecode(value: String): String =
+        try {
             URLDecoder.decode(value, StandardCharsets.UTF_8.toString())
         } catch (e: Exception) {
             logger.warn("Failed to URL decode: $value", e)
             value
         }
-    }
 }

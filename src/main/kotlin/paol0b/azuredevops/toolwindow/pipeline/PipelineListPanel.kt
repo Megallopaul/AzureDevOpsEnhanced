@@ -12,7 +12,6 @@ import com.intellij.ui.TreeUIHelper
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
-import paol0b.azuredevops.model.BuildResult
 import paol0b.azuredevops.model.PipelineBuild
 import paol0b.azuredevops.services.AvatarService
 import paol0b.azuredevops.services.AzureDevOpsApiClient
@@ -29,9 +28,8 @@ import javax.swing.tree.TreePath
  * Mirrors the pattern of [paol0b.azuredevops.toolwindow.PullRequestListPanel].
  */
 class PipelineListPanel(
-    private val project: Project
+    private val project: Project,
 ) {
-
     private val logger = Logger.getInstance(PipelineListPanel::class.java)
     private val panel: JPanel
     private val tree: Tree
@@ -41,11 +39,11 @@ class PipelineListPanel(
     private val avatarService = AvatarService.getInstance(project)
 
     // Filters
-    private var resultFilter: String? = null    // null = all, "succeeded", "failed", etc.
-    private var statusFilter: String? = null    // null = all, "completed", "inProgress"
-    private var branchFilter: String? = null    // null = all
-    private var userFilter: String? = null      // null = all
-    private var definitionFilter: Int? = null   // null = all
+    private var resultFilter: String? = null // null = all, "succeeded", "failed", etc.
+    private var statusFilter: String? = null // null = all, "completed", "inProgress"
+    private var branchFilter: String? = null // null = all
+    private var userFilter: String? = null // null = all
+    private var definitionFilter: Int? = null // null = all
 
     // State
     private var cachedBuilds: List<PipelineBuild> = emptyList()
@@ -64,50 +62,58 @@ class PipelineListPanel(
     init {
         rootNode = DefaultMutableTreeNode("Pipelines")
         treeModel = DefaultTreeModel(rootNode)
-        tree = Tree(treeModel).apply {
-            isRootVisible = false
-            showsRootHandles = true
-            cellRenderer = PipelineBuildCellRenderer()
-            border = JBUI.Borders.empty(6, 12)
-            rowHeight = 0 // Auto-calculate based on content
-            putClientProperty("JTree.lineStyle", "Horizontal")
-        }
+        tree =
+            Tree(treeModel).apply {
+                isRootVisible = false
+                showsRootHandles = true
+                cellRenderer = PipelineBuildCellRenderer()
+                border = JBUI.Borders.empty(6, 12)
+                rowHeight = 0 // Auto-calculate based on content
+                putClientProperty("JTree.lineStyle", "Horizontal")
+            }
 
         TreeUIHelper.getInstance().installTreeSpeedSearch(tree)
 
         // Double-click opens pipeline detail tab
-        tree.addMouseListener(object : MouseAdapter() {
-            override fun mousePressed(e: MouseEvent) {
-                if (e.isPopupTrigger) showContextMenu(e)
-            }
-            override fun mouseReleased(e: MouseEvent) {
-                if (e.isPopupTrigger) showContextMenu(e)
-            }
-            override fun mouseClicked(e: MouseEvent) {
-                if (e.clickCount == 2) {
-                    val path = tree.getPathForLocation(e.x, e.y) ?: return
-                    val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return
-                    val build = node.userObject as? PipelineBuild ?: return
-                    PipelineToolWindowFactory.openPipelineDetailTab(project, build)
+        tree.addMouseListener(
+            object : MouseAdapter() {
+                override fun mousePressed(e: MouseEvent) {
+                    if (e.isPopupTrigger) showContextMenu(e)
                 }
-            }
-        })
 
-        statusLabel = JLabel("Ready").apply {
-            border = JBUI.Borders.empty(8, 12)
-            font = font.deriveFont(Font.PLAIN, 11f)
-            foreground = JBColor.GRAY
-        }
+                override fun mouseReleased(e: MouseEvent) {
+                    if (e.isPopupTrigger) showContextMenu(e)
+                }
 
-        panel = JPanel(BorderLayout()).apply {
-            val scrollPane = JBScrollPane(tree).apply {
-                border = JBUI.Borders.empty()
-                verticalScrollBar.unitIncrement = 16
+                override fun mouseClicked(e: MouseEvent) {
+                    if (e.clickCount == 2) {
+                        val path = tree.getPathForLocation(e.x, e.y) ?: return
+                        val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return
+                        val build = node.userObject as? PipelineBuild ?: return
+                        PipelineToolWindowFactory.openPipelineDetailTab(project, build)
+                    }
+                }
+            },
+        )
+
+        statusLabel =
+            JLabel("Ready").apply {
+                border = JBUI.Borders.empty(8, 12)
+                font = font.deriveFont(Font.PLAIN, 11f)
+                foreground = JBColor.GRAY
             }
-            add(scrollPane, BorderLayout.CENTER)
-            add(statusLabel, BorderLayout.SOUTH)
-            minimumSize = Dimension(250, 0)
-        }
+
+        panel =
+            JPanel(BorderLayout()).apply {
+                val scrollPane =
+                    JBScrollPane(tree).apply {
+                        border = JBUI.Borders.empty()
+                        verticalScrollBar.unitIncrement = 16
+                    }
+                add(scrollPane, BorderLayout.CENTER)
+                add(statusLabel, BorderLayout.SOUTH)
+                minimumSize = Dimension(250, 0)
+            }
     }
 
     fun getComponent(): JPanel = panel
@@ -125,10 +131,10 @@ class PipelineListPanel(
     fun applyFilter(value: PipelineSearchValue) {
         val serverChanged =
             resultFilter != value.result?.apiResult ||
-            statusFilter != value.result?.apiStatus ||
-            branchFilter != value.branch ||
-            userFilter != (if (value.requestedBy == PipelineSearchValue.RequestedByFilter.ME) "__ME__" else null) ||
-            definitionFilter != value.definition?.id
+                statusFilter != value.result?.apiStatus ||
+                branchFilter != value.branch ||
+                userFilter != (if (value.requestedBy == PipelineSearchValue.RequestedByFilter.ME) "__ME__" else null) ||
+                definitionFilter != value.definition?.id
 
         currentSearchValue = value
 
@@ -155,13 +161,19 @@ class PipelineListPanel(
 
         val query: String = currentSearchValue.searchQuery?.lowercase() ?: ""
         if (query.isNotBlank()) {
-            filtered = filtered.filter { build ->
-                build.getDefinitionName().lowercase().contains(query) ||
-                build.getBranchName().lowercase().contains(query) ||
-                (build.buildNumber?.lowercase()?.contains(query) == true) ||
-                (build.requestedFor?.displayName?.lowercase()?.contains(query) == true) ||
-                build.id.toString().contains(query)
-            }
+            filtered =
+                filtered.filter { build ->
+                    build.getDefinitionName().lowercase().contains(query) ||
+                        build.getBranchName().lowercase().contains(query) ||
+                        (build.buildNumber?.lowercase()?.contains(query) == true) ||
+                        (
+                            build.requestedFor
+                                ?.displayName
+                                ?.lowercase()
+                                ?.contains(query) == true
+                        ) ||
+                        build.id.toString().contains(query)
+                }
         }
 
         when (currentSearchValue.sort) {
@@ -182,14 +194,15 @@ class PipelineListPanel(
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
-                val builds = apiClient.getBuilds(
-                    definitionId = definitionFilter,
-                    requestedFor = userFilter,
-                    branchName = branchFilter,
-                    statusFilter = statusFilter,
-                    resultFilter = resultFilter,
-                    top = 50
-                )
+                val builds =
+                    apiClient.getBuilds(
+                        definitionId = definitionFilter,
+                        requestedFor = userFilter,
+                        branchName = branchFilter,
+                        statusFilter = statusFilter,
+                        resultFilter = resultFilter,
+                        top = 50,
+                    )
 
                 ApplicationManager.getApplication().invokeLater {
                     retryCount = 0
@@ -214,7 +227,8 @@ class PipelineListPanel(
                 }
             } catch (e: Exception) {
                 ApplicationManager.getApplication().invokeLater {
-                    val isConfigError = e.message?.contains("not configured", ignoreCase = true) == true ||
+                    val isConfigError =
+                        e.message?.contains("not configured", ignoreCase = true) == true ||
                             e.message?.contains("Authentication required", ignoreCase = true) == true
                     if (isConfigError) {
                         rootNode.removeAllChildren()
@@ -243,12 +257,13 @@ class PipelineListPanel(
 
     fun startAutoRefresh() {
         if (refreshTimer != null) return
-        refreshTimer = Timer(REFRESH_INTERVAL) {
-            refreshBuilds()
-        }.apply {
-            isRepeats = true
-            start()
-        }
+        refreshTimer =
+            Timer(REFRESH_INTERVAL) {
+                refreshBuilds()
+            }.apply {
+                isRepeats = true
+                start()
+            }
     }
 
     fun stopAutoRefresh() {
@@ -263,13 +278,14 @@ class PipelineListPanel(
         val delay = minOf((1000L * (1 shl retryCount)).toInt(), MAX_RETRY_DELAY)
         retryCount++
         logger.info("Scheduling pipeline list retry in ${delay}ms (attempt $retryCount)")
-        retryTimer = Timer(delay) {
-            retryTimer = null
-            refreshBuilds()
-        }.apply {
-            isRepeats = false
-            start()
-        }
+        retryTimer =
+            Timer(delay) {
+                retryTimer = null
+                refreshBuilds()
+            }.apply {
+                isRepeats = false
+                start()
+            }
     }
 
     // ========================
@@ -410,7 +426,7 @@ class PipelineListPanel(
             expanded: Boolean,
             leaf: Boolean,
             row: Int,
-            hasFocus: Boolean
+            hasFocus: Boolean,
         ) {
             val node = value as? DefaultMutableTreeNode ?: return
             val userObject = node.userObject
@@ -426,14 +442,15 @@ class PipelineListPanel(
 
         private fun renderBuild(build: PipelineBuild) {
             // Result icon
-            icon = when {
-                build.isSucceeded() -> AllIcons.RunConfigurations.TestPassed
-                build.isFailed() -> AllIcons.RunConfigurations.TestFailed
-                build.isPartiallySucceeded() -> AllIcons.General.Warning
-                build.isCanceled() -> AllIcons.RunConfigurations.TestIgnored
-                build.isRunning() -> AllIcons.Process.Step_1
-                else -> AllIcons.RunConfigurations.TestUnknown
-            }
+            icon =
+                when {
+                    build.isSucceeded() -> AllIcons.RunConfigurations.TestPassed
+                    build.isFailed() -> AllIcons.RunConfigurations.TestFailed
+                    build.isPartiallySucceeded() -> AllIcons.General.Warning
+                    build.isCanceled() -> AllIcons.RunConfigurations.TestIgnored
+                    build.isRunning() -> AllIcons.Process.Step_1
+                    else -> AllIcons.RunConfigurations.TestUnknown
+                }
 
             // Pipeline definition name (bold)
             append(build.getDefinitionName(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
@@ -442,30 +459,35 @@ class PipelineListPanel(
             // Branch badge
             val branchName = build.getBranchName()
             if (branchName.isNotBlank()) {
-                append(branchName, SimpleTextAttributes(
-                    SimpleTextAttributes.STYLE_PLAIN,
-                    JBColor(Color(34, 139, 34), Color(50, 200, 50))
-                ))
+                append(
+                    branchName,
+                    SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_PLAIN,
+                        JBColor(Color(34, 139, 34), Color(50, 200, 50)),
+                    ),
+                )
                 append("  ", SimpleTextAttributes.REGULAR_ATTRIBUTES)
             }
 
             // Result badge with color
-            val resultColor = when {
-                build.isSucceeded() -> JBColor(Color(34, 139, 34), Color(50, 200, 50))
-                build.isFailed() -> JBColor(Color(220, 50, 50), Color(255, 80, 80))
-                build.isPartiallySucceeded() -> JBColor(Color(255, 165, 0), Color(255, 140, 0))
-                build.isCanceled() -> JBColor(Color(150, 150, 150), Color(120, 120, 120))
-                build.isRunning() -> JBColor(Color(0, 122, 204), Color(0, 164, 239))
-                else -> JBColor.GRAY
-            }
-            val resultText = when {
-                build.isSucceeded() -> "✓"
-                build.isFailed() -> "✗"
-                build.isPartiallySucceeded() -> "⚠"
-                build.isCanceled() -> "⊘"
-                build.isRunning() -> "⟳"
-                else -> "?"
-            }
+            val resultColor =
+                when {
+                    build.isSucceeded() -> JBColor(Color(34, 139, 34), Color(50, 200, 50))
+                    build.isFailed() -> JBColor(Color(220, 50, 50), Color(255, 80, 80))
+                    build.isPartiallySucceeded() -> JBColor(Color(255, 165, 0), Color(255, 140, 0))
+                    build.isCanceled() -> JBColor(Color(150, 150, 150), Color(120, 120, 120))
+                    build.isRunning() -> JBColor(Color(0, 122, 204), Color(0, 164, 239))
+                    else -> JBColor.GRAY
+                }
+            val resultText =
+                when {
+                    build.isSucceeded() -> "✓"
+                    build.isFailed() -> "✗"
+                    build.isPartiallySucceeded() -> "⚠"
+                    build.isCanceled() -> "⊘"
+                    build.isRunning() -> "⟳"
+                    else -> "?"
+                }
             append(resultText, SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, resultColor))
 
             // Avatar (requested by user)
@@ -476,38 +498,50 @@ class PipelineListPanel(
             append("\n    ", SimpleTextAttributes.REGULAR_ATTRIBUTES)
 
             // Build ID
-            append("!${build.id}", SimpleTextAttributes(
-                SimpleTextAttributes.STYLE_PLAIN,
-                JBColor(Color(0, 122, 204), Color(0, 164, 239))
-            ))
+            append(
+                "!${build.id}",
+                SimpleTextAttributes(
+                    SimpleTextAttributes.STYLE_PLAIN,
+                    JBColor(Color(0, 122, 204), Color(0, 164, 239)),
+                ),
+            )
 
             // Created by
             build.requestedFor?.displayName?.let { userName ->
                 append("  ·  ", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
-                append(userName, SimpleTextAttributes(
-                    SimpleTextAttributes.STYLE_ITALIC,
-                    JBColor(Color(100, 150, 200), Color(120, 170, 220))
-                ))
+                append(
+                    userName,
+                    SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_ITALIC,
+                        JBColor(Color(100, 150, 200), Color(120, 170, 220)),
+                    ),
+                )
             }
 
             // Relative date
             val relDate = build.getRelativeDate()
             if (relDate.isNotBlank()) {
                 append("  ·  ", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
-                append("created $relDate", SimpleTextAttributes(
-                    SimpleTextAttributes.STYLE_PLAIN,
-                    JBColor.GRAY
-                ))
+                append(
+                    "created $relDate",
+                    SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_PLAIN,
+                        JBColor.GRAY,
+                    ),
+                )
             }
 
             // Duration
             val duration = build.getDuration()
             if (duration.isNotBlank()) {
                 append("  ·  ", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
-                append(duration, SimpleTextAttributes(
-                    SimpleTextAttributes.STYLE_PLAIN,
-                    JBColor.GRAY
-                ))
+                append(
+                    duration,
+                    SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_PLAIN,
+                        JBColor.GRAY,
+                    ),
+                )
             }
         }
     }

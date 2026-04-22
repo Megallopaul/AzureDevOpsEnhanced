@@ -24,17 +24,17 @@ import javax.swing.*
 class WorkItemDetailTabPanel(
     private val project: Project,
     @Volatile
-    private var workItem: WorkItem
+    private var workItem: WorkItem,
 ) : JPanel(BorderLayout()) {
-
     private val logger = Logger.getInstance(WorkItemDetailTabPanel::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
     private val avatarService = AvatarService.getInstance(project)
 
     // Header
-    private val titleLabel = JBLabel().apply {
-        font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f)
-    }
+    private val titleLabel =
+        JBLabel().apply {
+            font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f)
+        }
     private val typeIdLabel = JBLabel()
     private val stateLabel = JBLabel()
 
@@ -51,13 +51,14 @@ class WorkItemDetailTabPanel(
     private val reasonLabel = JBLabel()
 
     // Description
-    private val descriptionPane = JEditorPane("text/html", "").apply {
-        isEditable = false
-        background = UIUtil.getPanelBackground()
-        border = JBUI.Borders.empty(8)
-        putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
-        font = UIUtil.getLabelFont().deriveFont(Font.PLAIN, 12f)
-    }
+    private val descriptionPane =
+        JEditorPane("text/html", "").apply {
+            isEditable = false
+            background = UIUtil.getPanelBackground()
+            border = JBUI.Borders.empty(8)
+            putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+            font = UIUtil.getLabelFont().deriveFont(Font.PLAIN, 12f)
+        }
 
     // Comments
     private val commentPanel = WorkItemCommentPanel(project, workItem.id)
@@ -74,41 +75,46 @@ class WorkItemDetailTabPanel(
     }
 
     private fun buildUI() {
-        val scrollContent = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            border = JBUI.Borders.empty(16)
-            background = UIUtil.getPanelBackground()
-        }
+        val scrollContent =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                border = JBUI.Borders.empty(16)
+                background = UIUtil.getPanelBackground()
+            }
 
         // Header
-        val headerPanel = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(60))
-
-            val leftHeader = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+        val headerPanel =
+            JPanel(BorderLayout()).apply {
                 isOpaque = false
-                add(typeIdLabel)
-                add(Box.createVerticalStrut(4))
-                add(titleLabel)
-            }
-            add(leftHeader, BorderLayout.CENTER)
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(60))
 
-            val rightHeader = JPanel(FlowLayout(FlowLayout.RIGHT, 8, 0)).apply {
-                isOpaque = false
-                add(stateLabel)
-
-                val browserButton = JButton("Open in Browser", AllIcons.Ide.External_link_arrow).apply {
-                    addActionListener {
-                        val url = workItem.getWebUrl()
-                        if (url.isNotBlank()) BrowserUtil.browse(url)
+                val leftHeader =
+                    JPanel().apply {
+                        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                        isOpaque = false
+                        add(typeIdLabel)
+                        add(Box.createVerticalStrut(4))
+                        add(titleLabel)
                     }
-                }
-                add(browserButton)
+                add(leftHeader, BorderLayout.CENTER)
+
+                val rightHeader =
+                    JPanel(FlowLayout(FlowLayout.RIGHT, 8, 0)).apply {
+                        isOpaque = false
+                        add(stateLabel)
+
+                        val browserButton =
+                            JButton("Open in Browser", AllIcons.Ide.External_link_arrow).apply {
+                                addActionListener {
+                                    val url = workItem.getWebUrl()
+                                    if (url.isNotBlank()) BrowserUtil.browse(url)
+                                }
+                            }
+                        add(browserButton)
+                    }
+                add(rightHeader, BorderLayout.EAST)
             }
-            add(rightHeader, BorderLayout.EAST)
-        }
         scrollContent.add(headerPanel)
         scrollContent.add(Box.createVerticalStrut(JBUI.scale(12)))
         scrollContent.add(createSeparator())
@@ -123,77 +129,96 @@ class WorkItemDetailTabPanel(
         scrollContent.add(Box.createVerticalStrut(JBUI.scale(12)))
 
         // Description section
-        val descSection = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(250))
-            preferredSize = Dimension(0, JBUI.scale(200))
+        val descSection =
+            JPanel(BorderLayout()).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(250))
+                preferredSize = Dimension(0, JBUI.scale(200))
 
-            val descHeader = JBLabel("Description").apply {
-                font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 13f)
-                border = JBUI.Borders.empty(0, 0, 6, 0)
-            }
-            add(descHeader, BorderLayout.NORTH)
+                val descHeader =
+                    JBLabel("Description").apply {
+                        font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 13f)
+                        border = JBUI.Borders.empty(0, 0, 6, 0)
+                    }
+                add(descHeader, BorderLayout.NORTH)
 
-            val descScroll = JBScrollPane(descriptionPane).apply {
-                border = BorderFactory.createLineBorder(JBColor.border(), 1)
-                verticalScrollBar.unitIncrement = 16
+                val descScroll =
+                    JBScrollPane(descriptionPane).apply {
+                        border = BorderFactory.createLineBorder(JBColor.border(), 1)
+                        verticalScrollBar.unitIncrement = 16
+                    }
+                add(descScroll, BorderLayout.CENTER)
             }
-            add(descScroll, BorderLayout.CENTER)
-        }
         scrollContent.add(descSection)
         scrollContent.add(Box.createVerticalStrut(JBUI.scale(12)))
         scrollContent.add(createSeparator())
         scrollContent.add(Box.createVerticalStrut(JBUI.scale(12)))
 
         // Discussion/Comments section
-        val commentsSection = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
+        val commentsSection =
+            JPanel(BorderLayout()).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
 
-            val commentsHeader = JBLabel("Discussion").apply {
-                font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 13f)
-                border = JBUI.Borders.empty(0, 0, 6, 0)
+                val commentsHeader =
+                    JBLabel("Discussion").apply {
+                        font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 13f)
+                        border = JBUI.Borders.empty(0, 0, 6, 0)
+                    }
+                add(commentsHeader, BorderLayout.NORTH)
+                add(commentPanel, BorderLayout.CENTER)
             }
-            add(commentsHeader, BorderLayout.NORTH)
-            add(commentPanel, BorderLayout.CENTER)
-        }
         scrollContent.add(commentsSection)
         scrollContent.add(Box.createVerticalGlue())
 
-        val mainScroll = JBScrollPane(scrollContent).apply {
-            border = JBUI.Borders.empty()
-            verticalScrollBar.unitIncrement = 16
-            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-        }
+        val mainScroll =
+            JBScrollPane(scrollContent).apply {
+                border = JBUI.Borders.empty()
+                verticalScrollBar.unitIncrement = 16
+                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+            }
         add(mainScroll, BorderLayout.CENTER)
     }
 
-    private fun createInfoPanel(): JPanel {
-        return JPanel(GridBagLayout()).apply {
+    private fun createInfoPanel(): JPanel =
+        JPanel(GridBagLayout()).apply {
             isOpaque = false
             maximumSize = Dimension(Int.MAX_VALUE, JBUI.scale(200))
 
-            val gbc = GridBagConstraints().apply {
-                anchor = GridBagConstraints.WEST
-                insets = Insets(2, 0, 2, JBUI.scale(16))
-            }
+            val gbc =
+                GridBagConstraints().apply {
+                    anchor = GridBagConstraints.WEST
+                    insets = Insets(2, 0, 2, JBUI.scale(16))
+                }
 
             var row = 0
 
             // Assigned To
-            addInfoRow(this, gbc, row++, "Assigned To:", JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-                isOpaque = false
-                add(assignedToAvatar)
-                add(assignedToLabel)
-            })
+            addInfoRow(
+                this,
+                gbc,
+                row++,
+                "Assigned To:",
+                JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
+                    isOpaque = false
+                    add(assignedToAvatar)
+                    add(assignedToLabel)
+                },
+            )
 
             // State + Reason
-            addInfoRow(this, gbc, row++, "State:", JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
-                isOpaque = false
-                add(stateLabel)
-                add(reasonLabel)
-            })
+            addInfoRow(
+                this,
+                gbc,
+                row++,
+                "State:",
+                JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+                    isOpaque = false
+                    add(stateLabel)
+                    add(reasonLabel)
+                },
+            )
 
             // Iteration Path
             addInfoRow(this, gbc, row++, "Iteration:", iterationLabel)
@@ -216,17 +241,23 @@ class WorkItemDetailTabPanel(
             // Changed
             addInfoRow(this, gbc, row++, "Changed:", changedLabel)
         }
-    }
 
-    private fun addInfoRow(panel: JPanel, gbc: GridBagConstraints, row: Int, label: String, component: JComponent) {
+    private fun addInfoRow(
+        panel: JPanel,
+        gbc: GridBagConstraints,
+        row: Int,
+        label: String,
+        component: JComponent,
+    ) {
         gbc.gridx = 0
         gbc.gridy = row
         gbc.weightx = 0.0
         gbc.fill = GridBagConstraints.NONE
-        val labelComponent = JBLabel(label).apply {
-            foreground = JBColor.GRAY
-            font = UIUtil.getLabelFont().deriveFont(Font.PLAIN, 11f)
-        }
+        val labelComponent =
+            JBLabel(label).apply {
+                foreground = JBColor.GRAY
+                font = UIUtil.getLabelFont().deriveFont(Font.PLAIN, 11f)
+            }
         panel.add(labelComponent, gbc)
 
         gbc.gridx = 1
@@ -256,9 +287,10 @@ class WorkItemDetailTabPanel(
         val assignedTo = workItem.getAssignedTo()
         assignedToLabel.text = assignedTo ?: "Unassigned"
         workItem.getAssignedToImageUrl()?.let { url ->
-            assignedToAvatar.icon = avatarService.getAvatar(url, 20) {
-                assignedToAvatar.icon = avatarService.getAvatar(url, 20)
-            }
+            assignedToAvatar.icon =
+                avatarService.getAvatar(url, 20) {
+                    assignedToAvatar.icon = avatarService.getAvatar(url, 20)
+                }
         }
 
         reasonLabel.apply {
@@ -287,11 +319,12 @@ class WorkItemDetailTabPanel(
         // Description
         val desc = workItem.getDescription()
         if (!desc.isNullOrBlank()) {
-            val styledHtml = """
+            val styledHtml =
+                """
                 <html><body style="font-family: ${UIUtil.getLabelFont().family}; font-size: 12px; margin: 4px;">
                 $desc
                 </body></html>
-            """.trimIndent()
+                """.trimIndent()
             descriptionPane.text = styledHtml
             descriptionPane.caretPosition = 0
         } else {
@@ -299,20 +332,20 @@ class WorkItemDetailTabPanel(
         }
     }
 
-    private fun createSeparator(): JSeparator {
-        return JSeparator(SwingConstants.HORIZONTAL).apply {
+    private fun createSeparator(): JSeparator =
+        JSeparator(SwingConstants.HORIZONTAL).apply {
             alignmentX = Component.LEFT_ALIGNMENT
             maximumSize = Dimension(Int.MAX_VALUE, 1)
         }
-    }
 
     private fun startAutoRefresh() {
-        refreshTimer = Timer(30_000) {
-            refreshData()
-        }.apply {
-            isRepeats = true
-            start()
-        }
+        refreshTimer =
+            Timer(30_000) {
+                refreshData()
+            }.apply {
+                isRepeats = true
+                start()
+            }
     }
 
     private fun refreshData() {

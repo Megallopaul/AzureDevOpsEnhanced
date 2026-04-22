@@ -31,8 +31,9 @@ import javax.swing.*
  * All server URLs are accepted without a hardcoded domain check so that
  * self-hosted Azure DevOps Server instances will work in the future.
  */
-class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(project, true) {
-
+class AzureDevOpsLoginDialog(
+    private val project: Project?,
+) : DialogWrapper(project, true) {
     private val serverUrlField = JBTextField("", 60)
     private val tokenField = JBPasswordField()
     private val oauthButton = JButton("Sign in with Browser (OAuth)")
@@ -84,149 +85,191 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
         val mainPanel = JPanel(BorderLayout(0, 15))
 
         // --- Header ---
-        val headerPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+        val headerPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
 
-            val originalIcon = AzureDevOpsIcons.Logo
-            val scaledIcon = com.intellij.util.IconUtil.scale(originalIcon, null, 2.5f)
-            add(JBLabel(scaledIcon).apply { alignmentX = JComponent.CENTER_ALIGNMENT })
-            add(Box.createVerticalStrut(20))
+                val originalIcon = AzureDevOpsIcons.Logo
+                val scaledIcon =
+                    com.intellij.util.IconUtil
+                        .scale(originalIcon, null, 2.5f)
+                add(JBLabel(scaledIcon).apply { alignmentX = JComponent.CENTER_ALIGNMENT })
+                add(Box.createVerticalStrut(20))
 
-            add(JBLabel("<html><div style='text-align:center;'><b style='font-size:16px;'>Sign In to Azure DevOps</b></div></html>").apply {
-                alignmentX = JComponent.CENTER_ALIGNMENT
-                foreground = UIUtil.getLabelForeground()
-            })
-            add(Box.createVerticalStrut(8))
+                add(
+                    JBLabel(
+                        "<html><div style='text-align:center;'><b style='font-size:16px;'>Sign In to Azure DevOps</b></div></html>",
+                    ).apply {
+                        alignmentX = JComponent.CENTER_ALIGNMENT
+                        foreground = UIUtil.getLabelForeground()
+                    },
+                )
+                add(Box.createVerticalStrut(8))
 
-            add(JBLabel("<html><div style='text-align:center;color:gray;'>Connect your Azure DevOps account to get started</div></html>").apply {
-                alignmentX = JComponent.CENTER_ALIGNMENT
-                foreground = UIUtil.getLabelInfoForeground()
-            })
+                add(
+                    JBLabel(
+                        "<html><div style='text-align:center;color:gray;'>Connect your Azure DevOps account to get started</div></html>",
+                    ).apply {
+                        alignmentX = JComponent.CENTER_ALIGNMENT
+                        foreground = UIUtil.getLabelInfoForeground()
+                    },
+                )
 
-            border = JBUI.Borders.empty(10, 20)
-        }
+                border = JBUI.Borders.empty(10, 20)
+            }
 
         // --- Organization URL (shared by both modes) ---
-        val urlCard = JPanel(BorderLayout(10, 10)).apply {
-            border = JBUI.Borders.compound(JBUI.Borders.empty(0, 20), JBUI.Borders.empty(10))
-
-            val inner = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.Y_AXIS)
-
-                add(JPanel(BorderLayout()).apply {
-                    add(JBLabel("Organization").apply { font = font.deriveFont(java.awt.Font.BOLD) }, BorderLayout.WEST)
-                })
-                add(Box.createVerticalStrut(8))
-                add(JPanel(BorderLayout()).apply {
-                    add(serverUrlField, BorderLayout.CENTER)
-                    serverUrlField.putClientProperty("JTextField.placeholderText", CLOUD_PLACEHOLDER)
-                })
-                add(Box.createVerticalStrut(5))
-                urlHintLabel.foreground = UIUtil.getLabelInfoForeground()
-                add(urlHintLabel)
-                add(Box.createVerticalStrut(8))
-                add(JPanel(BorderLayout()).apply {
-                    add(selfHostedCheckbox, BorderLayout.WEST)
-                })
-            }
-            add(inner, BorderLayout.CENTER)
-        }
-
-        // --- OAuth card ---
-        val oauthCard = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-
-            val btnPanel = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                oauthButton.apply {
-                    preferredSize = JBUI.size(280, 40)
-                    maximumSize = JBUI.size(280, 40)
-                    font = font.deriveFont(java.awt.Font.BOLD, 14f)
-                    alignmentX = JComponent.CENTER_ALIGNMENT
-                }
-                add(oauthButton)
-                border = JBUI.Borders.empty(0, 20, 10, 20)
-            }
-            add(btnPanel)
-
-            add(JBLabel("<html><div style='text-align:center;font-size:11px;color:gray;'>" +
-                    "You'll be redirected to your browser to complete the sign-in process.<br>" +
-                    "Your credentials are stored securely in the IDE.</div></html>").apply {
-                alignmentX = JComponent.CENTER_ALIGNMENT
-                foreground = UIUtil.getLabelInfoForeground()
-                border = JBUI.Borders.empty(10, 30, 5, 30)
-            })
-        }
-
-        // --- PAT card ---
-        val patCard = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-
-            val tokenPanel = JPanel(BorderLayout(10, 10)).apply {
+        val urlCard =
+            JPanel(BorderLayout(10, 10)).apply {
                 border = JBUI.Borders.compound(JBUI.Borders.empty(0, 20), JBUI.Borders.empty(10))
-                val inner = JPanel().apply {
-                    layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                    add(JPanel(BorderLayout()).apply {
-                        add(JBLabel("Personal Access Token").apply { font = font.deriveFont(java.awt.Font.BOLD) }, BorderLayout.WEST)
-                    })
-                    add(Box.createVerticalStrut(8))
-                    add(JPanel(BorderLayout()).apply {
-                        add(tokenField, BorderLayout.CENTER)
-                        tokenField.putClientProperty("JTextField.placeholderText", "Paste your PAT here")
-                    })
-                    add(Box.createVerticalStrut(5))
-                    add(JBLabel("<html><div style='font-size:11px;color:gray;'>Required scopes: Code (Read), Pull Requests (Read)</div></html>").apply {
-                        foreground = UIUtil.getLabelInfoForeground()
-                    })
-                }
+
+                val inner =
+                    JPanel().apply {
+                        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+
+                        add(
+                            JPanel(BorderLayout()).apply {
+                                add(JBLabel("Organization").apply { font = font.deriveFont(java.awt.Font.BOLD) }, BorderLayout.WEST)
+                            },
+                        )
+                        add(Box.createVerticalStrut(8))
+                        add(
+                            JPanel(BorderLayout()).apply {
+                                add(serverUrlField, BorderLayout.CENTER)
+                                serverUrlField.putClientProperty("JTextField.placeholderText", CLOUD_PLACEHOLDER)
+                            },
+                        )
+                        add(Box.createVerticalStrut(5))
+                        urlHintLabel.foreground = UIUtil.getLabelInfoForeground()
+                        add(urlHintLabel)
+                        add(Box.createVerticalStrut(8))
+                        add(
+                            JPanel(BorderLayout()).apply {
+                                add(selfHostedCheckbox, BorderLayout.WEST)
+                            },
+                        )
+                    }
                 add(inner, BorderLayout.CENTER)
             }
-            add(tokenPanel)
-            add(Box.createVerticalStrut(10))
 
-            val btnPanel = JPanel().apply {
+        // --- OAuth card ---
+        val oauthCard =
+            JPanel().apply {
                 layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                patLoginButton.apply {
-                    preferredSize = JBUI.size(280, 40)
-                    maximumSize = JBUI.size(280, 40)
-                    font = font.deriveFont(java.awt.Font.BOLD, 14f)
-                    alignmentX = JComponent.CENTER_ALIGNMENT
-                }
-                add(patLoginButton)
-                border = JBUI.Borders.empty(0, 20, 5, 20)
-            }
-            add(btnPanel)
 
-            // Validation result label
-            patInfoLabel.apply {
-                alignmentX = JComponent.CENTER_ALIGNMENT
-                foreground = UIUtil.getLabelInfoForeground()
-                border = JBUI.Borders.empty(5, 30, 5, 30)
+                val btnPanel =
+                    JPanel().apply {
+                        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                        oauthButton.apply {
+                            preferredSize = JBUI.size(280, 40)
+                            maximumSize = JBUI.size(280, 40)
+                            font = font.deriveFont(java.awt.Font.BOLD, 14f)
+                            alignmentX = JComponent.CENTER_ALIGNMENT
+                        }
+                        add(oauthButton)
+                        border = JBUI.Borders.empty(0, 20, 10, 20)
+                    }
+                add(btnPanel)
+
+                add(
+                    JBLabel(
+                        "<html><div style='text-align:center;font-size:11px;color:gray;'>" +
+                            "You'll be redirected to your browser to complete the sign-in process.<br>" +
+                            "Your credentials are stored securely in the IDE.</div></html>",
+                    ).apply {
+                        alignmentX = JComponent.CENTER_ALIGNMENT
+                        foreground = UIUtil.getLabelInfoForeground()
+                        border = JBUI.Borders.empty(10, 30, 5, 30)
+                    },
+                )
             }
-            add(patInfoLabel)
-        }
+
+        // --- PAT card ---
+        val patCard =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+
+                val tokenPanel =
+                    JPanel(BorderLayout(10, 10)).apply {
+                        border = JBUI.Borders.compound(JBUI.Borders.empty(0, 20), JBUI.Borders.empty(10))
+                        val inner =
+                            JPanel().apply {
+                                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                                add(
+                                    JPanel(BorderLayout()).apply {
+                                        add(
+                                            JBLabel("Personal Access Token").apply { font = font.deriveFont(java.awt.Font.BOLD) },
+                                            BorderLayout.WEST,
+                                        )
+                                    },
+                                )
+                                add(Box.createVerticalStrut(8))
+                                add(
+                                    JPanel(BorderLayout()).apply {
+                                        add(tokenField, BorderLayout.CENTER)
+                                        tokenField.putClientProperty("JTextField.placeholderText", "Paste your PAT here")
+                                    },
+                                )
+                                add(Box.createVerticalStrut(5))
+                                add(
+                                    JBLabel(
+                                        "<html><div style='font-size:11px;color:gray;'>Required scopes: Code (Read), Pull Requests (Read)</div></html>",
+                                    ).apply {
+                                        foreground = UIUtil.getLabelInfoForeground()
+                                    },
+                                )
+                            }
+                        add(inner, BorderLayout.CENTER)
+                    }
+                add(tokenPanel)
+                add(Box.createVerticalStrut(10))
+
+                val btnPanel =
+                    JPanel().apply {
+                        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                        patLoginButton.apply {
+                            preferredSize = JBUI.size(280, 40)
+                            maximumSize = JBUI.size(280, 40)
+                            font = font.deriveFont(java.awt.Font.BOLD, 14f)
+                            alignmentX = JComponent.CENTER_ALIGNMENT
+                        }
+                        add(patLoginButton)
+                        border = JBUI.Borders.empty(0, 20, 5, 20)
+                    }
+                add(btnPanel)
+
+                // Validation result label
+                patInfoLabel.apply {
+                    alignmentX = JComponent.CENTER_ALIGNMENT
+                    foreground = UIUtil.getLabelInfoForeground()
+                    border = JBUI.Borders.empty(5, 30, 5, 30)
+                }
+                add(patInfoLabel)
+            }
 
         // --- Card container ---
         cardPanel.add(oauthCard, "OAUTH")
         cardPanel.add(patCard, "PAT")
 
         // --- Toggle link at the bottom ---
-        val togglePanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.X_AXIS)
-            add(Box.createHorizontalGlue())
-            add(toggleLink)
-            add(Box.createHorizontalGlue())
-            border = JBUI.Borders.empty(5, 20, 10, 20)
-        }
+        val togglePanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                add(Box.createHorizontalGlue())
+                add(toggleLink)
+                add(Box.createHorizontalGlue())
+                border = JBUI.Borders.empty(5, 20, 10, 20)
+            }
 
         // --- Content ---
-        val contentPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            add(urlCard)
-            add(Box.createVerticalStrut(15))
-            add(cardPanel)
-            add(togglePanel)
-        }
+        val contentPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                add(urlCard)
+                add(Box.createVerticalStrut(15))
+                add(cardPanel)
+                add(togglePanel)
+            }
 
         mainPanel.add(headerPanel, BorderLayout.NORTH)
         mainPanel.add(contentPanel, BorderLayout.CENTER)
@@ -278,40 +321,42 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
     private fun performOAuthLogin() {
         val serverUrl = normalizeAndValidateUrl() ?: return
 
-        ProgressManager.getInstance().run(object : Task.Modal(project, "Requesting Authentication Code...", true) {
-            var deviceCodeResponse: AzureDevOpsOAuthService.DeviceCodeResponse? = null
+        ProgressManager.getInstance().run(
+            object : Task.Modal(project, "Requesting Authentication Code...", true) {
+                var deviceCodeResponse: AzureDevOpsOAuthService.DeviceCodeResponse? = null
 
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                indicator.text = "Connecting to Microsoft..."
-                deviceCodeResponse = AzureDevOpsOAuthService.getInstance().requestDeviceCodeSync()
-            }
-
-            override fun onSuccess() {
-                val response = deviceCodeResponse
-                if (response != null) {
-                    val deviceCodeDialog = DeviceCodeAuthDialog(project, serverUrl, response)
-                    if (deviceCodeDialog.showAndGet()) {
-                        val authenticatedAccount = deviceCodeDialog.getAuthenticatedAccount()
-                        if (authenticatedAccount != null) {
-                            account = authenticatedAccount
-                            close(OK_EXIT_CODE)
-                        }
-                    }
-                } else {
-                    Messages.showErrorDialog(
-                        contentPanel,
-                        "Failed to request authentication code from Microsoft.\n\n" +
-                                "Please check your internet connection and try again.",
-                        "Authentication Error"
-                    )
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
+                    indicator.text = "Connecting to Microsoft..."
+                    deviceCodeResponse = AzureDevOpsOAuthService.getInstance().requestDeviceCodeSync()
                 }
-            }
 
-            override fun onThrowable(error: Throwable) {
-                Messages.showErrorDialog(contentPanel, "Error: ${error.message}", "Authentication Error")
-            }
-        })
+                override fun onSuccess() {
+                    val response = deviceCodeResponse
+                    if (response != null) {
+                        val deviceCodeDialog = DeviceCodeAuthDialog(project, serverUrl, response)
+                        if (deviceCodeDialog.showAndGet()) {
+                            val authenticatedAccount = deviceCodeDialog.getAuthenticatedAccount()
+                            if (authenticatedAccount != null) {
+                                account = authenticatedAccount
+                                close(OK_EXIT_CODE)
+                            }
+                        }
+                    } else {
+                        Messages.showErrorDialog(
+                            contentPanel,
+                            "Failed to request authentication code from Microsoft.\n\n" +
+                                "Please check your internet connection and try again.",
+                            "Authentication Error",
+                        )
+                    }
+                }
+
+                override fun onThrowable(error: Throwable) {
+                    Messages.showErrorDialog(contentPanel, "Error: ${error.message}", "Authentication Error")
+                }
+            },
+        )
     }
 
     // -------- PAT flow --------
@@ -327,34 +372,36 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
         patLoginButton.isEnabled = false
         patInfoLabel.text = "<html><div style='color:gray;'>Validating PAT…</div></html>"
 
-        ProgressManager.getInstance().run(object : Task.Modal(project, "Validating Personal Access Token...", true) {
-            var result: PatValidationService.ValidationResult? = null
+        ProgressManager.getInstance().run(
+            object : Task.Modal(project, "Validating Personal Access Token...", true) {
+                var result: PatValidationService.ValidationResult? = null
 
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                indicator.text = "Checking permissions on $serverUrl..."
-                result = PatValidationService.getInstance().validate(serverUrl, pat)
-            }
-
-            override fun onSuccess() {
-                patLoginButton.isEnabled = true
-                val r = result ?: return
-
-                if (r.valid) {
-                    patInfoLabel.text = "<html><div style='color:green;'>✓ ${escapeHtml(r.message)}</div></html>"
-                    val accountManager = AzureDevOpsAccountManager.getInstance()
-                    account = accountManager.addPatAccount(serverUrl, pat, r.message, selfHostedCheckbox.isSelected)
-                    close(OK_EXIT_CODE)
-                } else {
-                    patInfoLabel.text = "<html><div style='color:red;'>✗ ${escapeHtml(r.message)}</div></html>"
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
+                    indicator.text = "Checking permissions on $serverUrl..."
+                    result = PatValidationService.getInstance().validate(serverUrl, pat)
                 }
-            }
 
-            override fun onThrowable(error: Throwable) {
-                patLoginButton.isEnabled = true
-                patInfoLabel.text = "<html><div style='color:red;'>Error: ${escapeHtml(error.message ?: "Unknown error")}</div></html>"
-            }
-        })
+                override fun onSuccess() {
+                    patLoginButton.isEnabled = true
+                    val r = result ?: return
+
+                    if (r.valid) {
+                        patInfoLabel.text = "<html><div style='color:green;'>✓ ${escapeHtml(r.message)}</div></html>"
+                        val accountManager = AzureDevOpsAccountManager.getInstance()
+                        account = accountManager.addPatAccount(serverUrl, pat, r.message, selfHostedCheckbox.isSelected)
+                        close(OK_EXIT_CODE)
+                    } else {
+                        patInfoLabel.text = "<html><div style='color:red;'>✗ ${escapeHtml(r.message)}</div></html>"
+                    }
+                }
+
+                override fun onThrowable(error: Throwable) {
+                    patLoginButton.isEnabled = true
+                    patInfoLabel.text = "<html><div style='color:red;'>Error: ${escapeHtml(error.message ?: "Unknown error")}</div></html>"
+                }
+            },
+        )
     }
 
     // -------- validation --------
@@ -395,23 +442,27 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
                 return null
             }
 
-            raw = if (sanitized.contains(".")) {
-                // Looks like a hostname (tfs.company.com or tfs.company.com/tfs) → prepend https://
-                "https://$sanitized"
-            } else {
-                // Plain org name: "contoso" or "my-org" → auto-complete to dev.azure.com
-                "https://dev.azure.com/$sanitized"
-            }
+            raw =
+                if (sanitized.contains(".")) {
+                    // Looks like a hostname (tfs.company.com or tfs.company.com/tfs) → prepend https://
+                    "https://$sanitized"
+                } else {
+                    // Plain org name: "contoso" or "my-org" → auto-complete to dev.azure.com
+                    "https://dev.azure.com/$sanitized"
+                }
             serverUrlField.text = raw
         }
 
         // Basic URL validation
-        val uri = try {
-            java.net.URI(raw)
-        } catch (_: Exception) {
-            showUrlError("The URL format is not valid.\n\nExamples:\n• https://dev.azure.com/YourOrganization\n• https://YourOrganization.visualstudio.com")
-            return null
-        }
+        val uri =
+            try {
+                java.net.URI(raw)
+            } catch (_: Exception) {
+                showUrlError(
+                    "The URL format is not valid.\n\nExamples:\n• https://dev.azure.com/YourOrganization\n• https://YourOrganization.visualstudio.com",
+                )
+                return null
+            }
 
         val scheme = uri.scheme?.lowercase()
         if (scheme !in setOf("http", "https") || uri.host == null) {
@@ -433,9 +484,9 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
             if (path.isEmpty()) {
                 showUrlError(
                     "You entered the Azure DevOps base URL without an organization name.\n\n" +
-                    "Please add your organization:\n" +
-                    "  https://dev.azure.com/YourOrganization\n\n" +
-                    "You can find your organization name in the Azure DevOps web portal URL."
+                        "Please add your organization:\n" +
+                        "  https://dev.azure.com/YourOrganization\n\n" +
+                        "You can find your organization name in the Azure DevOps web portal URL.",
                 )
                 serverUrlField.requestFocusInWindow()
                 // Position cursor at the end to hint they should type there
@@ -448,7 +499,7 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
             if (subdomain.isBlank() || subdomain == "app" || subdomain == "www") {
                 showUrlError(
                     "The visualstudio.com URL must include your organization as the subdomain.\n\n" +
-                    "Example: https://YourOrganization.visualstudio.com"
+                        "Example: https://YourOrganization.visualstudio.com",
                 )
                 return null
             }
@@ -462,7 +513,5 @@ class AzureDevOpsLoginDialog(private val project: Project?) : DialogWrapper(proj
         Messages.showErrorDialog(contentPanel, message, "Invalid Organization URL")
     }
 
-    private fun escapeHtml(text: String): String {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    }
+    private fun escapeHtml(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 }

@@ -15,9 +15,9 @@ import javax.swing.JComponent
  */
 class WorkItemBoardFileEditor(
     private val project: Project,
-    private val file: WorkItemBoardVirtualFile
-) : UserDataHolderBase(), FileEditor {
-
+    private val file: WorkItemBoardVirtualFile,
+) : UserDataHolderBase(),
+    FileEditor {
     private val boardPanel = BoardViewPanel(project, file.iterationPath, file.iterationName)
 
     init {
@@ -26,14 +26,23 @@ class WorkItemBoardFileEditor(
     }
 
     override fun getComponent(): JComponent = boardPanel
+
     override fun getPreferredFocusedComponent(): JComponent? = boardPanel
+
     override fun getName(): String = "Work Item Board"
+
     override fun setState(state: FileEditorState) {}
+
     override fun isModified(): Boolean = false
+
     override fun isValid(): Boolean = true
+
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun getCurrentLocation(): FileEditorLocation? = null
+
     override fun getFile() = file
 
     override fun dispose() {

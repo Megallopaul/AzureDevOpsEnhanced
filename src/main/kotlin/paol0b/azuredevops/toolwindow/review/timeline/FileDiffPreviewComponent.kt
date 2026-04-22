@@ -30,7 +30,7 @@ data class DiffLine(
     val type: DiffLineType,
     val text: String,
     val oldLineNumber: Int? = null,
-    val newLineNumber: Int? = null
+    val newLineNumber: Int? = null,
 )
 
 /**
@@ -60,24 +60,24 @@ class FileDiffPreviewComponent(
     private val project: Project,
     private val pullRequest: PullRequest,
     private val filePath: String,
-    private val lineStart: Int,       // 1-based inclusive
-    private val lineEnd: Int,         // 1-based inclusive
+    private val lineStart: Int, // 1-based inclusive
+    private val lineEnd: Int, // 1-based inclusive
     private val isLeftSide: Boolean = false,
-    private val contextLines: Int = 7
+    private val contextLines: Int = 7,
 ) : JPanel() {
-
     private val logger = Logger.getInstance(FileDiffPreviewComponent::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
 
     private var expanded = false
     private var loaded = false
 
-    private val contentPanel = JPanel().apply {
-        layout = BoxLayout(this, BoxLayout.Y_AXIS)
-        isOpaque = false
-        isVisible = false
-        border = JBUI.Borders.empty(4, 0, 0, 0)
-    }
+    private val contentPanel =
+        JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+            isOpaque = false
+            isVisible = false
+            border = JBUI.Borders.empty(4, 0, 0, 0)
+        }
 
     private val chevronLabel = JBLabel(AllIcons.General.ArrowRight)
 
@@ -97,22 +97,27 @@ class FileDiffPreviewComponent(
         alignmentX = Component.LEFT_ALIGNMENT
 
         // ── Toggle header ──
-        val header = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        }
-        header.add(chevronLabel)
-        header.add(JBLabel("View changes").apply {
-            foreground = JBColor(Color(70, 130, 180), Color(100, 149, 237))
-            font = font.deriveFont(Font.BOLD, 11f)
-        })
-
-        header.addMouseListener(object : java.awt.event.MouseAdapter() {
-            override fun mouseClicked(e: java.awt.event.MouseEvent) {
-                toggle()
+        val header =
+            JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
             }
-        })
+        header.add(chevronLabel)
+        header.add(
+            JBLabel("View changes").apply {
+                foreground = JBColor(Color(70, 130, 180), Color(100, 149, 237))
+                font = font.deriveFont(Font.BOLD, 11f)
+            },
+        )
+
+        header.addMouseListener(
+            object : java.awt.event.MouseAdapter() {
+                override fun mouseClicked(e: java.awt.event.MouseEvent) {
+                    toggle()
+                }
+            },
+        )
 
         add(header)
         add(contentPanel)
@@ -141,11 +146,13 @@ class FileDiffPreviewComponent(
 
     private fun loadDiffAsync() {
         contentPanel.removeAll()
-        contentPanel.add(JBLabel("Loading diff\u2026").apply {
-            foreground = JBColor.GRAY
-            font = font.deriveFont(Font.ITALIC, 11f)
-            icon = AllIcons.Process.Step_1
-        })
+        contentPanel.add(
+            JBLabel("Loading diff\u2026").apply {
+                foreground = JBColor.GRAY
+                font = font.deriveFont(Font.ITALIC, 11f)
+                icon = AllIcons.Process.Step_1
+            },
+        )
         contentPanel.revalidate()
         contentPanel.repaint()
 
@@ -156,15 +163,27 @@ class FileDiffPreviewComponent(
                 val sourceCommit = pullRequest.lastMergeSourceCommit?.commitId
                 val targetCommit = pullRequest.lastMergeTargetCommit?.commitId
 
-                val oldContent = if (targetCommit != null) {
-                    try { apiClient.getFileContent(targetCommit, filePath, projectName, repositoryId) }
-                    catch (_: Exception) { "" }
-                } else ""
+                val oldContent =
+                    if (targetCommit != null) {
+                        try {
+                            apiClient.getFileContent(targetCommit, filePath, projectName, repositoryId)
+                        } catch (_: Exception) {
+                            ""
+                        }
+                    } else {
+                        ""
+                    }
 
-                val newContent = if (sourceCommit != null) {
-                    try { apiClient.getFileContent(sourceCommit, filePath, projectName, repositoryId) }
-                    catch (_: Exception) { "" }
-                } else ""
+                val newContent =
+                    if (sourceCommit != null) {
+                        try {
+                            apiClient.getFileContent(sourceCommit, filePath, projectName, repositoryId)
+                        } catch (_: Exception) {
+                            ""
+                        }
+                    } else {
+                        ""
+                    }
 
                 val diffLines = buildUnifiedDiff(oldContent, newContent)
 
@@ -176,10 +195,12 @@ class FileDiffPreviewComponent(
                 logger.error("Failed to load diff preview for $filePath", e)
                 ApplicationManager.getApplication().invokeLater {
                     contentPanel.removeAll()
-                    contentPanel.add(JBLabel("Failed to load diff: ${e.message}").apply {
-                        foreground = JBColor.RED
-                        font = font.deriveFont(11f)
-                    })
+                    contentPanel.add(
+                        JBLabel("Failed to load diff: ${e.message}").apply {
+                            foreground = JBColor.RED
+                            font = font.deriveFont(11f)
+                        },
+                    )
                     contentPanel.revalidate()
                     contentPanel.repaint()
                 }
@@ -195,23 +216,27 @@ class FileDiffPreviewComponent(
      * Compares old and new file content, then extracts a windowed unified diff
      * centred on the comment's line range with [contextLines] of context.
      */
-    private fun buildUnifiedDiff(oldContent: String, newContent: String): List<DiffLine> {
+    private fun buildUnifiedDiff(
+        oldContent: String,
+        newContent: String,
+    ): List<DiffLine> {
         if (oldContent.isEmpty() && newContent.isEmpty()) return emptyList()
 
         val oldLines = if (oldContent.isEmpty()) emptyList() else oldContent.lines()
         val newLines = if (newContent.isEmpty()) emptyList() else newContent.lines()
 
-        val fragments: List<LineFragment> = try {
-            ComparisonManager.getInstance().compareLines(
-                oldContent.ifEmpty { "\n" },
-                newContent.ifEmpty { "\n" },
-                ComparisonPolicy.DEFAULT,
-                DumbProgressIndicator.INSTANCE
-            )
-        } catch (e: Exception) {
-            logger.warn("ComparisonManager failed, falling back to simple preview", e)
-            return buildSimplePreview(if (isLeftSide) oldLines else newLines)
-        }
+        val fragments: List<LineFragment> =
+            try {
+                ComparisonManager.getInstance().compareLines(
+                    oldContent.ifEmpty { "\n" },
+                    newContent.ifEmpty { "\n" },
+                    ComparisonPolicy.DEFAULT,
+                    DumbProgressIndicator.INSTANCE,
+                )
+            } catch (e: Exception) {
+                logger.warn("ComparisonManager failed, falling back to simple preview", e)
+                return buildSimplePreview(if (isLeftSide) oldLines else newLines)
+            }
 
         // No changes? Just show line context.
         if (fragments.isEmpty()) {
@@ -220,8 +245,8 @@ class FileDiffPreviewComponent(
 
         // Calculate visible window on the reference side
         val refSize = if (isLeftSide) oldLines.size else newLines.size
-        val winStart = maxOf(0, lineStart - 1 - contextLines)        // 0-based inclusive
-        val winEnd = minOf(refSize, lineEnd + contextLines)           // 0-based exclusive
+        val winStart = maxOf(0, lineStart - 1 - contextLines) // 0-based inclusive
+        val winEnd = minOf(refSize, lineEnd + contextLines) // 0-based exclusive
 
         val result = mutableListOf<DiffLine>()
         result.add(DiffLine(DiffLineType.HEADER, "@@ lines ${winStart + 1}\u2013$winEnd @@"))
@@ -233,8 +258,12 @@ class FileDiffPreviewComponent(
             // ── Context lines between previous fragment and this one ──
             while (newIdx < frag.startLine2 && oldIdx < frag.startLine1) {
                 if (oldIdx < oldLines.size && newIdx < newLines.size) {
-                    val inWindow = if (isLeftSide) oldIdx in winStart until winEnd
-                                   else newIdx in winStart until winEnd
+                    val inWindow =
+                        if (isLeftSide) {
+                            oldIdx in winStart until winEnd
+                        } else {
+                            newIdx in winStart until winEnd
+                        }
                     if (inWindow) {
                         result.add(DiffLine(DiffLineType.CONTEXT, newLines[newIdx], oldIdx + 1, newIdx + 1))
                     }
@@ -244,11 +273,12 @@ class FileDiffPreviewComponent(
             }
 
             // ── Fragment: only render if it overlaps the visible window ──
-            val fragOverlaps = if (isLeftSide) {
-                frag.startLine1 < winEnd && maxOf(frag.endLine1, frag.startLine1 + 1) > winStart
-            } else {
-                frag.startLine2 < winEnd && maxOf(frag.endLine2, frag.startLine2 + 1) > winStart
-            }
+            val fragOverlaps =
+                if (isLeftSide) {
+                    frag.startLine1 < winEnd && maxOf(frag.endLine1, frag.startLine1 + 1) > winStart
+                } else {
+                    frag.startLine2 < winEnd && maxOf(frag.endLine2, frag.startLine2 + 1) > winStart
+                }
 
             if (fragOverlaps) {
                 // Removed lines (old file)
@@ -271,8 +301,12 @@ class FileDiffPreviewComponent(
 
         // ── Remaining context after last fragment ──
         while (newIdx < newLines.size && oldIdx < oldLines.size) {
-            val inWindow = if (isLeftSide) oldIdx in winStart until winEnd
-                           else newIdx in winStart until winEnd
+            val inWindow =
+                if (isLeftSide) {
+                    oldIdx in winStart until winEnd
+                } else {
+                    newIdx in winStart until winEnd
+                }
             if (inWindow) {
                 result.add(DiffLine(DiffLineType.CONTEXT, newLines[newIdx], oldIdx + 1, newIdx + 1))
             }
@@ -306,10 +340,12 @@ class FileDiffPreviewComponent(
         contentPanel.removeAll()
 
         if (diffLines.size <= 1) {
-            contentPanel.add(JBLabel("No changes in this range").apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(11f)
-            })
+            contentPanel.add(
+                JBLabel("No changes in this range").apply {
+                    foreground = JBColor.GRAY
+                    font = font.deriveFont(11f)
+                },
+            )
             contentPanel.revalidate()
             contentPanel.repaint()
             return
@@ -318,20 +354,22 @@ class FileDiffPreviewComponent(
         val editorFontName = EditorColorsManager.getInstance().globalScheme.editorFontName
         val monoFont = Font(editorFontName, Font.PLAIN, 11)
 
-        val diffPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-        }
+        val diffPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+            }
 
         for (line in diffLines) {
             diffPanel.add(createDiffLineRow(line, monoFont))
         }
 
         // Wrap in a rounded bordered container
-        val wrapper = RoundedPanel(6, UIUtil.getPanelBackground(), diffBorderColor).apply {
-            layout = BorderLayout()
-            border = JBUI.Borders.empty(4, 4)
-        }
+        val wrapper =
+            RoundedPanel(6, UIUtil.getPanelBackground(), diffBorderColor).apply {
+                layout = BorderLayout()
+                border = JBUI.Borders.empty(4, 4)
+            }
         wrapper.add(diffPanel, BorderLayout.CENTER)
 
         contentPanel.add(wrapper)
@@ -339,54 +377,70 @@ class FileDiffPreviewComponent(
         contentPanel.repaint()
     }
 
-    private fun createDiffLineRow(line: DiffLine, monoFont: Font): JPanel {
-        val bg = when (line.type) {
-            DiffLineType.ADDED   -> addedBg
-            DiffLineType.REMOVED -> removedBg
-            DiffLineType.HEADER  -> headerBg
-            DiffLineType.CONTEXT -> UIUtil.getPanelBackground()
-        }
+    private fun createDiffLineRow(
+        line: DiffLine,
+        monoFont: Font,
+    ): JPanel {
+        val bg =
+            when (line.type) {
+                DiffLineType.ADDED -> addedBg
+                DiffLineType.REMOVED -> removedBg
+                DiffLineType.HEADER -> headerBg
+                DiffLineType.CONTEXT -> UIUtil.getPanelBackground()
+            }
 
-        val row = JPanel(BorderLayout()).apply {
-            isOpaque = true
-            background = bg
-            maximumSize = Dimension(Int.MAX_VALUE, 20)
-            alignmentX = Component.LEFT_ALIGNMENT
-        }
+        val row =
+            JPanel(BorderLayout()).apply {
+                isOpaque = true
+                background = bg
+                maximumSize = Dimension(Int.MAX_VALUE, 20)
+                alignmentX = Component.LEFT_ALIGNMENT
+            }
 
         if (line.type == DiffLineType.HEADER) {
-            row.add(JBLabel(line.text).apply {
-                font = monoFont.deriveFont(Font.ITALIC)
-                foreground = headerFg
-                border = JBUI.Borders.empty(1, 8)
-            }, BorderLayout.CENTER)
+            row.add(
+                JBLabel(line.text).apply {
+                    font = monoFont.deriveFont(Font.ITALIC)
+                    foreground = headerFg
+                    border = JBUI.Borders.empty(1, 8)
+                },
+                BorderLayout.CENTER,
+            )
         } else {
             // ── Line numbers ──
             val oldNum = line.oldLineNumber?.toString()?.padStart(4) ?: "    "
             val newNum = line.newLineNumber?.toString()?.padStart(4) ?: "    "
-            row.add(JBLabel("$oldNum $newNum".replace(' ', '\u00A0')).apply {
-                font = monoFont
-                foreground = lineNumFg
-                border = JBUI.Borders.empty(1, 4, 1, 4)
-            }, BorderLayout.WEST)
+            row.add(
+                JBLabel("$oldNum $newNum".replace(' ', '\u00A0')).apply {
+                    font = monoFont
+                    foreground = lineNumFg
+                    border = JBUI.Borders.empty(1, 4, 1, 4)
+                },
+                BorderLayout.WEST,
+            )
 
             // ── Prefix + code text ──
-            val prefix = when (line.type) {
-                DiffLineType.ADDED   -> "+"
-                DiffLineType.REMOVED -> "-"
-                else                 -> " "
-            }
+            val prefix =
+                when (line.type) {
+                    DiffLineType.ADDED -> "+"
+                    DiffLineType.REMOVED -> "-"
+                    else -> " "
+                }
 
             val displayText = "$prefix ${line.text}".replace("\t", "    ").replace(' ', '\u00A0')
-            row.add(JBLabel(displayText).apply {
-                font = monoFont
-                foreground = when (line.type) {
-                    DiffLineType.ADDED   -> addedFg
-                    DiffLineType.REMOVED -> removedFg
-                    else                 -> UIUtil.getLabelForeground()
-                }
-                border = JBUI.Borders.empty(1, 2, 1, 4)
-            }, BorderLayout.CENTER)
+            row.add(
+                JBLabel(displayText).apply {
+                    font = monoFont
+                    foreground =
+                        when (line.type) {
+                            DiffLineType.ADDED -> addedFg
+                            DiffLineType.REMOVED -> removedFg
+                            else -> UIUtil.getLabelForeground()
+                        }
+                    border = JBUI.Borders.empty(1, 2, 1, 4)
+                },
+                BorderLayout.CENTER,
+            )
         }
 
         return row

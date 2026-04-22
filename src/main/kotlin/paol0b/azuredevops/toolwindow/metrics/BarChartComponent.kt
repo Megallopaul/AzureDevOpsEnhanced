@@ -14,9 +14,8 @@ import javax.swing.JPanel
 class BarChartComponent(
     private val chartTitle: String,
     private val barColor: Color = JBColor(Color(0x3574F0), Color(0x548AF7)),
-    private val unitLabel: String = ""
+    private val unitLabel: String = "",
 ) : JPanel() {
-
     private var data: List<WeeklyBucket> = emptyList()
     private var hoveredIndex: Int = -1
 
@@ -25,19 +24,24 @@ class BarChartComponent(
         preferredSize = Dimension(400, 200)
         minimumSize = Dimension(200, 140)
 
-        addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
-            override fun mouseMoved(e: java.awt.event.MouseEvent) {
-                val newIndex = hitTestBar(e.x, e.y)
-                if (newIndex != hoveredIndex) {
-                    hoveredIndex = newIndex
-                    toolTipText = if (newIndex >= 0 && newIndex < data.size) {
-                        val b = data[newIndex]
-                        "${b.label}: ${formatValue(b.value)} $unitLabel"
-                    } else null
-                    repaint()
+        addMouseMotionListener(
+            object : java.awt.event.MouseMotionAdapter() {
+                override fun mouseMoved(e: java.awt.event.MouseEvent) {
+                    val newIndex = hitTestBar(e.x, e.y)
+                    if (newIndex != hoveredIndex) {
+                        hoveredIndex = newIndex
+                        toolTipText =
+                            if (newIndex >= 0 && newIndex < data.size) {
+                                val b = data[newIndex]
+                                "${b.label}: ${formatValue(b.value)} $unitLabel"
+                            } else {
+                                null
+                            }
+                        repaint()
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     fun setData(buckets: List<WeeklyBucket>) {
@@ -118,7 +122,10 @@ class BarChartComponent(
         g2.dispose()
     }
 
-    private fun hitTestBar(mouseX: Int, mouseY: Int): Int {
+    private fun hitTestBar(
+        mouseX: Int,
+        mouseY: Int,
+    ): Int {
         if (data.isEmpty()) return -1
         val insets = insets
         val chartLeft = insets.left + JBUI.scale(40)
@@ -136,8 +143,10 @@ class BarChartComponent(
         return -1
     }
 
-    private fun formatValue(v: Double): String {
-        return if (v == v.toLong().toDouble()) v.toLong().toString()
-        else String.format("%.1f", v)
-    }
+    private fun formatValue(v: Double): String =
+        if (v == v.toLong().toDouble()) {
+            v.toLong().toString()
+        } else {
+            String.format("%.1f", v)
+        }
 }

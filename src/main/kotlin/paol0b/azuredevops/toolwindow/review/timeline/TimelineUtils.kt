@@ -8,7 +8,6 @@ import java.util.*
  * Shared utility functions for the timeline components.
  */
 object TimelineUtils {
-
     private val logger = Logger.getInstance(TimelineUtils::class.java)
 
     /**
@@ -17,12 +16,13 @@ object TimelineUtils {
     fun formatTimeAgo(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
         return try {
-            val formats = listOf(
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.US),
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US),
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            )
+            val formats =
+                listOf(
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.US),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US),
+                )
             var date: Date? = null
             for (fmt in formats) {
                 fmt.timeZone = TimeZone.getTimeZone("UTC")
@@ -60,9 +60,10 @@ object TimelineUtils {
     fun formatFullDateTime(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
         return try {
-            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }
+            val parser =
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
             val date = parser.parse(raw.take(19))
             SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(date)
         } catch (e: Exception) {
@@ -74,13 +75,12 @@ object TimelineUtils {
     /**
      * Escape HTML special characters.
      */
-    fun escapeHtml(text: String): String {
-        return text
+    fun escapeHtml(text: String): String =
+        text
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\n", "<br>")
-    }
 
     /**
      * Extract the vote value from system content text like "voted (-5)" or "voted (10)".

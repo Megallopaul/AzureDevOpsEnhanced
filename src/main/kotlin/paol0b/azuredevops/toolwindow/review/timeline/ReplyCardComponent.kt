@@ -14,9 +14,8 @@ import javax.swing.*
  */
 class ReplyCardComponent(
     project: Project,
-    private val reply: TimelineReply
+    private val reply: TimelineReply,
 ) : JPanel() {
-
     private val avatarService = AvatarService.getInstance(project)
 
     init {
@@ -49,33 +48,40 @@ class ReplyCardComponent(
     private fun buildUI() {
         border = JBUI.Borders.empty(8, 14, 8, 12)
 
-        val header = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, 22)
-        }
+        val header =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, 22)
+            }
 
         val avatarIcon = avatarService.getAvatar(reply.authorImageUrl, TimelineTheme.AVATAR_SMALL) { repaint() }
         header.add(JBLabel(avatarIcon))
-        header.add(JBLabel(reply.author).apply {
-            font = font.deriveFont(Font.BOLD, 11.5f)
-            foreground = TimelineTheme.PRIMARY_FG
-        })
+        header.add(
+            JBLabel(reply.author).apply {
+                font = font.deriveFont(Font.BOLD, 11.5f)
+                foreground = TimelineTheme.PRIMARY_FG
+            },
+        )
 
         val ts = TimelineUtils.formatTimeAgo(reply.timestamp)
         if (ts.isNotEmpty()) {
-            header.add(JBLabel(ts).apply {
-                foreground = TimelineTheme.MUTED_FG
-                font = font.deriveFont(10f)
-            })
+            header.add(
+                JBLabel(ts).apply {
+                    foreground = TimelineTheme.MUTED_FG
+                    font = font.deriveFont(10f)
+                },
+            )
         }
         add(header)
 
         add(Box.createVerticalStrut(4))
-        add(JBLabel("<html><div style='width:420px;line-height:1.4'>${TimelineUtils.escapeHtml(reply.content)}</div></html>").apply {
-            font = UIUtil.getLabelFont().deriveFont(11.5f)
-            foreground = TimelineTheme.PRIMARY_FG
-            alignmentX = Component.LEFT_ALIGNMENT
-        })
+        add(
+            JBLabel("<html><div style='width:420px;line-height:1.4'>${TimelineUtils.escapeHtml(reply.content)}</div></html>").apply {
+                font = UIUtil.getLabelFont().deriveFont(11.5f)
+                foreground = TimelineTheme.PRIMARY_FG
+                alignmentX = Component.LEFT_ALIGNMENT
+            },
+        )
     }
 }

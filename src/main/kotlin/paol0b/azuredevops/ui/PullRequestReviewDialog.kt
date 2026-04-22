@@ -39,9 +39,8 @@ import javax.swing.tree.TreeSelectionModel
 class PullRequestReviewDialog(
     private val project: Project,
     private val pullRequest: PullRequest,
-    private val fileChanges: List<PullRequestChange>
+    private val fileChanges: List<PullRequestChange>,
 ) : DialogWrapper(project, true) {
-
     private val logger = Logger.getInstance(PullRequestReviewDialog::class.java)
     private val rootNode = DefaultMutableTreeNode("Files")
     private val fileTreeModel = DefaultTreeModel(rootNode)
@@ -52,49 +51,54 @@ class PullRequestReviewDialog(
         title = "Review #${pullRequest.pullRequestId}: ${pullRequest.title}"
 
         buildFileTree()
-        fileTree = Tree(fileTreeModel).apply {
-            isRootVisible = false
-            showsRootHandles = true
-            rowHeight = 0
-            cellRenderer = FileTreeCellRenderer()
-            selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
-            TreeUIHelper.getInstance().installTreeSpeedSearch(this)
+        fileTree =
+            Tree(fileTreeModel).apply {
+                isRootVisible = false
+                showsRootHandles = true
+                rowHeight = 0
+                cellRenderer = FileTreeCellRenderer()
+                selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
+                TreeUIHelper.getInstance().installTreeSpeedSearch(this)
 
-            addMouseListener(object : java.awt.event.MouseAdapter() {
-                override fun mouseClicked(e: java.awt.event.MouseEvent?) {
-                    if (e?.clickCount != 2) {
-                        return
-                    }
-                    val path = getPathForLocation(e.x, e.y) ?: return
-                    val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return
-                    val fileNode = node.userObject as? FileNode ?: return
-                    openFileDiff(fileNode.change)
-                }
-            })
-        }
+                addMouseListener(
+                    object : java.awt.event.MouseAdapter() {
+                        override fun mouseClicked(e: java.awt.event.MouseEvent?) {
+                            if (e?.clickCount != 2) {
+                                return
+                            }
+                            val path = getPathForLocation(e.x, e.y) ?: return
+                            val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return
+                            val fileNode = node.userObject as? FileNode ?: return
+                            openFileDiff(fileNode.change)
+                        }
+                    },
+                )
+            }
 
         avatarLabel.preferredSize = Dimension(40, 40)
         loadAvatar(pullRequest.createdBy?.imageUrl, avatarLabel)
-        
+
         init()
-        
+
         // No initial automatic selection - user clicks the file
     }
 
     override fun createCenterPanel(): JComponent {
-        val panel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(8)
-        }
+        val panel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.empty(8)
+            }
 
         panel.add(createHeaderPanel(), BorderLayout.NORTH)
 
         val leftPanel = createFilesPanel()
         val rightPanel = createReviewSummaryPanel()
 
-        val splitter = com.intellij.ui.JBSplitter(false, 0.42f).apply {
-            firstComponent = leftPanel
-            secondComponent = rightPanel
-        }
+        val splitter =
+            com.intellij.ui.JBSplitter(false, 0.42f).apply {
+                firstComponent = leftPanel
+                secondComponent = rightPanel
+            }
 
         panel.add(splitter, BorderLayout.CENTER)
         panel.preferredSize = Dimension(900, 560)
@@ -102,13 +106,12 @@ class PullRequestReviewDialog(
         return panel
     }
 
-    override fun createActions(): Array<Action> {
-        return arrayOf(
+    override fun createActions(): Array<Action> =
+        arrayOf(
             ShowCombinedDiffAction(),
-            okAction
+            okAction,
         )
-    }
-    
+
     /**
      * Action to show the combined diff of selected files
      */
@@ -116,7 +119,7 @@ class PullRequestReviewDialog(
         init {
             putValue(Action.MNEMONIC_KEY, 'D'.code)
         }
-        
+
         override fun actionPerformed(e: java.awt.event.ActionEvent?) {
             val selectedChanges = getSelectedChanges()
             if (selectedChanges.isEmpty()) {
@@ -124,7 +127,7 @@ class PullRequestReviewDialog(
                     contentPane,
                     "Select at least one file in the tree",
                     "No File Selected",
-                    JOptionPane.WARNING_MESSAGE
+                    JOptionPane.WARNING_MESSAGE,
                 )
                 return
             }
@@ -140,36 +143,41 @@ class PullRequestReviewDialog(
      */
     private fun openFileDiff(change: PullRequestChange) {
         val path = change.item?.path ?: return
-        
+
         logger.info("Opening diff for: $path")
-        
+
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
-                
+
                 // Get new content (source commit)
                 val sourceCommit = pullRequest.lastMergeSourceCommit?.commitId
-                val newContent = if (sourceCommit != null && !change.hasChangeType("delete")) {
-                    apiClient.getFileContent(sourceCommit, path)
-                } else ""
-                
+                val newContent =
+                    if (sourceCommit != null && !change.hasChangeType("delete")) {
+                        apiClient.getFileContent(sourceCommit, path)
+                    } else {
+                        ""
+                    }
+
                 // Get old content (target commit)
                 val targetCommit = pullRequest.lastMergeTargetCommit?.commitId
                 val oldPath = change.previousPath()
-                val oldContent = if (targetCommit != null && !change.hasChangeType("add")) {
-                    try {
-                        apiClient.getFileContent(targetCommit, oldPath)
-                    } catch (e: Exception) {
-                        logger.info("File is new (doesn't exist in base): ${e.message}")
+                val oldContent =
+                    if (targetCommit != null && !change.hasChangeType("add")) {
+                        try {
+                            apiClient.getFileContent(targetCommit, oldPath)
+                        } catch (e: Exception) {
+                            logger.info("File is new (doesn't exist in base): ${e.message}")
+                            ""
+                        }
+                    } else {
                         ""
                     }
-                } else ""
-                
+
                 // Open diff in the UI thread
                 ApplicationManager.getApplication().invokeLater {
                     showDiffViewer(path, oldContent, newContent)
                 }
-                
             } catch (e: Exception) {
                 logger.error("Failed to load file diff", e)
             }
@@ -179,67 +187,79 @@ class PullRequestReviewDialog(
     /**
      * Shows the diff viewer
      */
-    private fun showDiffViewer(filePath: String, oldContent: String, newContent: String) {
+    private fun showDiffViewer(
+        filePath: String,
+        oldContent: String,
+        newContent: String,
+    ) {
         val contentFactory = DiffContentFactory.getInstance()
         val fileTypeManager = FileTypeManager.getInstance()
-        
+
         val fileName = filePath.substringAfterLast('/')
         val fileType = fileTypeManager.getFileTypeByFileName(fileName)
-        
+
         val oldDiffContent = contentFactory.create(oldContent, fileType)
         val newDiffContent = contentFactory.create(newContent, fileType)
-        
-        val diffRequest = SimpleDiffRequest(
-            "PR #${pullRequest.pullRequestId}: $fileName",
-            oldDiffContent,
-            newDiffContent,
-            "Base (${pullRequest.targetRefName.substringAfterLast('/')})",
-            "Changes (${pullRequest.sourceRefName.substringAfterLast('/')})"
-        )
-        
+
+        val diffRequest =
+            SimpleDiffRequest(
+                "PR #${pullRequest.pullRequestId}: $fileName",
+                oldDiffContent,
+                newDiffContent,
+                "Base (${pullRequest.targetRefName.substringAfterLast('/')})",
+                "Changes (${pullRequest.sourceRefName.substringAfterLast('/')})",
+            )
+
         DiffManager.getInstance().showDiff(project, diffRequest)
     }
 
     private fun createHeaderPanel(): JComponent {
-        val headerPanel = JPanel(BorderLayout(12, 0)).apply {
-            border = JBUI.Borders.empty(6, 6, 10, 6)
-        }
+        val headerPanel =
+            JPanel(BorderLayout(12, 0)).apply {
+                border = JBUI.Borders.empty(6, 6, 10, 6)
+            }
 
-        val titlePanel = JPanel(BorderLayout()).apply {
-            val titleLabel = JBLabel(pullRequest.title).apply {
-                font = font.deriveFont(Font.BOLD, 16f)
+        val titlePanel =
+            JPanel(BorderLayout()).apply {
+                val titleLabel =
+                    JBLabel(pullRequest.title).apply {
+                        font = font.deriveFont(Font.BOLD, 16f)
+                    }
+                val subtitle =
+                    JBLabel(
+                        "PR #${pullRequest.pullRequestId}  •  ${pullRequest.status.getDisplayName()}  •  ${pullRequest.getSourceBranchName()} → ${pullRequest.getTargetBranchName()}",
+                    ).apply {
+                        foreground = JBColor.GRAY
+                        font = font.deriveFont(Font.PLAIN, 11f)
+                    }
+                add(titleLabel, BorderLayout.NORTH)
+                add(subtitle, BorderLayout.SOUTH)
             }
-            val subtitle = JBLabel(
-                "PR #${pullRequest.pullRequestId}  •  ${pullRequest.status.getDisplayName()}  •  ${pullRequest.getSourceBranchName()} → ${pullRequest.getTargetBranchName()}"
-            ).apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(Font.PLAIN, 11f)
-            }
-            add(titleLabel, BorderLayout.NORTH)
-            add(subtitle, BorderLayout.SOUTH)
-        }
 
-        val authorPanel = JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
-            border = JBUI.Borders.empty(2, 0)
-            val authorName = pullRequest.createdBy?.displayName ?: "Unknown author"
-            val authorLabel = JBLabel(authorName).apply {
-                font = font.deriveFont(Font.BOLD, 12f)
+        val authorPanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+                border = JBUI.Borders.empty(2, 0)
+                val authorName = pullRequest.createdBy?.displayName ?: "Unknown author"
+                val authorLabel =
+                    JBLabel(authorName).apply {
+                        font = font.deriveFont(Font.BOLD, 12f)
+                    }
+                add(avatarLabel)
+                add(authorLabel)
             }
-            add(avatarLabel)
-            add(authorLabel)
-        }
 
-        val badgesPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 6, 0)).apply {
-            pullRequest.isDraft?.takeIf { it }?.let {
-                add(createBadge("DRAFT", JBColor(Color(255, 165, 0), Color(255, 165, 0))))
+        val badgesPanel =
+            JPanel(FlowLayout(FlowLayout.RIGHT, 6, 0)).apply {
+                pullRequest.isDraft?.takeIf { it }?.let {
+                    add(createBadge("DRAFT", JBColor(Color(255, 165, 0), Color(255, 165, 0))))
+                }
+                pullRequest.hasAutoComplete().takeIf { it }?.let {
+                    add(createBadge("AUTO-COMPLETE", JBColor(Color(72, 166, 70), Color(72, 166, 70))))
+                }
+                pullRequest.hasConflicts().takeIf { it }?.let {
+                    add(createBadge("CONFLICTS", JBColor(Color(210, 70, 70), Color(210, 70, 70))))
+                }
             }
-            pullRequest.hasAutoComplete().takeIf { it }?.let {
-                add(createBadge("AUTO-COMPLETE", JBColor(Color(72, 166, 70), Color(72, 166, 70))))
-            }
-            pullRequest.hasConflicts().takeIf { it }?.let {
-                add(createBadge("CONFLICTS", JBColor(Color(210, 70, 70), Color(210, 70, 70))))
-            }
-        }
 
         headerPanel.add(authorPanel, BorderLayout.WEST)
         headerPanel.add(titlePanel, BorderLayout.CENTER)
@@ -249,31 +269,37 @@ class PullRequestReviewDialog(
     }
 
     private fun createFilesPanel(): JComponent {
-        val leftPanel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.customLine(JBColor.border(), 0, 0, 0, 1)
-        }
+        val leftPanel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.customLine(JBColor.border(), 0, 0, 0, 1)
+            }
 
-        val headerPanel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(8, 10)
-        }
+        val headerPanel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.empty(8, 10)
+            }
 
-        val titleLabel = JBLabel("Files Changed (${fileChanges.size})").apply {
-            font = font.deriveFont(Font.BOLD, 12f)
-        }
+        val titleLabel =
+            JBLabel("Files Changed (${fileChanges.size})").apply {
+                font = font.deriveFont(Font.BOLD, 12f)
+            }
         headerPanel.add(titleLabel, BorderLayout.WEST)
 
-        val buttonsPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 6, 0)).apply {
-            val selectAllBtn = JButton("All").apply {
-                toolTipText = "Select all files"
-                addActionListener { selectAllFiles() }
+        val buttonsPanel =
+            JPanel(FlowLayout(FlowLayout.RIGHT, 6, 0)).apply {
+                val selectAllBtn =
+                    JButton("All").apply {
+                        toolTipText = "Select all files"
+                        addActionListener { selectAllFiles() }
+                    }
+                val deselectAllBtn =
+                    JButton("None").apply {
+                        toolTipText = "Deselect all files"
+                        addActionListener { fileTree.clearSelection() }
+                    }
+                add(selectAllBtn)
+                add(deselectAllBtn)
             }
-            val deselectAllBtn = JButton("None").apply {
-                toolTipText = "Deselect all files"
-                addActionListener { fileTree.clearSelection() }
-            }
-            add(selectAllBtn)
-            add(deselectAllBtn)
-        }
         headerPanel.add(buttonsPanel, BorderLayout.EAST)
 
         leftPanel.add(headerPanel, BorderLayout.NORTH)
@@ -284,33 +310,37 @@ class PullRequestReviewDialog(
     }
 
     private fun createReviewSummaryPanel(): JComponent {
-        val summaryPanel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(12)
-        }
-
-        val summaryHeader = JBLabel("Review Summary").apply {
-            font = font.deriveFont(Font.BOLD, 13f)
-        }
-
-        val countsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 6)).apply {
-            val summary = computeChangeSummary()
-            if (summary.added > 0) {
-                add(createBadge("+${summary.added} added", JBColor(Color(76, 175, 80), Color(76, 175, 80))))
+        val summaryPanel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.empty(12)
             }
-            if (summary.modified > 0) {
-                add(createBadge("~${summary.modified} modified", JBColor(Color(66, 133, 244), Color(66, 133, 244))))
-            }
-            if (summary.deleted > 0) {
-                add(createBadge("-${summary.deleted} deleted", JBColor(Color(219, 68, 55), Color(219, 68, 55))))
-            }
-        }
 
-        val infoLabel = JBLabel(
-            "<html><b>Tips</b><br><br>" +
-                "• Select one or more files in the tree<br>" +
-                "• Double-click a file to open the diff<br>" +
-                "• Use <b>Show Combined Diff</b> to open multiple diffs</html>"
-        )
+        val summaryHeader =
+            JBLabel("Review Summary").apply {
+                font = font.deriveFont(Font.BOLD, 13f)
+            }
+
+        val countsPanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 6)).apply {
+                val summary = computeChangeSummary()
+                if (summary.added > 0) {
+                    add(createBadge("+${summary.added} added", JBColor(Color(76, 175, 80), Color(76, 175, 80))))
+                }
+                if (summary.modified > 0) {
+                    add(createBadge("~${summary.modified} modified", JBColor(Color(66, 133, 244), Color(66, 133, 244))))
+                }
+                if (summary.deleted > 0) {
+                    add(createBadge("-${summary.deleted} deleted", JBColor(Color(219, 68, 55), Color(219, 68, 55))))
+                }
+            }
+
+        val infoLabel =
+            JBLabel(
+                "<html><b>Tips</b><br><br>" +
+                    "• Select one or more files in the tree<br>" +
+                    "• Double-click a file to open the diff<br>" +
+                    "• Use <b>Show Combined Diff</b> to open multiple diffs</html>",
+            )
 
         summaryPanel.add(summaryHeader, BorderLayout.NORTH)
         summaryPanel.add(countsPanel, BorderLayout.CENTER)
@@ -319,15 +349,17 @@ class PullRequestReviewDialog(
         return summaryPanel
     }
 
-    private fun createBadge(text: String, background: JBColor): JComponent {
-        return JBLabel(text).apply {
+    private fun createBadge(
+        text: String,
+        background: JBColor,
+    ): JComponent =
+        JBLabel(text).apply {
             isOpaque = true
             this.background = background
             foreground = Color.WHITE
             border = JBUI.Borders.empty(2, 8)
             font = font.deriveFont(Font.BOLD, 11f)
         }
-    }
 
     private fun selectAllFiles() {
         val paths = mutableListOf<javax.swing.tree.TreePath>()
@@ -338,7 +370,7 @@ class PullRequestReviewDialog(
     private fun collectFilePaths(
         node: DefaultMutableTreeNode,
         path: javax.swing.tree.TreePath,
-        result: MutableList<javax.swing.tree.TreePath>
+        result: MutableList<javax.swing.tree.TreePath>,
     ) {
         if (node.userObject is FileNode) {
             result.add(path)
@@ -352,11 +384,12 @@ class PullRequestReviewDialog(
 
     private fun getSelectedChanges(): List<PullRequestChange> {
         val paths = fileTree.selectionPaths ?: return emptyList()
-        return paths.mapNotNull { path ->
-            val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return@mapNotNull null
-            val fileNode = node.userObject as? FileNode ?: return@mapNotNull null
-            fileNode.change
-        }.distinct()
+        return paths
+            .mapNotNull { path ->
+                val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return@mapNotNull null
+                val fileNode = node.userObject as? FileNode ?: return@mapNotNull null
+                fileNode.change
+            }.distinct()
     }
 
     private fun computeChangeSummary(): ChangeSummary {
@@ -392,31 +425,36 @@ class PullRequestReviewDialog(
             var parent = rootNode
             for (segment in dirSegments) {
                 currentPath = if (currentPath.isEmpty()) segment else "$currentPath/$segment"
-                val dirNode = nodeByPath.getOrPut(currentPath) {
-                    DefaultMutableTreeNode(DirectoryNode(segment))
-                }
+                val dirNode =
+                    nodeByPath.getOrPut(currentPath) {
+                        DefaultMutableTreeNode(DirectoryNode(segment))
+                    }
                 if (dirNode.parent == null) {
                     parent.add(dirNode)
                 }
                 parent = dirNode
             }
 
-            val fileNode = DefaultMutableTreeNode(
-                FileNode(
-                    fileName = fileName,
-                    folderPath = dirSegments.joinToString("/"),
-                    changeType = change.primaryChangeType(),
-                    change = change,
-                    fullPath = path
+            val fileNode =
+                DefaultMutableTreeNode(
+                    FileNode(
+                        fileName = fileName,
+                        folderPath = dirSegments.joinToString("/"),
+                        changeType = change.primaryChangeType(),
+                        change = change,
+                        fullPath = path,
+                    ),
                 )
-            )
             parent.add(fileNode)
         }
 
         fileTreeModel.reload()
     }
 
-    private fun loadAvatar(imageUrl: String?, targetLabel: JLabel) {
+    private fun loadAvatar(
+        imageUrl: String?,
+        targetLabel: JLabel,
+    ) {
         if (imageUrl.isNullOrBlank()) {
             targetLabel.icon = AllIcons.General.User
             return
@@ -427,11 +465,12 @@ class PullRequestReviewDialog(
                 val uri = java.net.URI(imageUrl)
                 val url = uri.toURL()
                 val image = javax.imageio.ImageIO.read(url)
-                val scaledImage = image.getScaledInstance(
-                    targetLabel.preferredSize.width,
-                    targetLabel.preferredSize.height,
-                    java.awt.Image.SCALE_SMOOTH
-                )
+                val scaledImage =
+                    image.getScaledInstance(
+                        targetLabel.preferredSize.width,
+                        targetLabel.preferredSize.height,
+                        java.awt.Image.SCALE_SMOOTH,
+                    )
 
                 ApplicationManager.getApplication().invokeLater {
                     targetLabel.icon = ImageIcon(scaledImage)
@@ -453,7 +492,7 @@ class PullRequestReviewDialog(
             expanded: Boolean,
             leaf: Boolean,
             row: Int,
-            hasFocus: Boolean
+            hasFocus: Boolean,
         ) {
             val node = value as? DefaultMutableTreeNode ?: return
             when (val userObject = node.userObject) {
@@ -465,19 +504,21 @@ class PullRequestReviewDialog(
                     val fileType = FileTypeManager.getInstance().getFileTypeByFileName(userObject.fileName)
                     icon = fileType.icon ?: AllIcons.FileTypes.Text
 
-                    val changePrefix = when (userObject.changeType.lowercase()) {
-                        "add" -> "+ "
-                        "edit" -> "~ "
-                        "delete" -> "- "
-                        "rename" -> "→ "
-                        else -> "• "
-                    }
-                    val changeColor = when (userObject.changeType.lowercase()) {
-                        "add" -> JBColor(Color(76, 175, 80), Color(76, 175, 80))
-                        "edit" -> JBColor(Color(66, 133, 244), Color(66, 133, 244))
-                        "delete" -> JBColor(Color(219, 68, 55), Color(219, 68, 55))
-                        else -> JBColor.GRAY
-                    }
+                    val changePrefix =
+                        when (userObject.changeType.lowercase()) {
+                            "add" -> "+ "
+                            "edit" -> "~ "
+                            "delete" -> "- "
+                            "rename" -> "→ "
+                            else -> "• "
+                        }
+                    val changeColor =
+                        when (userObject.changeType.lowercase()) {
+                            "add" -> JBColor(Color(76, 175, 80), Color(76, 175, 80))
+                            "edit" -> JBColor(Color(66, 133, 244), Color(66, 133, 244))
+                            "delete" -> JBColor(Color(219, 68, 55), Color(219, 68, 55))
+                            else -> JBColor.GRAY
+                        }
 
                     append(changePrefix, SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, changeColor))
                     append(userObject.fileName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
@@ -493,19 +534,21 @@ class PullRequestReviewDialog(
         }
     }
 
-    private data class DirectoryNode(val name: String)
+    private data class DirectoryNode(
+        val name: String,
+    )
 
     private data class FileNode(
         val fileName: String,
         val folderPath: String,
         val changeType: String,
         val change: PullRequestChange,
-        val fullPath: String
+        val fullPath: String,
     )
 
     private data class ChangeSummary(
         val added: Int,
         val modified: Int,
-        val deleted: Int
+        val deleted: Int,
     )
 }

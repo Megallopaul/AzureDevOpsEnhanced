@@ -1,16 +1,15 @@
 package paol0b.azuredevops.services
 
-import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializerUtil
-import paol0b.azuredevops.model.PullRequest
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * Service to manage PR Review workspace state
@@ -19,10 +18,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 @Service(Service.Level.PROJECT)
 @State(
     name = "PrReviewStateService",
-    storages = [Storage("azuredevops-pr-review.xml")]
+    storages = [Storage("azuredevops-pr-review.xml")],
 )
-class PrReviewStateService(private val project: Project) : PersistentStateComponent<PrReviewStateService.State> {
-
+class PrReviewStateService(
+    private val project: Project,
+) : PersistentStateComponent<PrReviewStateService.State> {
     private val logger = Logger.getInstance(PrReviewStateService::class.java)
     private var myState = State()
 
@@ -30,20 +30,16 @@ class PrReviewStateService(private val project: Project) : PersistentStateCompon
     private val stateChangeListeners = CopyOnWriteArrayList<StateChangeListener>()
 
     companion object {
-        fun getInstance(project: Project): PrReviewStateService {
-            return project.getService(PrReviewStateService::class.java)
-        }
+        fun getInstance(project: Project): PrReviewStateService = project.getService(PrReviewStateService::class.java)
     }
 
     data class State(
         // Map of PR ID to set of reviewed file paths
         var reviewedFiles: MutableMap<Int, MutableSet<String>> = ConcurrentHashMap(),
-
         // Current selected PR for review
         var currentPullRequestId: Int? = null,
-
         // Map of PR ID to vote status (for caching)
-        var prVotes: MutableMap<Int, Int> = ConcurrentHashMap()
+        var prVotes: MutableMap<Int, Int> = ConcurrentHashMap(),
     )
 
     override fun getState(): State = myState
@@ -55,7 +51,10 @@ class PrReviewStateService(private val project: Project) : PersistentStateCompon
     /**
      * Mark a file as reviewed in a PR
      */
-    fun markFileAsReviewed(pullRequestId: Int, filePath: String) {
+    fun markFileAsReviewed(
+        pullRequestId: Int,
+        filePath: String,
+    ) {
         val reviewedSet = myState.reviewedFiles.computeIfAbsent(pullRequestId) { CopyOnWriteArraySet() }
         reviewedSet.add(filePath)
         notifyStateChanged()
@@ -65,7 +64,10 @@ class PrReviewStateService(private val project: Project) : PersistentStateCompon
     /**
      * Unmark a file as reviewed
      */
-    fun unmarkFileAsReviewed(pullRequestId: Int, filePath: String) {
+    fun unmarkFileAsReviewed(
+        pullRequestId: Int,
+        filePath: String,
+    ) {
         myState.reviewedFiles[pullRequestId]?.remove(filePath)
         notifyStateChanged()
         logger.info("Unmarked file as reviewed: PR #$pullRequestId - $filePath")
@@ -74,16 +76,15 @@ class PrReviewStateService(private val project: Project) : PersistentStateCompon
     /**
      * Check if a file is marked as reviewed
      */
-    fun isFileReviewed(pullRequestId: Int, filePath: String): Boolean {
-        return myState.reviewedFiles[pullRequestId]?.contains(filePath) ?: false
-    }
+    fun isFileReviewed(
+        pullRequestId: Int,
+        filePath: String,
+    ): Boolean = myState.reviewedFiles[pullRequestId]?.contains(filePath) ?: false
 
     /**
      * Get all reviewed files for a PR
      */
-    fun getReviewedFiles(pullRequestId: Int): Set<String> {
-        return myState.reviewedFiles[pullRequestId]?.toSet() ?: emptySet()
-    }
+    fun getReviewedFiles(pullRequestId: Int): Set<String> = myState.reviewedFiles[pullRequestId]?.toSet() ?: emptySet()
 
     /**
      * Clear all reviewed files for a PR
@@ -111,7 +112,10 @@ class PrReviewStateService(private val project: Project) : PersistentStateCompon
     /**
      * Get review progress (percentage of files reviewed)
      */
-    fun getReviewProgress(pullRequestId: Int, totalFiles: Int): Int {
+    fun getReviewProgress(
+        pullRequestId: Int,
+        totalFiles: Int,
+    ): Int {
         if (totalFiles == 0) return 100
         val reviewedCount = myState.reviewedFiles[pullRequestId]?.size ?: 0
         return (reviewedCount * 100) / totalFiles
@@ -120,7 +124,10 @@ class PrReviewStateService(private val project: Project) : PersistentStateCompon
     /**
      * Save vote status for a PR
      */
-    fun savePrVote(pullRequestId: Int, vote: Int) {
+    fun savePrVote(
+        pullRequestId: Int,
+        vote: Int,
+    ) {
         myState.prVotes[pullRequestId] = vote
         notifyStateChanged()
     }

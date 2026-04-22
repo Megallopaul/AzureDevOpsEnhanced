@@ -1,7 +1,6 @@
 package paol0b.azuredevops.model
 
 import com.google.gson.annotations.SerializedName
-import java.net.URI
 
 /**
  * Represents the Azure DevOps account configuration
@@ -11,29 +10,27 @@ data class AzureDevOpsConfig private constructor(
     val organization: String = "",
     val project: String = "",
     val repository: String = "",
-    val personalAccessToken: String = ""
+    val personalAccessToken: String = "",
 ) {
-    fun isValid(): Boolean {
-        return organization.isNotBlank() &&
-                project.isNotBlank() &&
-                repository.isNotBlank() &&
-                personalAccessToken.isNotBlank()
-    }
+    fun isValid(): Boolean =
+        organization.isNotBlank() &&
+            project.isNotBlank() &&
+            repository.isNotBlank() &&
+            personalAccessToken.isNotBlank()
 
     companion object {
         fun create(
             organization: String,
             project: String,
             repository: String,
-            personalAccessToken: String
-        ): AzureDevOpsConfig {
-            return AzureDevOpsConfig(
+            personalAccessToken: String,
+        ): AzureDevOpsConfig =
+            AzureDevOpsConfig(
                 organization = organization,
                 project = project,
                 repository = repository,
-                personalAccessToken = personalAccessToken
+                personalAccessToken = personalAccessToken,
             )
-        }
     }
 }
 
@@ -46,7 +43,7 @@ data class CreatePullRequestRequest(
     val title: String,
     val description: String = "",
     val reviewers: List<ReviewerRequest>? = null,
-    val isDraft: Boolean = false
+    val isDraft: Boolean = false,
 )
 
 /**
@@ -55,7 +52,7 @@ data class CreatePullRequestRequest(
 data class ReviewerRequest(
     val id: String,
     @SerializedName("isRequired")
-    val isRequired: Boolean = false
+    val isRequired: Boolean = false,
 )
 
 /**
@@ -74,7 +71,7 @@ data class PullRequestResponse(
     @SerializedName("creationDate")
     val creationDate: String?,
     @SerializedName("url")
-    val url: String?
+    val url: String?,
 )
 
 /**
@@ -111,24 +108,25 @@ data class PullRequest(
     @SerializedName("lastMergeTargetCommit")
     val lastMergeTargetCommit: CommitRef?,
     @SerializedName("autoCompleteSetBy")
-    val autoCompleteSetBy: User?
+    val autoCompleteSetBy: User?,
 ) {
-    fun getWebUrl(): String {
-        return url ?: ""
-    }
-    
+    fun getWebUrl(): String = url ?: ""
+
     fun getSourceBranchName(): String = sourceRefName.removePrefix("refs/heads/")
+
     fun getTargetBranchName(): String = targetRefName.removePrefix("refs/heads/")
-    
+
     fun isActive(): Boolean = status == PullRequestStatus.Active
+
     fun isMerged(): Boolean = status == PullRequestStatus.Completed
+
     fun isAbandoned(): Boolean = status == PullRequestStatus.Abandoned
-    
+
     /**
      * Check if the PR has merge conflicts
      */
     fun hasConflicts(): Boolean = mergeStatus == "conflicts"
-    
+
     /**
      * Check if the PR is ready to complete (all checks passed, policies met, approvals received)
      * This matches when Azure DevOps shows the "Complete" button
@@ -136,42 +134,41 @@ data class PullRequest(
     fun isReadyToComplete(): Boolean {
         // Must be active
         if (!isActive()) return false
-        
+
         // Must not have conflicts
         if (mergeStatus == "conflicts" || mergeStatus == "failure") return false
-        
+
         // Must not be rejected by policy
         if (mergeStatus == "rejectedByPolicy") return false
-        
+
         // Check if there are any required reviewers who haven't approved
         val requiredReviewers = reviewers?.filter { it.isRequired == true } ?: emptyList()
         if (requiredReviewers.isNotEmpty()) {
-            val hasAllRequiredApprovals = requiredReviewers.all { reviewer ->
-                reviewer.vote == 10 // 10 = approved in Azure DevOps
-            }
+            val hasAllRequiredApprovals =
+                requiredReviewers.all { reviewer ->
+                    reviewer.vote == 10 // 10 = approved in Azure DevOps
+                }
             if (!hasAllRequiredApprovals) return false
         }
-        
+
         // Check if there are any rejections (vote -10 or -5)
         val hasRejections = reviewers?.any { it.vote == -10 || it.vote == -5 } ?: false
         if (hasRejections) return false
-        
+
         // If merge status is succeeded and no policy violations, it's ready
         return mergeStatus == "succeeded"
     }
-    
+
     /**
      * Check if auto-complete is already set
      */
     fun hasAutoComplete(): Boolean = autoCompleteSetBy != null
-    
+
     /**
      * Check if the current user is the creator of the PR
      * @param currentUserId The ID of the current authenticated user
      */
-    fun isCreatedByUser(currentUserId: String?): Boolean {
-        return currentUserId != null && createdBy?.id == currentUserId
-    }
+    fun isCreatedByUser(currentUserId: String?): Boolean = currentUserId != null && createdBy?.id == currentUserId
 }
 
 /**
@@ -180,19 +177,25 @@ data class PullRequest(
 enum class PullRequestStatus {
     @SerializedName("notSet")
     NotSet,
+
     @SerializedName("active")
     Active,
+
     @SerializedName("abandoned")
     Abandoned,
+
     @SerializedName("completed")
-    Completed;
-    
-    fun getDisplayName(): String = when(this) {
-        NotSet -> "Not Set"
-        Active -> "Active"
-        Abandoned -> "Abandoned"
-        Completed -> "Completed"
-    }
+    Completed,
+
+    ;
+
+    fun getDisplayName(): String =
+        when (this) {
+            NotSet -> "Not Set"
+            Active -> "Active"
+            Abandoned -> "Abandoned"
+            Completed -> "Completed"
+        }
 }
 
 /**
@@ -206,7 +209,7 @@ data class Reviewer(
     val imageUrl: String?,
     val vote: Int?,
     @SerializedName("isRequired")
-    val isRequired: Boolean?
+    val isRequired: Boolean?,
 ) {
     fun getVoteStatus(): ReviewerVote = ReviewerVote.fromVoteValue(vote)
 }
@@ -216,25 +219,28 @@ enum class ReviewerVote {
     ApprovedWithSuggestions,
     NoVote,
     WaitingForAuthor,
-    Rejected;
-    
-    fun getDisplayName(): String = when(this) {
-        Approved -> "✓ Approved"
-        ApprovedWithSuggestions -> "✓ Approved with suggestions"
-        NoVote -> "○ No vote"
-        WaitingForAuthor -> "⚠ Waiting for author"
-        Rejected -> "✗ Rejected"
-    }
+    Rejected,
+    ;
+
+    fun getDisplayName(): String =
+        when (this) {
+            Approved -> "✓ Approved"
+            ApprovedWithSuggestions -> "✓ Approved with suggestions"
+            NoVote -> "○ No vote"
+            WaitingForAuthor -> "⚠ Waiting for author"
+            Rejected -> "✗ Rejected"
+        }
 
     companion object {
-        fun fromVoteValue(vote: Int?): ReviewerVote = when (vote) {
-            10 -> Approved
-            5 -> ApprovedWithSuggestions
-            0 -> NoVote
-            -5 -> WaitingForAuthor
-            -10 -> Rejected
-            else -> NoVote
-        }
+        fun fromVoteValue(vote: Int?): ReviewerVote =
+            when (vote) {
+                10 -> Approved
+                5 -> ApprovedWithSuggestions
+                0 -> NoVote
+                -5 -> WaitingForAuthor
+                -10 -> Rejected
+                else -> NoVote
+            }
     }
 }
 
@@ -244,7 +250,7 @@ enum class ReviewerVote {
 data class Label(
     val id: String?,
     val name: String?,
-    val active: Boolean?
+    val active: Boolean?,
 )
 
 /**
@@ -256,7 +262,7 @@ data class Repository(
     @SerializedName("project")
     val project: Project?,
     @SerializedName("remoteUrl")
-    val remoteUrl: String?
+    val remoteUrl: String?,
 )
 
 /**
@@ -264,7 +270,7 @@ data class Repository(
  */
 data class Project(
     val id: String?,
-    val name: String?
+    val name: String?,
 )
 
 /**
@@ -275,12 +281,12 @@ data class User(
     val displayName: String?,
     val uniqueName: String?,
     @SerializedName("imageUrl")
-    val imageUrl: String?
+    val imageUrl: String?,
 )
 
 data class CreatedBy(
     val displayName: String?,
-    val uniqueName: String?
+    val uniqueName: String?,
 )
 
 /**
@@ -288,7 +294,7 @@ data class CreatedBy(
  */
 data class PullRequestListResponse(
     val value: List<PullRequest>,
-    val count: Int?
+    val count: Int?,
 )
 
 /**
@@ -296,7 +302,7 @@ data class PullRequestListResponse(
  */
 data class GitBranch(
     val name: String,
-    val displayName: String
+    val displayName: String,
 ) {
     companion object {
         fun fromRefName(refName: String): GitBranch {
@@ -314,7 +320,7 @@ data class AzureDevOpsError(
     @SerializedName("typeKey")
     val typeKey: String?,
     @SerializedName("errorCode")
-    val errorCode: Int?
+    val errorCode: Int?,
 )
 
 data class AzureDevOpsErrorResponse(
@@ -329,7 +335,7 @@ data class AzureDevOpsErrorResponse(
     @SerializedName("errorCode")
     val errorCode: Int?,
     @SerializedName("eventId")
-    val eventId: Int?
+    val eventId: Int?,
 )
 
 /**
@@ -344,26 +350,27 @@ data class CommentThread(
     @SerializedName("threadContext")
     val threadContext: ThreadContext?,
     @SerializedName("isDeleted")
-    val isDeleted: Boolean?
+    val isDeleted: Boolean?,
 ) {
     /**
      * Gets the file path, searching in pullRequestThreadContext first, then threadContext
      */
     fun getFilePath(): String? = pullRequestThreadContext?.filePath ?: threadContext?.filePath
-    
+
     /**
      * Gets the start line, searching in pullRequestThreadContext first, then threadContext
      */
     fun getRightFileStart(): Int? = pullRequestThreadContext?.rightFileStart?.line ?: threadContext?.rightFileStart?.line
-    
+
     /**
      * Gets the end line, searching in pullRequestThreadContext first, then threadContext
      */
     fun getRightFileEnd(): Int? = pullRequestThreadContext?.rightFileEnd?.line ?: threadContext?.rightFileEnd?.line
-    
+
     fun isActive(): Boolean = status == ThreadStatus.Active || status == ThreadStatus.Pending
+
     fun isResolved(): Boolean = !isActive()
-    
+
     /**
      * Checks if this is a system-generated thread (e.g., from Azure DevOps automation)
      * System threads typically have commentType = "system" or no human author
@@ -387,12 +394,12 @@ data class ThreadContext(
     @SerializedName("leftFileStart")
     val leftFileStart: LineInfo?,
     @SerializedName("leftFileEnd")
-    val leftFileEnd: LineInfo?
+    val leftFileEnd: LineInfo?,
 )
 
 data class LineInfo(
     val line: Int?,
-    val offset: Int?
+    val offset: Int?,
 )
 
 /**
@@ -401,42 +408,52 @@ data class LineInfo(
 enum class ThreadStatus {
     @SerializedName("unknown")
     Unknown,
+
     @SerializedName("active")
     Active,
+
     @SerializedName("fixed")
     Fixed,
+
     @SerializedName("wontFix")
     WontFix,
+
     @SerializedName("closed")
     Closed,
+
     @SerializedName("byDesign")
     ByDesign,
+
     @SerializedName("pending")
-    Pending;
-    
-    fun getDisplayName(): String = when(this) {
-        Unknown -> "Unknown"
-        Active -> "Active"
-        Fixed -> "Fixed"
-        WontFix -> "Won't Fix"
-        Closed -> "Closed"
-        ByDesign -> "By Design"
-        Pending -> "Pending"
-    }
-    
+    Pending,
+
+    ;
+
+    fun getDisplayName(): String =
+        when (this) {
+            Unknown -> "Unknown"
+            Active -> "Active"
+            Fixed -> "Fixed"
+            WontFix -> "Won't Fix"
+            Closed -> "Closed"
+            ByDesign -> "By Design"
+            Pending -> "Pending"
+        }
+
     /**
      * Converts the status to the numeric value required by the Azure DevOps API
      * Used in PATCH requests as the status field
      */
-    fun toApiValue(): Int = when(this) {
-        Unknown -> 0
-        Active -> 1
-        Fixed -> 2
-        WontFix -> 3
-        Closed -> 4
-        ByDesign -> 5
-        Pending -> 6
-    }
+    fun toApiValue(): Int =
+        when (this) {
+            Unknown -> 0
+            Active -> 1
+            Fixed -> 2
+            WontFix -> 3
+            Closed -> 4
+            ByDesign -> 5
+            Pending -> 6
+        }
 }
 
 /**
@@ -455,7 +472,7 @@ data class Comment(
     @SerializedName("commentType")
     val commentType: String?,
     @SerializedName("isDeleted")
-    val isDeleted: Boolean?
+    val isDeleted: Boolean?,
 )
 
 /**
@@ -466,7 +483,7 @@ data class CreateCommentRequest(
     @SerializedName("parentCommentId")
     val parentCommentId: Int? = null,
     @SerializedName("commentType")
-    val commentType: String = "text"
+    val commentType: String = "text",
 )
 
 /**
@@ -481,13 +498,12 @@ data class UpdateThreadStatusRequest(
     constructor(status: ThreadStatus) : this(status.toApiValue())
 }
 
-
 /**
  * Response for thread list
  */
 data class CommentThreadListResponse(
     val value: List<CommentThread>,
-    val count: Int?
+    val count: Int?,
 )
 
 /**
@@ -497,7 +513,7 @@ data class CommitRef(
     @SerializedName("commitId")
     val commitId: String?,
     @SerializedName("url")
-    val url: String?
+    val url: String?,
 )
 
 /**
@@ -510,7 +526,7 @@ data class Identity(
     val uniqueName: String?,
     @SerializedName("imageUrl")
     val imageUrl: String?,
-    val descriptor: String?
+    val descriptor: String?,
 )
 
 /**
@@ -518,7 +534,7 @@ data class Identity(
  */
 data class IdentitySearchResponse(
     val value: List<Identity>?,
-    val count: Int?
+    val count: Int?,
 )
 
 /**
@@ -526,7 +542,7 @@ data class IdentitySearchResponse(
  */
 data class PullRequestIteration(
     @SerializedName("id")
-    val id: Int?
+    val id: Int?,
 )
 
 /**
@@ -534,5 +550,5 @@ data class PullRequestIteration(
  */
 data class PullRequestIterationListResponse(
     val value: List<PullRequestIteration>?,
-    val count: Int?
+    val count: Int?,
 )

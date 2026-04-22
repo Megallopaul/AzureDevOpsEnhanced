@@ -32,7 +32,7 @@ import javax.swing.tree.TreeSelectionModel
  */
 data class ProjectsData(
     val projects: List<AzureDevOpsCloneApiClient.Project>,
-    val repositories: Map<String, List<AzureDevOpsCloneApiClient.Repository>>
+    val repositories: Map<String, List<AzureDevOpsCloneApiClient.Repository>>,
 )
 
 /**
@@ -42,29 +42,32 @@ data class ProjectsData(
  */
 class AzureDevOpsCloneDialog private constructor(
     private val project: Project?,
-    preloadedData: Map<String, ProjectsData>?
+    preloadedData: Map<String, ProjectsData>?,
 ) : DialogWrapper(project, true) {
-
     private val accountComboBox = JComboBox<AzureDevOpsAccount>()
-    private val loginButton = JButton("Add Account...").apply {
-        icon = AllIcons.General.Add
-    }
-    private val removeButton = JButton("Remove").apply {
-        icon = AllIcons.General.Remove
-        toolTipText = "Remove selected account"
-    }
+    private val loginButton =
+        JButton("Add Account...").apply {
+            icon = AllIcons.General.Add
+        }
+    private val removeButton =
+        JButton("Remove").apply {
+            icon = AllIcons.General.Remove
+            toolTipText = "Remove selected account"
+        }
     private val tree: Tree
     private val treeModel: DefaultTreeModel
     private val rootNode: DefaultMutableTreeNode
     private val directoryField = TextFieldWithBrowseButton()
-    
-    private val searchField = com.intellij.ui.components.JBTextField()
+
+    private val searchField =
+        com.intellij.ui.components
+            .JBTextField()
     private var selectedRepository: AzureDevOpsRepository? = null
     private var selectedAccount: AzureDevOpsAccount? = null
-    private var isLoadingAccounts = false  // Flag to prevent duplicate loads
+    private var isLoadingAccounts = false // Flag to prevent duplicate loads
     private val defaultCloneDir = System.getProperty("user.home") + File.separator + "source" + File.separator + "repos"
-    private var baseCloneDir = defaultCloneDir  // Track the base directory without repository name
-    
+    private var baseCloneDir = defaultCloneDir // Track the base directory without repository name
+
     // Preloaded data
     private var preloadedData: Map<String, ProjectsData>? = null
 
@@ -76,7 +79,7 @@ class AzureDevOpsCloneDialog private constructor(
         fun create(project: Project?): AzureDevOpsCloneDialog? {
             val accountManager = AzureDevOpsAccountManager.getInstance()
             val accounts = accountManager.getAccounts()
-            
+
             // If no accounts, show login first
             if (accounts.isEmpty()) {
                 val loginDialog = AzureDevOpsLoginDialog(project)
@@ -89,67 +92,69 @@ class AzureDevOpsCloneDialog private constructor(
                     return null
                 }
             }
-            
+
             // Preload data for all accounts
             var preloadedData: Map<String, ProjectsData>? = null
             var error: String? = null
-            
-            ProgressManager.getInstance().run(object : Task.Modal(project, "Loading Azure DevOps Repositories...", true) {
-                override fun run(indicator: ProgressIndicator) {
-                    val dataMap = mutableMapOf<String, ProjectsData>()
-                    val currentAccounts = accountManager.getAccounts()
-                    
-                    if (currentAccounts.isEmpty()) {
-                        return
-                    }
-                    
-                    indicator.isIndeterminate = false
-                    val accountCount = currentAccounts.size
-                    
-                    currentAccounts.forEachIndexed { index, account ->
-                        try {
-                            indicator.text = "Loading repositories for ${account.displayName}..."
-                            indicator.fraction = index.toDouble() / accountCount
-                            
-                            val token = accountManager.getToken(account.id)
-                            if (token != null) {
-                                val apiClient = AzureDevOpsCloneApiClient(account.serverUrl, token)
-                                val projects = apiClient.getProjects()
-                                
-                                val repoMap = mutableMapOf<String, List<AzureDevOpsCloneApiClient.Repository>>()
-                                projects.forEachIndexed { projIndex, proj ->
-                                    indicator.text2 = "Loading ${proj.name}..."
-                                    indicator.fraction = (index.toDouble() + (projIndex.toDouble() / projects.size)) / accountCount
-                                    
-                                    try {
-                                        val repos = apiClient.getRepositories(proj.id)
-                                        repoMap[proj.id] = repos
-                                    } catch (e: Exception) {
-                                        // Log and continue
-                                        repoMap[proj.id] = emptyList()
-                                    }
-                                }
-                                
-                                dataMap[account.id] = ProjectsData(projects, repoMap)
-                            }
-                        } catch (e: Exception) {
-                            error = "Error loading repositories for ${account.displayName}: ${e.message}"
+
+            ProgressManager.getInstance().run(
+                object : Task.Modal(project, "Loading Azure DevOps Repositories...", true) {
+                    override fun run(indicator: ProgressIndicator) {
+                        val dataMap = mutableMapOf<String, ProjectsData>()
+                        val currentAccounts = accountManager.getAccounts()
+
+                        if (currentAccounts.isEmpty()) {
+                            return
                         }
+
+                        indicator.isIndeterminate = false
+                        val accountCount = currentAccounts.size
+
+                        currentAccounts.forEachIndexed { index, account ->
+                            try {
+                                indicator.text = "Loading repositories for ${account.displayName}..."
+                                indicator.fraction = index.toDouble() / accountCount
+
+                                val token = accountManager.getToken(account.id)
+                                if (token != null) {
+                                    val apiClient = AzureDevOpsCloneApiClient(account.serverUrl, token)
+                                    val projects = apiClient.getProjects()
+
+                                    val repoMap = mutableMapOf<String, List<AzureDevOpsCloneApiClient.Repository>>()
+                                    projects.forEachIndexed { projIndex, proj ->
+                                        indicator.text2 = "Loading ${proj.name}..."
+                                        indicator.fraction = (index.toDouble() + (projIndex.toDouble() / projects.size)) / accountCount
+
+                                        try {
+                                            val repos = apiClient.getRepositories(proj.id)
+                                            repoMap[proj.id] = repos
+                                        } catch (e: Exception) {
+                                            // Log and continue
+                                            repoMap[proj.id] = emptyList()
+                                        }
+                                    }
+
+                                    dataMap[account.id] = ProjectsData(projects, repoMap)
+                                }
+                            } catch (e: Exception) {
+                                error = "Error loading repositories for ${account.displayName}: ${e.message}"
+                            }
+                        }
+
+                        indicator.fraction = 1.0
+                        preloadedData = dataMap
                     }
-                    
-                    indicator.fraction = 1.0
-                    preloadedData = dataMap
-                }
-            })
-            
+                },
+            )
+
             if (error != null) {
                 com.intellij.openapi.ui.Messages.showErrorDialog(
                     project,
                     error,
-                    "Error Loading Repositories"
+                    "Error Loading Repositories",
                 )
             }
-            
+
             return AzureDevOpsCloneDialog(project, preloadedData)
         }
     }
@@ -157,24 +162,25 @@ class AzureDevOpsCloneDialog private constructor(
     init {
         this.preloadedData = preloadedData
         title = "Clone from Azure DevOps"
-        
+
         rootNode = DefaultMutableTreeNode("Azure DevOps")
         treeModel = DefaultTreeModel(rootNode)
-        tree = Tree(treeModel).apply {
-            isRootVisible = false
-            showsRootHandles = true
-            selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
-            cellRenderer = RepositoryTreeCellRenderer()
-            border = JBUI.Borders.empty(5)
-        }
+        tree =
+            Tree(treeModel).apply {
+                isRootVisible = false
+                showsRootHandles = true
+                selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+                cellRenderer = RepositoryTreeCellRenderer()
+                border = JBUI.Borders.empty(5)
+            }
 
         tree.addTreeSelectionListener {
             val selectedNode = tree.lastSelectedPathComponent as? DefaultMutableTreeNode
             val userObject = selectedNode?.userObject
-            
+
             if (userObject is AzureDevOpsRepository) {
                 selectedRepository = userObject
-                
+
                 // Auto-fill directory with repository name using base directory
                 val targetDir = File(baseCloneDir, userObject.name).absolutePath
                 directoryField.text = targetDir
@@ -182,13 +188,17 @@ class AzureDevOpsCloneDialog private constructor(
                 selectedRepository = null
             }
         }
-        
+
         // Search field listener
-        searchField.getDocument().addDocumentListener(object : javax.swing.event.DocumentListener {
-            override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = filterTree()
-            override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = filterTree()
-            override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = filterTree()
-        })
+        searchField.getDocument().addDocumentListener(
+            object : javax.swing.event.DocumentListener {
+                override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = filterTree()
+
+                override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = filterTree()
+
+                override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = filterTree()
+            },
+        )
         searchField.emptyText.text = "Search repositories..."
 
         loginButton.addActionListener {
@@ -210,30 +220,34 @@ class AzureDevOpsCloneDialog private constructor(
 
         val fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
         directoryField.addBrowseFolderListener(
-            TextBrowseFolderListener(fileChooserDescriptor, project)
+            TextBrowseFolderListener(fileChooserDescriptor, project),
         )
-        
+
         // Listen for manual changes to directory field to update base directory
-        directoryField.textField.document.addDocumentListener(object : javax.swing.event.DocumentListener {
-            override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = updateBaseCloneDir()
-            override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = updateBaseCloneDir()
-            override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = updateBaseCloneDir()
-            
-            private fun updateBaseCloneDir() {
-                val currentPath = directoryField.text.trim()
-                if (currentPath.isNotEmpty()) {
-                    val currentFile = File(currentPath)
-                    // If a repository is selected and the path ends with its name, use parent
-                    if (selectedRepository != null && currentFile.name == selectedRepository?.name) {
-                        baseCloneDir = currentFile.parent ?: defaultCloneDir
-                    } else {
-                        // Otherwise, use the current path as base
-                        baseCloneDir = currentPath
+        directoryField.textField.document.addDocumentListener(
+            object : javax.swing.event.DocumentListener {
+                override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = updateBaseCloneDir()
+
+                override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = updateBaseCloneDir()
+
+                override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = updateBaseCloneDir()
+
+                private fun updateBaseCloneDir() {
+                    val currentPath = directoryField.text.trim()
+                    if (currentPath.isNotEmpty()) {
+                        val currentFile = File(currentPath)
+                        // If a repository is selected and the path ends with its name, use parent
+                        if (selectedRepository != null && currentFile.name == selectedRepository?.name) {
+                            baseCloneDir = currentFile.parent ?: defaultCloneDir
+                        } else {
+                            // Otherwise, use the current path as base
+                            baseCloneDir = currentPath
+                        }
                     }
                 }
-            }
-        })
-        
+            },
+        )
+
         directoryField.text = defaultCloneDir
 
         // Initially disable remove button
@@ -245,92 +259,112 @@ class AzureDevOpsCloneDialog private constructor(
 
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(BorderLayout(0, 10))
-        
+
         // Header with Azure DevOps branding
-        val headerPanel = JPanel(BorderLayout()).apply {
-            val titleLabel = JBLabel("Clone Repository from Azure DevOps").apply {
-                font = font.deriveFont(Font.BOLD, 14f)
-                icon = AzureDevOpsIcons.Logo
+        val headerPanel =
+            JPanel(BorderLayout()).apply {
+                val titleLabel =
+                    JBLabel("Clone Repository from Azure DevOps").apply {
+                        font = font.deriveFont(Font.BOLD, 14f)
+                        icon = AzureDevOpsIcons.Logo
+                    }
+                add(titleLabel, BorderLayout.WEST)
+                border = JBUI.Borders.empty(0, 0, 10, 0)
             }
-            add(titleLabel, BorderLayout.WEST)
-            border = JBUI.Borders.empty(0, 0, 10, 0)
-        }
-        
+
         // Account selection panel with improved layout
-        val accountPanel = JPanel(BorderLayout(10, 0)).apply {
-            val labelPanel = JPanel(BorderLayout()).apply {
-                add(JBLabel("Account:").apply {
-                    font = font.deriveFont(Font.BOLD)
-                }, BorderLayout.WEST)
+        val accountPanel =
+            JPanel(BorderLayout(10, 0)).apply {
+                val labelPanel =
+                    JPanel(BorderLayout()).apply {
+                        add(
+                            JBLabel("Account:").apply {
+                                font = font.deriveFont(Font.BOLD)
+                            },
+                            BorderLayout.WEST,
+                        )
+                    }
+
+                val comboPanel =
+                    JPanel(BorderLayout(5, 0)).apply {
+                        add(accountComboBox, BorderLayout.CENTER)
+
+                        val buttonPanel =
+                            JPanel().apply {
+                                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                                add(removeButton)
+                                add(Box.createHorizontalStrut(5))
+                                add(loginButton)
+                            }
+                        add(buttonPanel, BorderLayout.EAST)
+                    }
+
+                add(labelPanel, BorderLayout.WEST)
+                add(comboPanel, BorderLayout.CENTER)
+                border = JBUI.Borders.empty(5, 0, 10, 0)
             }
-            
-            val comboPanel = JPanel(BorderLayout(5, 0)).apply {
-                add(accountComboBox, BorderLayout.CENTER)
-                
-                val buttonPanel = JPanel().apply {
-                    layout = BoxLayout(this, BoxLayout.X_AXIS)
-                    add(removeButton)
-                    add(Box.createHorizontalStrut(5))
-                    add(loginButton)
-                }
-                add(buttonPanel, BorderLayout.EAST)
-            }
-            
-            add(labelPanel, BorderLayout.WEST)
-            add(comboPanel, BorderLayout.CENTER)
-            border = JBUI.Borders.empty(5, 0, 10, 0)
-        }
 
         // Tree panel with enhanced styling and search
-        val treePanel = JPanel(BorderLayout()).apply {
-            val topPanel = JPanel(BorderLayout()).apply {
-                val treeLabel = JBLabel("Select a Repository:").apply {
-                    font = font.deriveFont(Font.BOLD)
-                    border = JBUI.Borders.empty(0, 0, 5, 0)
-                }
-                add(treeLabel, BorderLayout.NORTH)
-                
-                // Search field
-                val searchPanel = JPanel(BorderLayout()).apply {
-                    searchField.apply {
-                        putClientProperty("JTextField.Search.Icon", AllIcons.Actions.Search)
-                        putClientProperty("JTextField.Search.CancelAction", Runnable {
-                            searchField.text = ""
-                        })
+        val treePanel =
+            JPanel(BorderLayout()).apply {
+                val topPanel =
+                    JPanel(BorderLayout()).apply {
+                        val treeLabel =
+                            JBLabel("Select a Repository:").apply {
+                                font = font.deriveFont(Font.BOLD)
+                                border = JBUI.Borders.empty(0, 0, 5, 0)
+                            }
+                        add(treeLabel, BorderLayout.NORTH)
+
+                        // Search field
+                        val searchPanel =
+                            JPanel(BorderLayout()).apply {
+                                searchField.apply {
+                                    putClientProperty("JTextField.Search.Icon", AllIcons.Actions.Search)
+                                    putClientProperty(
+                                        "JTextField.Search.CancelAction",
+                                        Runnable {
+                                            searchField.text = ""
+                                        },
+                                    )
+                                }
+                                add(searchField, BorderLayout.CENTER)
+                                border = JBUI.Borders.empty(5, 0)
+                            }
+                        add(searchPanel, BorderLayout.SOUTH)
                     }
-                    add(searchField, BorderLayout.CENTER)
-                    border = JBUI.Borders.empty(5, 0)
-                }
-                add(searchPanel, BorderLayout.SOUTH)
+
+                val scrollPane =
+                    JBScrollPane(tree).apply {
+                        border = JBUI.Borders.customLine(UIUtil.getBoundsColor(), 1)
+                    }
+
+                add(topPanel, BorderLayout.NORTH)
+                add(scrollPane, BorderLayout.CENTER)
+                preferredSize = Dimension(650, 400)
             }
-            
-            val scrollPane = JBScrollPane(tree).apply {
-                border = JBUI.Borders.customLine(UIUtil.getBoundsColor(), 1)
-            }
-            
-            add(topPanel, BorderLayout.NORTH)
-            add(scrollPane, BorderLayout.CENTER)
-            preferredSize = Dimension(650, 400)
-        }
 
         // Directory panel with improved layout
-        val directoryPanel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(
-                JBLabel("Directory:").apply { font = font.deriveFont(Font.BOLD) }, 
-                directoryField, 
-                1, 
-                false
-            )
-            .panel.apply {
-                border = JBUI.Borders.empty(10, 0, 0, 0)
-            }
+        val directoryPanel =
+            FormBuilder
+                .createFormBuilder()
+                .addLabeledComponent(
+                    JBLabel("Directory:").apply { font = font.deriveFont(Font.BOLD) },
+                    directoryField,
+                    1,
+                    false,
+                ).panel
+                .apply {
+                    border = JBUI.Borders.empty(10, 0, 0, 0)
+                }
 
         panel.add(headerPanel, BorderLayout.NORTH)
-        
-        val centerPanel = JPanel(BorderLayout()).apply {
-            add(accountPanel, BorderLayout.NORTH)
-            add(treePanel, BorderLayout.CENTER)
-        }
+
+        val centerPanel =
+            JPanel(BorderLayout()).apply {
+                add(accountPanel, BorderLayout.NORTH)
+                add(treePanel, BorderLayout.CENTER)
+            }
         panel.add(centerPanel, BorderLayout.CENTER)
         panel.add(directoryPanel, BorderLayout.SOUTH)
 
@@ -338,7 +372,9 @@ class AzureDevOpsCloneDialog private constructor(
         panel.preferredSize = Dimension(750, 600)
 
         return panel
-    }    override fun doValidate(): ValidationInfo? {
+    }
+
+    override fun doValidate(): ValidationInfo? {
         if (selectedRepository == null) {
             return ValidationInfo("Please select a repository to clone", tree)
         }
@@ -357,7 +393,7 @@ class AzureDevOpsCloneDialog private constructor(
     }
 
     fun getSelectedRepository(): AzureDevOpsRepository? = selectedRepository
-    
+
     fun getSelectedAccount(): AzureDevOpsAccount? = selectedAccount
 
     fun getTargetDirectory(): String = directoryField.text.trim()
@@ -365,7 +401,7 @@ class AzureDevOpsCloneDialog private constructor(
     private fun loadAccountsWithPreloadedData() {
         val accountManager = AzureDevOpsAccountManager.getInstance()
         val accounts = accountManager.getAccounts()
-        
+
         // Prevent ActionListener from triggering during programmatic update
         isLoadingAccounts = true
         accountComboBox.removeAllItems()
@@ -383,8 +419,8 @@ class AzureDevOpsCloneDialog private constructor(
     private fun loadAccounts() {
         val accountManager = AzureDevOpsAccountManager.getInstance()
         val accounts = accountManager.getAccounts()
-        
-        isLoadingAccounts = true  // Prevent ActionListener from triggering
+
+        isLoadingAccounts = true // Prevent ActionListener from triggering
         accountComboBox.removeAllItems()
         accounts.forEach { accountComboBox.addItem(it) }
         isLoadingAccounts = false
@@ -409,99 +445,103 @@ class AzureDevOpsCloneDialog private constructor(
             }
         }
     }
-    
+
     private fun loadNewAccountData(account: AzureDevOpsAccount) {
-        ProgressManager.getInstance().run(object : Task.Modal(
-            project,
-            "Loading Repositories for ${account.displayName}...",
-            true
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                try {
-                    val accountManager = AzureDevOpsAccountManager.getInstance()
-                    val token = accountManager.getToken(account.id)
-                    
-                    if (token != null) {
-                        indicator.text = "Fetching projects..."
-                        indicator.isIndeterminate = false
-                        
-                        val apiClient = AzureDevOpsCloneApiClient(account.serverUrl, token)
-                        val projects = apiClient.getProjects()
-                        
-                        val repoMap = mutableMapOf<String, List<AzureDevOpsCloneApiClient.Repository>>()
-                        projects.forEachIndexed { index, proj ->
-                            indicator.text = "Loading ${proj.name}..."
-                            indicator.fraction = index.toDouble() / projects.size
-                            
-                            try {
-                                val repos = apiClient.getRepositories(proj.id)
-                                repoMap[proj.id] = repos
-                            } catch (e: Exception) {
-                                repoMap[proj.id] = emptyList()
+        ProgressManager.getInstance().run(
+            object : Task.Modal(
+                project,
+                "Loading Repositories for ${account.displayName}...",
+                true,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    try {
+                        val accountManager = AzureDevOpsAccountManager.getInstance()
+                        val token = accountManager.getToken(account.id)
+
+                        if (token != null) {
+                            indicator.text = "Fetching projects..."
+                            indicator.isIndeterminate = false
+
+                            val apiClient = AzureDevOpsCloneApiClient(account.serverUrl, token)
+                            val projects = apiClient.getProjects()
+
+                            val repoMap = mutableMapOf<String, List<AzureDevOpsCloneApiClient.Repository>>()
+                            projects.forEachIndexed { index, proj ->
+                                indicator.text = "Loading ${proj.name}..."
+                                indicator.fraction = index.toDouble() / projects.size
+
+                                try {
+                                    val repos = apiClient.getRepositories(proj.id)
+                                    repoMap[proj.id] = repos
+                                } catch (e: Exception) {
+                                    repoMap[proj.id] = emptyList()
+                                }
+                            }
+
+                            indicator.fraction = 1.0
+
+                            // Update preloaded data
+                            val mutableData = preloadedData?.toMutableMap() ?: mutableMapOf()
+                            mutableData[account.id] = ProjectsData(projects, repoMap)
+                            preloadedData = mutableData
+
+                            ApplicationManager.getApplication().invokeLater {
+                                isLoadingAccounts = true
+                                accountComboBox.removeAllItems()
+                                accountManager.getAccounts().forEach { accountComboBox.addItem(it) }
+                                accountComboBox.selectedItem = account
+                                isLoadingAccounts = false
+                                loadRepositoriesFromPreloadedData()
                             }
                         }
-                        
-                        indicator.fraction = 1.0
-                        
-                        // Update preloaded data
-                        val mutableData = preloadedData?.toMutableMap() ?: mutableMapOf()
-                        mutableData[account.id] = ProjectsData(projects, repoMap)
-                        preloadedData = mutableData
-                        
+                    } catch (e: Exception) {
                         ApplicationManager.getApplication().invokeLater {
-                            isLoadingAccounts = true
-                            accountComboBox.removeAllItems()
-                            accountManager.getAccounts().forEach { accountComboBox.addItem(it) }
-                            accountComboBox.selectedItem = account
-                            isLoadingAccounts = false
-                            loadRepositoriesFromPreloadedData()
+                            com.intellij.openapi.ui.Messages.showErrorDialog(
+                                project,
+                                "Error loading repositories: ${e.message}",
+                                "Error",
+                            )
                         }
                     }
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        com.intellij.openapi.ui.Messages.showErrorDialog(
-                            project,
-                            "Error loading repositories: ${e.message}",
-                            "Error"
-                        )
-                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     private fun removeSelectedAccount() {
         val account = accountComboBox.selectedItem as? AzureDevOpsAccount ?: return
-        
-        val confirmed = com.intellij.openapi.ui.Messages.showYesNoDialog(
-            project,
-            "Are you sure you want to remove the account for '${account.serverUrl}'?\n\n" +
-            "This will delete the stored credentials for this account.",
-            "Remove Account",
-            "Remove",
-            "Cancel",
-            com.intellij.openapi.ui.Messages.getWarningIcon()
-        )
-        
+
+        val confirmed =
+            com.intellij.openapi.ui.Messages.showYesNoDialog(
+                project,
+                "Are you sure you want to remove the account for '${account.serverUrl}'?\n\n" +
+                    "This will delete the stored credentials for this account.",
+                "Remove Account",
+                "Remove",
+                "Cancel",
+                com.intellij.openapi.ui.Messages
+                    .getWarningIcon(),
+            )
+
         if (confirmed == com.intellij.openapi.ui.Messages.YES) {
             val accountManager = AzureDevOpsAccountManager.getInstance()
             accountManager.removeAccount(account.id)
-            
+
             // Remove from preloaded data
             val mutableData = preloadedData?.toMutableMap() ?: mutableMapOf()
             mutableData.remove(account.id)
             preloadedData = mutableData
-            
+
             // Clear tree and reload accounts
             rootNode.removeAllChildren()
             treeModel.reload()
-            
+
             loadAccountsWithPreloadedData()
-            
+
             com.intellij.openapi.ui.Messages.showInfoMessage(
                 project,
                 "Account removed successfully.",
-                "Account Removed"
+                "Account Removed",
             )
         }
     }

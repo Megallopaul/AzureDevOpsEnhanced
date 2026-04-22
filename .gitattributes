@@ -1,0 +1,30 @@
+# Force Unix (LF) line endings for all text files
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.jar binary
+*.zip binary
+
+# Kotlin files
+*.kt text eol=lf
+*.kts text eol=lf
+
+# Gradle files
+*.gradle text eol=lf
+*.gradle.kts text eol=lf
+*.properties text eol=lf
+
+# Markdown and docs
+*.md text eol=lf
+
+# XML and config
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf

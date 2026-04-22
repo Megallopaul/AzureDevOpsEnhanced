@@ -18,7 +18,6 @@ import java.awt.Component
  * Can be invoked from context menus in list panel or detail panel.
  */
 object ChangeWorkItemStateAction {
-
     private val logger = Logger.getInstance(ChangeWorkItemStateAction::class.java)
 
     // Standard states for common work item types
@@ -36,21 +35,25 @@ object ChangeWorkItemStateAction {
         project: Project,
         workItem: WorkItem,
         component: Component,
-        onUpdated: ((WorkItem) -> Unit)? = null
+        onUpdated: ((WorkItem) -> Unit)? = null,
     ) {
         val currentState = workItem.getState()
         val availableStates = COMMON_STATES.filter { it != currentState }
 
-        val step = object : BaseListPopupStep<String>("Change State", availableStates) {
-            override fun onChosen(selectedValue: String, finalChoice: Boolean): PopupStep<*>? {
-                if (finalChoice) {
-                    changeState(project, workItem, selectedValue, onUpdated)
+        val step =
+            object : BaseListPopupStep<String>("Change State", availableStates) {
+                override fun onChosen(
+                    selectedValue: String,
+                    finalChoice: Boolean,
+                ): PopupStep<*>? {
+                    if (finalChoice) {
+                        changeState(project, workItem, selectedValue, onUpdated)
+                    }
+                    return PopupStep.FINAL_CHOICE
                 }
-                return PopupStep.FINAL_CHOICE
-            }
 
-            override fun getTextFor(value: String): String = value
-        }
+                override fun getTextFor(value: String): String = value
+            }
 
         val popup: ListPopup = JBPopupFactory.getInstance().createListPopup(step)
         popup.showUnderneathOf(component)
@@ -60,26 +63,33 @@ object ChangeWorkItemStateAction {
         project: Project,
         workItem: WorkItem,
         newState: String,
-        onUpdated: ((WorkItem) -> Unit)?
+        onUpdated: ((WorkItem) -> Unit)?,
     ) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
-                val operations = listOf(
-                    JsonPatchOperation("replace", "/fields/System.State", newState)
-                )
+                val operations =
+                    listOf(
+                        JsonPatchOperation("replace", "/fields/System.State", newState),
+                    )
                 val updated = apiClient.updateWorkItem(workItem.id, operations)
 
                 ApplicationManager.getApplication().invokeLater {
-                    NotificationUtil.info(project, "State Changed",
-                        "#${workItem.id} → $newState")
+                    NotificationUtil.info(
+                        project,
+                        "State Changed",
+                        "#${workItem.id} → $newState",
+                    )
                     onUpdated?.invoke(updated)
                 }
             } catch (e: Exception) {
                 logger.error("Failed to change state for work item #${workItem.id}", e)
                 ApplicationManager.getApplication().invokeLater {
-                    NotificationUtil.error(project, "State Change Failed",
-                        "Could not change state: ${e.message?.take(100)}")
+                    NotificationUtil.error(
+                        project,
+                        "State Change Failed",
+                        "Could not change state: ${e.message?.take(100)}",
+                    )
                 }
             }
         }

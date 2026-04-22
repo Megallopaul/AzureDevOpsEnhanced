@@ -1,6 +1,7 @@
 package paol0b.azuredevops.toolwindow.workitem
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
@@ -18,7 +19,6 @@ import paol0b.azuredevops.model.TeamIteration
 import paol0b.azuredevops.model.WorkItem
 import paol0b.azuredevops.services.AvatarService
 import paol0b.azuredevops.services.AzureDevOpsApiClient
-import com.intellij.ide.BrowserUtil
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -30,9 +30,8 @@ import javax.swing.*
  * Mirrors the pattern of [paol0b.azuredevops.toolwindow.PullRequestListPanel].
  */
 class WorkItemListPanel(
-    private val project: Project
+    private val project: Project,
 ) {
-
     private val logger = Logger.getInstance(WorkItemListPanel::class.java)
     private val panel: JPanel
     private val listModel: DefaultListModel<WorkItem>
@@ -58,11 +57,12 @@ class WorkItemListPanel(
         val avatarService = AvatarService.getInstance(project)
         val cellRenderer = WorkItemListCellRenderer(avatarService)
 
-        workItemList = JBList(listModel).apply {
-            this.cellRenderer = cellRenderer
-            selectionMode = ListSelectionModel.SINGLE_SELECTION
-            border = JBUI.Borders.empty()
-        }
+        workItemList =
+            JBList(listModel).apply {
+                this.cellRenderer = cellRenderer
+                selectionMode = ListSelectionModel.SINGLE_SELECTION
+                border = JBUI.Borders.empty()
+            }
 
         workItemList.addListSelectionListener { e ->
             if (!e.valueIsAdjusting) {
@@ -70,43 +70,51 @@ class WorkItemListPanel(
             }
         }
 
-        workItemList.addMouseListener(object : MouseAdapter() {
-            override fun mousePressed(e: MouseEvent) {
-                if (e.isPopupTrigger) showContextMenu(e)
-            }
-            override fun mouseReleased(e: MouseEvent) {
-                if (e.isPopupTrigger) showContextMenu(e)
-            }
-            override fun mouseClicked(e: MouseEvent) {
-                if (e.clickCount == 2) {
-                    val wi = workItemList.selectedValue ?: return
-                    WorkItemToolWindowFactory.openWorkItemDetailTab(project, wi)
+        workItemList.addMouseListener(
+            object : MouseAdapter() {
+                override fun mousePressed(e: MouseEvent) {
+                    if (e.isPopupTrigger) showContextMenu(e)
                 }
-            }
-        })
 
-        statusLabel = JLabel("Ready").apply {
-            border = JBUI.Borders.empty(8, 12)
-            font = font.deriveFont(Font.PLAIN, 11f)
-            foreground = JBColor.GRAY
-        }
+                override fun mouseReleased(e: MouseEvent) {
+                    if (e.isPopupTrigger) showContextMenu(e)
+                }
+
+                override fun mouseClicked(e: MouseEvent) {
+                    if (e.clickCount == 2) {
+                        val wi = workItemList.selectedValue ?: return
+                        WorkItemToolWindowFactory.openWorkItemDetailTab(project, wi)
+                    }
+                }
+            },
+        )
+
+        statusLabel =
+            JLabel("Ready").apply {
+                border = JBUI.Borders.empty(8, 12)
+                font = font.deriveFont(Font.PLAIN, 11f)
+                foreground = JBColor.GRAY
+            }
 
         // Filter panel (search + chips)
-        filterPanel = WorkItemFilterPanel(project) { newFilter ->
-            onFilterChanged(newFilter)
-        }
+        filterPanel =
+            WorkItemFilterPanel(project) { newFilter ->
+                onFilterChanged(newFilter)
+            }
 
-        val scrollPane = JBScrollPane(workItemList).apply {
-            border = JBUI.Borders.empty()
-            verticalScrollBar.unitIncrement = 16
-        }
+        val scrollPane =
+            JBScrollPane(workItemList).apply {
+                border = JBUI.Borders.empty()
+                verticalScrollBar.unitIncrement = 16
+            }
 
-        panel = JPanel(BorderLayout()).apply {
-            add(filterPanel.getComponent(), BorderLayout.NORTH)
-            add(scrollPane, BorderLayout.CENTER)
-            add(statusLabel, BorderLayout.SOUTH)
-            minimumSize = Dimension(250, 0)
-        }
+        panel =
+            JPanel(BorderLayout()).apply {
+                add(filterPanel.getComponent(), BorderLayout.NORTH)
+                add(scrollPane, BorderLayout.CENTER)
+                add(statusLabel, BorderLayout.SOUTH)
+                minimumSize = Dimension(250, 0)
+            }
     }
 
     fun getComponent(): JPanel = panel
@@ -119,7 +127,8 @@ class WorkItemListPanel(
      * Called when the filter panel reports a new filter value.
      */
     private fun onFilterChanged(newValue: WorkItemSearchValue) {
-        val needsServerRefresh = currentSearchValue.assignedTo != newValue.assignedTo ||
+        val needsServerRefresh =
+            currentSearchValue.assignedTo != newValue.assignedTo ||
                 currentSearchValue.state != newValue.state ||
                 currentSearchValue.type != newValue.type ||
                 currentSearchValue.iteration != newValue.iteration ||
@@ -140,68 +149,77 @@ class WorkItemListPanel(
         val selectedId = getSelectedWorkItem()?.id ?: lastSelectedId
         val sv = currentSearchValue
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project, "Loading Work Items...", false
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                try {
-                    val apiClient = AzureDevOpsApiClient.getInstance(project)
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(
+                project,
+                "Loading Work Items...",
+                false,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
+                    try {
+                        val apiClient = AzureDevOpsApiClient.getInstance(project)
 
-                    val useMe = sv.assignedTo == null || sv.assignedTo == WorkItemSearchValue.AssignedToFilter.ME
-                    val stateFilter = if (sv.state == WorkItemSearchValue.StateFilter.ALL) null else sv.state?.displayName
-                    val typeFilter = sv.type?.displayName
-                    val iterationPath = sv.iteration?.path
+                        val useMe = sv.assignedTo == null || sv.assignedTo == WorkItemSearchValue.AssignedToFilter.ME
+                        val stateFilter = if (sv.state == WorkItemSearchValue.StateFilter.ALL) null else sv.state?.displayName
+                        val typeFilter = sv.type?.displayName
+                        val iterationPath = sv.iteration?.path
 
-                    val workItems = if (useMe) {
-                        apiClient.getMyWorkItems(
-                            iterationPath = iterationPath,
-                            state = stateFilter,
-                            type = typeFilter
-                        )
-                    } else {
-                        apiClient.getAllWorkItems(
-                            iterationPath = iterationPath,
-                            state = stateFilter,
-                            type = typeFilter
-                        )
-                    }
+                        val workItems =
+                            if (useMe) {
+                                apiClient.getMyWorkItems(
+                                    iterationPath = iterationPath,
+                                    state = stateFilter,
+                                    type = typeFilter,
+                                )
+                            } else {
+                                apiClient.getAllWorkItems(
+                                    iterationPath = iterationPath,
+                                    state = stateFilter,
+                                    type = typeFilter,
+                                )
+                            }
 
-                    // Also sort by priority if filter requests it
-                    val priorityFiltered = if (sv.priority != null) {
-                        workItems.filter { it.getPriority() == sv.priority.value }
-                    } else workItems
+                        // Also sort by priority if filter requests it
+                        val priorityFiltered =
+                            if (sv.priority != null) {
+                                workItems.filter { it.getPriority() == sv.priority.value }
+                            } else {
+                                workItems
+                            }
 
-                    ApplicationManager.getApplication().invokeLater {
-                        val newHash = computeHash(priorityFiltered)
-                        if (!isErrorState && newHash == lastLoadedHash && lastLoadedWorkItems.isNotEmpty()) {
-                            updateStatusLabel(priorityFiltered.size, priorityFiltered.size, upToDate = true)
-                            return@invokeLater
+                        ApplicationManager.getApplication().invokeLater {
+                            val newHash = computeHash(priorityFiltered)
+                            if (!isErrorState && newHash == lastLoadedHash && lastLoadedWorkItems.isNotEmpty()) {
+                                updateStatusLabel(priorityFiltered.size, priorityFiltered.size, upToDate = true)
+                                return@invokeLater
+                            }
+                            lastLoadedWorkItems = priorityFiltered
+                            lastLoadedHash = newHash
+                            val filtered = applyAllFilters(priorityFiltered)
+                            updateList(filtered, selectedId)
+                            updateStatusLabel(filtered.size, priorityFiltered.size)
+                            isErrorState = false
                         }
-                        lastLoadedWorkItems = priorityFiltered
-                        lastLoadedHash = newHash
-                        val filtered = applyAllFilters(priorityFiltered)
-                        updateList(filtered, selectedId)
-                        updateStatusLabel(filtered.size, priorityFiltered.size)
-                        isErrorState = false
-                    }
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        isErrorState = true
-                        listModel.clear()
-                        val isConfigError = e.message?.contains("not configured", ignoreCase = true) == true ||
-                                e.message?.contains("Authentication required", ignoreCase = true) == true
-                        if (isConfigError) {
-                            statusLabel.text = "Azure DevOps not configured"
-                            statusLabel.icon = AllIcons.General.Warning
-                        } else {
-                            statusLabel.text = "Error: ${e.message?.take(80)}"
-                            statusLabel.icon = AllIcons.General.Error
+                    } catch (e: Exception) {
+                        ApplicationManager.getApplication().invokeLater {
+                            isErrorState = true
+                            listModel.clear()
+                            val isConfigError =
+                                e.message?.contains("not configured", ignoreCase = true) == true ||
+                                    e.message?.contains("Authentication required", ignoreCase = true) == true
+                            if (isConfigError) {
+                                statusLabel.text = "Azure DevOps not configured"
+                                statusLabel.icon = AllIcons.General.Warning
+                            } else {
+                                statusLabel.text = "Error: ${e.message?.take(80)}"
+                                statusLabel.icon = AllIcons.General.Error
+                            }
                         }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     fun getSelectedWorkItem(): WorkItem? = workItemList.selectedValue
@@ -224,27 +242,32 @@ class WorkItemListPanel(
         val query = sv.searchQuery
         if (!query.isNullOrBlank()) {
             val normalizedQuery = query.lowercase()
-            result = result.filter { wi ->
-                wi.getTitle().lowercase().contains(normalizedQuery) ||
-                wi.id.toString().contains(normalizedQuery) ||
-                (wi.getAssignedTo()?.lowercase()?.contains(normalizedQuery) == true) ||
-                (wi.getTags()?.lowercase()?.contains(normalizedQuery) == true)
-            }
+            result =
+                result.filter { wi ->
+                    wi.getTitle().lowercase().contains(normalizedQuery) ||
+                        wi.id.toString().contains(normalizedQuery) ||
+                        (wi.getAssignedTo()?.lowercase()?.contains(normalizedQuery) == true) ||
+                        (wi.getTags()?.lowercase()?.contains(normalizedQuery) == true)
+                }
         }
 
         // Sort
-        result = when (sv.sort) {
-            WorkItemSearchValue.Sort.OLDEST -> result.sortedBy { it.id }
-            WorkItemSearchValue.Sort.PRIORITY -> result.sortedBy { it.getPriority() ?: 99 }
-            else -> result // default: server order (recently changed)
-        }
+        result =
+            when (sv.sort) {
+                WorkItemSearchValue.Sort.OLDEST -> result.sortedBy { it.id }
+                WorkItemSearchValue.Sort.PRIORITY -> result.sortedBy { it.getPriority() ?: 99 }
+                else -> result // default: server order (recently changed)
+            }
 
         return result
     }
 
     // ---- List management ----
 
-    private fun updateList(workItems: List<WorkItem>, previouslySelectedId: Int? = null) {
+    private fun updateList(
+        workItems: List<WorkItem>,
+        previouslySelectedId: Int? = null,
+    ) {
         listModel.clear()
         workItems.forEach { listModel.addElement(it) }
 
@@ -269,37 +292,45 @@ class WorkItemListPanel(
 
         val popup = JBPopupMenu()
 
-        popup.add(JMenuItem("Open Details").apply {
-            addActionListener { WorkItemToolWindowFactory.openWorkItemDetailTab(project, workItem) }
-        })
+        popup.add(
+            JMenuItem("Open Details").apply {
+                addActionListener { WorkItemToolWindowFactory.openWorkItemDetailTab(project, workItem) }
+            },
+        )
 
         popup.addSeparator()
 
-        popup.add(JMenuItem("Change State...").apply {
-            icon = AllIcons.Actions.SwapPanels
-            addActionListener {
-                ChangeWorkItemStateAction.showStatePopup(project, workItem, workItemList) {
-                    refreshWorkItems()
+        popup.add(
+            JMenuItem("Change State...").apply {
+                icon = AllIcons.Actions.SwapPanels
+                addActionListener {
+                    ChangeWorkItemStateAction.showStatePopup(project, workItem, workItemList) {
+                        refreshWorkItems()
+                    }
                 }
-            }
-        })
+            },
+        )
 
-        popup.add(JMenuItem("Create Branch...").apply {
-            icon = AllIcons.Vcs.Branch
-            addActionListener {
-                CreateBranchFromWorkItemAction.execute(project, workItem) {
-                    refreshWorkItems()
+        popup.add(
+            JMenuItem("Create Branch...").apply {
+                icon = AllIcons.Vcs.Branch
+                addActionListener {
+                    CreateBranchFromWorkItemAction.execute(project, workItem) {
+                        refreshWorkItems()
+                    }
                 }
-            }
-        })
+            },
+        )
 
         val webUrl = workItem.getWebUrl()
         if (webUrl.isNotBlank()) {
             popup.addSeparator()
-            popup.add(JMenuItem("Open in Browser").apply {
-                icon = AllIcons.Ide.External_link_arrow
-                addActionListener { BrowserUtil.browse(java.net.URI(webUrl)) }
-            })
+            popup.add(
+                JMenuItem("Open in Browser").apply {
+                    icon = AllIcons.Ide.External_link_arrow
+                    addActionListener { BrowserUtil.browse(java.net.URI(webUrl)) }
+                },
+            )
         }
 
         popup.show(workItemList, e.x, e.y)
@@ -316,25 +347,31 @@ class WorkItemListPanel(
         return sb.toString().hashCode().toString()
     }
 
-    private fun updateStatusLabel(filteredCount: Int, totalCount: Int, upToDate: Boolean = false) {
+    private fun updateStatusLabel(
+        filteredCount: Int,
+        totalCount: Int,
+        upToDate: Boolean = false,
+    ) {
         statusLabel.icon = AllIcons.General.InspectionsOK
-        statusLabel.text = when {
-            upToDate -> "$totalCount work item(s) — up to date"
-            filteredCount < totalCount -> "Showing $filteredCount of $totalCount work item(s)"
-            else -> "Loaded $totalCount work item(s)"
-        }
+        statusLabel.text =
+            when {
+                upToDate -> "$totalCount work item(s) — up to date"
+                filteredCount < totalCount -> "Showing $filteredCount of $totalCount work item(s)"
+                else -> "Loaded $totalCount work item(s)"
+            }
     }
 
     // ---- Auto-refresh ----
 
     fun startAutoRefresh() {
         if (refreshTimer != null) return
-        refreshTimer = Timer(REFRESH_INTERVAL) {
-            refreshWorkItems()
-        }.apply {
-            isRepeats = true
-            start()
-        }
+        refreshTimer =
+            Timer(REFRESH_INTERVAL) {
+                refreshWorkItems()
+            }.apply {
+                isRepeats = true
+                start()
+            }
     }
 
     fun stopAutoRefresh() {

@@ -24,13 +24,13 @@ import javax.swing.*
  * Mirrors the GitHub JetBrains plugin inline review comment UX:
  *
  * ┌─────────────────────────────────────────────────────┐
- * │ [▼] Author · time ago               [status] [⋮]   │
+ * │ [▼] Author · time ago [status] [⋮]   │
  * │ Comment body text…                                   │
  * ├─────────────────────────────────────────────────────┤
  * │   ┃ Reply Author · time ago                          │
  * │   ┃ Reply body text…                                 │
  * ├─────────────────────────────────────────────────────┤
- * │ [reply text field]                        [Reply]    │
+ * │ [reply text field] [Reply]    │
  * └─────────────────────────────────────────────────────┘
  */
 class InlineCommentComponent(
@@ -40,9 +40,8 @@ class InlineCommentComponent(
     private val projectName: String?,
     private val repositoryId: String?,
     private val onStatusChanged: () -> Unit = {},
-    private val onReplyAdded: () -> Unit = {}
+    private val onReplyAdded: () -> Unit = {},
 ) : JPanel() {
-
     private val logger = Logger.getInstance(InlineCommentComponent::class.java)
 
     private var isCollapsed = false
@@ -82,24 +81,28 @@ class InlineCommentComponent(
 
         // ── Replies ──
         if (!isCollapsed) {
-            val replies = thread.comments
-                ?.filter { it.commentType != "system" }
-                ?.drop(1)
-                ?: emptyList()
+            val replies =
+                thread.comments
+                    ?.filter { it.commentType != "system" }
+                    ?.drop(1)
+                    ?: emptyList()
 
             if (replies.isNotEmpty()) {
                 card.add(Box.createVerticalStrut(6))
-                card.add(JSeparator().apply {
-                    maximumSize = Dimension(Int.MAX_VALUE, 1)
-                    alignmentX = Component.LEFT_ALIGNMENT
-                })
+                card.add(
+                    JSeparator().apply {
+                        maximumSize = Dimension(Int.MAX_VALUE, 1)
+                        alignmentX = Component.LEFT_ALIGNMENT
+                    },
+                )
 
-                val repliesPanel = JPanel().apply {
-                    layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                    isOpaque = false
-                    alignmentX = Component.LEFT_ALIGNMENT
-                    border = JBUI.Borders.emptyLeft(20)
-                }
+                val repliesPanel =
+                    JPanel().apply {
+                        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                        isOpaque = false
+                        alignmentX = Component.LEFT_ALIGNMENT
+                        border = JBUI.Borders.emptyLeft(20)
+                    }
                 for (reply in replies) {
                     repliesPanel.add(createReplyCard(reply))
                 }
@@ -121,51 +124,59 @@ class InlineCommentComponent(
     // ────────────────────────────────────────────────────────
 
     private fun createHeaderRow(): JPanel {
-        val row = JPanel(BorderLayout(4, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, 28)
-        }
+        val row =
+            JPanel(BorderLayout(4, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, 28)
+            }
 
         // Left: collapse chevron + author + time
         val left = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false }
 
         val chevronIcon = if (isCollapsed) AllIcons.General.ArrowRight else AllIcons.General.ArrowDown
-        val chevronBtn = JButton(chevronIcon).apply {
-            preferredSize = Dimension(20, 20)
-            isBorderPainted = false
-            isContentAreaFilled = false
-            isFocusPainted = false
-            cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-            toolTipText = if (isCollapsed) "Expand" else "Collapse"
-            addActionListener {
-                isCollapsed = !isCollapsed
-                buildUI()
+        val chevronBtn =
+            JButton(chevronIcon).apply {
+                preferredSize = Dimension(20, 20)
+                isBorderPainted = false
+                isContentAreaFilled = false
+                isFocusPainted = false
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                toolTipText = if (isCollapsed) "Expand" else "Collapse"
+                addActionListener {
+                    isCollapsed = !isCollapsed
+                    buildUI()
+                }
             }
-        }
         left.add(chevronBtn)
 
         val firstComment = thread.comments?.firstOrNull { it.commentType != "system" }
         val authorName = firstComment?.author?.displayName ?: "Unknown"
-        left.add(JBLabel(authorName).apply {
-            font = font.deriveFont(Font.BOLD, 12f)
-        })
+        left.add(
+            JBLabel(authorName).apply {
+                font = font.deriveFont(Font.BOLD, 12f)
+            },
+        )
 
         val timeAgo = TimelineUtils.formatTimeAgo(firstComment?.publishedDate)
         if (timeAgo.isNotEmpty()) {
-            left.add(JBLabel("· $timeAgo").apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(11f)
-            })
+            left.add(
+                JBLabel("· $timeAgo").apply {
+                    foreground = JBColor.GRAY
+                    font = font.deriveFont(11f)
+                },
+            )
         }
 
         // Reply count
         val replyCount = (thread.comments?.filter { it.commentType != "system" }?.size ?: 1) - 1
         if (replyCount > 0) {
-            left.add(JBLabel("· $replyCount ${if (replyCount == 1) "reply" else "replies"}").apply {
-                foreground = JBColor(Color(70, 130, 180), Color(100, 149, 237))
-                font = font.deriveFont(11f)
-            })
+            left.add(
+                JBLabel("· $replyCount ${if (replyCount == 1) "reply" else "replies"}").apply {
+                    foreground = JBColor(Color(70, 130, 180), Color(100, 149, 237))
+                    font = font.deriveFont(11f)
+                },
+            )
         }
 
         row.add(left, BorderLayout.WEST)
@@ -178,24 +189,26 @@ class InlineCommentComponent(
             right.add(createStatusBadge(status))
         }
 
-        val menuBtn = JButton("⋮").apply {
-            preferredSize = Dimension(24, 20)
-            isBorderPainted = false
-            isContentAreaFilled = false
-            isFocusPainted = false
-            cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-            font = font.deriveFont(Font.BOLD, 14f)
-            toolTipText = "Actions"
-            addActionListener {
-                val threadId = thread.id ?: return@addActionListener
-                val popup = TimelineDropdownMenu.createThreadPopup(
-                    threadId = threadId,
-                    currentStatus = thread.status ?: ThreadStatus.Active,
-                    onStatusChange = { newStatus -> updateThreadStatus(newStatus) }
-                )
-                popup.show(this, 0, height)
+        val menuBtn =
+            JButton("⋮").apply {
+                preferredSize = Dimension(24, 20)
+                isBorderPainted = false
+                isContentAreaFilled = false
+                isFocusPainted = false
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                font = font.deriveFont(Font.BOLD, 14f)
+                toolTipText = "Actions"
+                addActionListener {
+                    val threadId = thread.id ?: return@addActionListener
+                    val popup =
+                        TimelineDropdownMenu.createThreadPopup(
+                            threadId = threadId,
+                            currentStatus = thread.status ?: ThreadStatus.Active,
+                            onStatusChange = { newStatus -> updateThreadStatus(newStatus) },
+                        )
+                    popup.show(this, 0, height)
+                }
             }
-        }
         right.add(menuBtn)
 
         row.add(right, BorderLayout.EAST)
@@ -206,49 +219,57 @@ class InlineCommentComponent(
     //  Content
     // ────────────────────────────────────────────────────────
 
-    private fun createContentLabel(text: String): JComponent {
-        return JBLabel("<html><div style='width:400px'>${TimelineUtils.escapeHtml(text)}</div></html>").apply {
+    private fun createContentLabel(text: String): JComponent =
+        JBLabel("<html><div style='width:400px'>${TimelineUtils.escapeHtml(text)}</div></html>").apply {
             font = UIUtil.getLabelFont().deriveFont(12f)
             alignmentX = Component.LEFT_ALIGNMENT
         }
-    }
 
     // ────────────────────────────────────────────────────────
     //  Reply card (nested comment)
     // ────────────────────────────────────────────────────────
 
     private fun createReplyCard(comment: Comment): JPanel {
-        val panel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            border = BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 3, 0, 0, replyBarColor),
-                JBUI.Borders.empty(4, 8, 4, 0)
-            )
-        }
+        val panel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                border =
+                    BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 3, 0, 0, replyBarColor),
+                        JBUI.Borders.empty(4, 8, 4, 0),
+                    )
+            }
 
-        val header = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, 22)
-        }
-        header.add(JBLabel(comment.author?.displayName ?: "Unknown").apply {
-            font = font.deriveFont(Font.BOLD, 11f)
-        })
+        val header =
+            JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, 22)
+            }
+        header.add(
+            JBLabel(comment.author?.displayName ?: "Unknown").apply {
+                font = font.deriveFont(Font.BOLD, 11f)
+            },
+        )
         val ts = TimelineUtils.formatTimeAgo(comment.publishedDate)
         if (ts.isNotEmpty()) {
-            header.add(JBLabel("· $ts").apply {
-                foreground = JBColor.GRAY
-                font = font.deriveFont(10f)
-            })
+            header.add(
+                JBLabel("· $ts").apply {
+                    foreground = JBColor.GRAY
+                    font = font.deriveFont(10f)
+                },
+            )
         }
         panel.add(header)
         panel.add(Box.createVerticalStrut(2))
-        panel.add(JBLabel("<html><div style='width:380px'>${TimelineUtils.escapeHtml(comment.content ?: "")}</div></html>").apply {
-            font = UIUtil.getLabelFont().deriveFont(11.5f)
-            alignmentX = Component.LEFT_ALIGNMENT
-        })
+        panel.add(
+            JBLabel("<html><div style='width:380px'>${TimelineUtils.escapeHtml(comment.content ?: "")}</div></html>").apply {
+                font = UIUtil.getLabelFont().deriveFont(11.5f)
+                alignmentX = Component.LEFT_ALIGNMENT
+            },
+        )
 
         return panel
     }
@@ -258,26 +279,30 @@ class InlineCommentComponent(
     // ────────────────────────────────────────────────────────
 
     private fun createInlineReplyArea(): JComponent {
-        val panel = JPanel(BorderLayout(6, 0)).apply {
-            isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
-            maximumSize = Dimension(Int.MAX_VALUE, 34)
-            border = JBUI.Borders.emptyTop(2)
-        }
+        val panel =
+            JPanel(BorderLayout(6, 0)).apply {
+                isOpaque = false
+                alignmentX = Component.LEFT_ALIGNMENT
+                maximumSize = Dimension(Int.MAX_VALUE, 34)
+                border = JBUI.Borders.emptyTop(2)
+            }
 
-        val field = JTextField().apply {
-            border = BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(cardBorder),
-                JBUI.Borders.empty(4, 8)
-            )
-            font = UIUtil.getLabelFont().deriveFont(12f)
-            putClientProperty("JTextField.placeholderText", "Reply…")
-        }
+        val field =
+            JTextField().apply {
+                border =
+                    BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(cardBorder),
+                        JBUI.Borders.empty(4, 8),
+                    )
+                font = UIUtil.getLabelFont().deriveFont(12f)
+                putClientProperty("JTextField.placeholderText", "Reply…")
+            }
 
-        val sendBtn = JButton("Reply").apply {
-            font = font.deriveFont(11f)
-            preferredSize = Dimension(70, 28)
-        }
+        val sendBtn =
+            JButton("Reply").apply {
+                font = font.deriveFont(11f)
+                preferredSize = Dimension(70, 28)
+            }
 
         sendBtn.addActionListener { submitReply(field, sendBtn) }
         field.addActionListener { submitReply(field, sendBtn) }
@@ -287,7 +312,10 @@ class InlineCommentComponent(
         return panel
     }
 
-    private fun submitReply(field: JTextField, sendBtn: JButton) {
+    private fun submitReply(
+        field: JTextField,
+        sendBtn: JButton,
+    ) {
         val text = field.text.trim()
         if (text.isEmpty()) return
         val threadId = thread.id ?: return

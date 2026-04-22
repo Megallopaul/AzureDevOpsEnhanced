@@ -11,8 +11,8 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.util.UserDataHolderBase
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
@@ -37,9 +37,9 @@ import javax.swing.Timer
  */
 class PipelineLogFileEditor(
     private val project: Project,
-    private val file: PipelineLogVirtualFile
-) : UserDataHolderBase(), FileEditor {
-
+    private val file: PipelineLogVirtualFile,
+) : UserDataHolderBase(),
+    FileEditor {
     private val logger = Logger.getInstance(PipelineLogFileEditor::class.java)
     private val mainPanel: JPanel
     private var editorComponent: com.intellij.openapi.editor.Editor? = null
@@ -60,27 +60,33 @@ class PipelineLogFileEditor(
     private var isDisposed: Boolean = false
 
     init {
-        mainPanel = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-        }
+        mainPanel =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+            }
 
         // Header
-        val headerPanel = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(8, 12)
-        }
-        headerPanel.add(JBLabel("<html><b>${escapeHtml(file.taskName)}</b> — Build #${file.buildId}, Log #${file.logId}</html>").apply {
-            icon = AllIcons.FileTypes.Text
-        }, BorderLayout.CENTER)
+        val headerPanel =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(8, 12)
+            }
+        headerPanel.add(
+            JBLabel("<html><b>${escapeHtml(file.taskName)}</b> — Build #${file.buildId}, Log #${file.logId}</html>").apply {
+                icon = AllIcons.FileTypes.Text
+            },
+            BorderLayout.CENTER,
+        )
         mainPanel.add(headerPanel, BorderLayout.NORTH)
 
         // Loading placeholder
-        val loadingLabel = JBLabel("Loading log...").apply {
-            icon = AllIcons.Process.Step_1
-            foreground = JBColor.GRAY
-            border = JBUI.Borders.empty(20)
-            horizontalAlignment = JBLabel.CENTER
-        }
+        val loadingLabel =
+            JBLabel("Loading log...").apply {
+                icon = AllIcons.Process.Step_1
+                foreground = JBColor.GRAY
+                border = JBUI.Borders.empty(20)
+                horizontalAlignment = JBLabel.CENTER
+            }
         mainPanel.add(loadingLabel, BorderLayout.CENTER)
 
         // Load log asynchronously
@@ -149,12 +155,15 @@ class PipelineLogFileEditor(
                         if (mainPanel.componentCount > 1) {
                             mainPanel.remove(mainPanel.getComponent(1))
                         }
-                        mainPanel.add(JBLabel("Failed to load log: ${e.message}").apply {
-                            icon = AllIcons.General.Error
-                            foreground = JBColor.RED
-                            border = JBUI.Borders.empty(20)
-                            horizontalAlignment = JBLabel.CENTER
-                        }, BorderLayout.CENTER)
+                        mainPanel.add(
+                            JBLabel("Failed to load log: ${e.message}").apply {
+                                icon = AllIcons.General.Error
+                                foreground = JBColor.RED
+                                border = JBUI.Borders.empty(20)
+                                horizontalAlignment = JBLabel.CENTER
+                            },
+                            BorderLayout.CENTER,
+                        )
                         mainPanel.revalidate()
                         mainPanel.repaint()
                     }
@@ -195,11 +204,12 @@ class PipelineLogFileEditor(
 
                     // Append new lines to existing document
                     WriteCommandAction.runWriteCommandAction(project) {
-                        val textToAppend = if (document.textLength > 0 && !normalizedDelta.startsWith("\n")) {
-                            "\n$normalizedDelta"
-                        } else {
-                            normalizedDelta
-                        }
+                        val textToAppend =
+                            if (document.textLength > 0 && !normalizedDelta.startsWith("\n")) {
+                                "\n$normalizedDelta"
+                            } else {
+                                normalizedDelta
+                            }
                         document.insertString(document.textLength, textToAppend)
                     }
 
@@ -225,14 +235,15 @@ class PipelineLogFileEditor(
 
     private fun startAutoRefresh() {
         if (refreshTimer != null) return
-        refreshTimer = Timer(REFRESH_INTERVAL) {
-            if (!isDisposed) {
-                fetchDeltaAndAppend()
+        refreshTimer =
+            Timer(REFRESH_INTERVAL) {
+                if (!isDisposed) {
+                    fetchDeltaAndAppend()
+                }
+            }.apply {
+                isRepeats = true
+                start()
             }
-        }.apply {
-            isRepeats = true
-            start()
-        }
     }
 
     private fun scheduleRetry(action: () -> Unit) {
@@ -240,13 +251,14 @@ class PipelineLogFileEditor(
         val delay = minOf((1000L * (1 shl retryCount)).toInt(), MAX_RETRY_DELAY)
         retryCount++
         logger.info("Scheduling log retry in ${delay}ms (attempt $retryCount)")
-        retryTimer = Timer(delay) {
-            retryTimer = null
-            if (!isDisposed) action()
-        }.apply {
-            isRepeats = false
-            start()
-        }
+        retryTimer =
+            Timer(delay) {
+                retryTimer = null
+                if (!isDisposed) action()
+            }.apply {
+                isRepeats = false
+                start()
+            }
     }
 
     // ========================
@@ -271,14 +283,23 @@ class PipelineLogFileEditor(
     // ========================
 
     override fun getComponent(): JComponent = mainPanel
+
     override fun getPreferredFocusedComponent(): JComponent? = editorComponent?.contentComponent
+
     override fun getName(): String = file.taskName
+
     override fun setState(state: FileEditorState) {}
+
     override fun isModified(): Boolean = false
+
     override fun isValid(): Boolean = !isDisposed
+
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun getCurrentLocation(): FileEditorLocation? = null
+
     override fun getFile() = file
 
     override fun dispose() {
@@ -292,7 +313,5 @@ class PipelineLogFileEditor(
         PipelineTabService.getInstance(project).unregisterFile(file)
     }
 
-    private fun escapeHtml(text: String): String {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    }
+    private fun escapeHtml(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 }

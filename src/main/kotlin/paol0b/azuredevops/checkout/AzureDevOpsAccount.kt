@@ -5,7 +5,7 @@ package paol0b.azuredevops.checkout
  */
 enum class AuthType {
     OAUTH,
-    PAT
+    PAT,
 }
 
 /**
@@ -16,7 +16,7 @@ data class AzureDevOpsAccount(
     val serverUrl: String,
     val displayName: String,
     val authType: AuthType = AuthType.OAUTH,
-    val selfHosted: Boolean = false
+    val selfHosted: Boolean = false,
 ) {
     override fun toString(): String = displayName
 }
@@ -29,5 +29,5 @@ data class AzureDevOpsRepository(
     val name: String,
     val projectName: String,
     val remoteUrl: String,
-    val webUrl: String
+    val webUrl: String,
 )

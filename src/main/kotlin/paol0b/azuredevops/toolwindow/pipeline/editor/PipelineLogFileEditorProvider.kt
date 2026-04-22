@@ -10,15 +10,18 @@ import com.intellij.openapi.vfs.VirtualFile
 /**
  * Provider that creates a [PipelineLogFileEditor] for [PipelineLogVirtualFile] instances.
  */
-class PipelineLogFileEditorProvider : FileEditorProvider, DumbAware {
+class PipelineLogFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is PipelineLogVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is PipelineLogVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-        return PipelineLogFileEditor(project, file as PipelineLogVirtualFile)
-    }
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor = PipelineLogFileEditor(project, file as PipelineLogVirtualFile)
 
     override fun getEditorTypeId(): String = "azuredevops-pipeline-log"
 

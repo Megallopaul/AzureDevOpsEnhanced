@@ -29,34 +29,38 @@ class PipelineDiagramFileEditor(
     private val project: Project,
     private val file: PipelineDiagramVirtualFile,
     private val build: PipelineBuild,
-    private val timeline: BuildTimeline
-) : UserDataHolderBase(), FileEditor {
-
+    private val timeline: BuildTimeline,
+) : UserDataHolderBase(),
+    FileEditor {
     private val logger = Logger.getInstance(PipelineDiagramFileEditor::class.java)
     private val mainPanel: JPanel
 
     init {
-        mainPanel = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-        }
+        mainPanel =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+            }
 
         // Header with title + tabs
-        val headerPanel = JPanel(BorderLayout()).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(12, 16, 8, 16)
-        }
+        val headerPanel =
+            JPanel(BorderLayout()).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(12, 16, 8, 16)
+            }
 
-        val titleLabel = JBLabel(
-            "<html><span style='font-size:14px; color:gray;'>Pipeline Stage Diagram – " +
+        val titleLabel =
+            JBLabel(
+                "<html><span style='font-size:14px; color:gray;'>Pipeline Stage Diagram – " +
                     "${escapeHtml(build.getDefinitionName())} " +
-                    "<span style='color:#0078D4;'>${build.buildNumber ?: build.id}</span></span></html>"
-        )
+                    "<span style='color:#0078D4;'>${build.buildNumber ?: build.id}</span></span></html>",
+            )
         headerPanel.add(titleLabel, BorderLayout.CENTER)
 
         // Toolbar icons
-        val toolbarPanel = JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
-            background = UIUtil.getPanelBackground()
-        }
+        val toolbarPanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+                background = UIUtil.getPanelBackground()
+            }
         toolbarPanel.add(JBLabel(AllIcons.Graph.Layout))
         toolbarPanel.add(JBLabel(AllIcons.General.Information))
         headerPanel.add(toolbarPanel, BorderLayout.EAST)
@@ -64,73 +68,84 @@ class PipelineDiagramFileEditor(
         mainPanel.add(headerPanel, BorderLayout.NORTH)
 
         // Tab bar (Stages | Tests)
-        val tabBar = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
-            background = UIUtil.getPanelBackground()
-            border = JBUI.Borders.empty(0, 16)
-        }
-        val stagesTab = JButton("Stages").apply {
-            isFocusPainted = false
-            isContentAreaFilled = true
-            border = JBUI.Borders.empty(6, 16)
-            font = font.deriveFont(Font.BOLD, 12f)
-        }
-        val testsTab = JButton("Tests").apply {
-            isFocusPainted = false
-            isContentAreaFilled = false
-            border = JBUI.Borders.empty(6, 16)
-            font = font.deriveFont(Font.PLAIN, 12f)
-            foreground = JBColor.GRAY
-        }
+        val tabBar =
+            JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
+                background = UIUtil.getPanelBackground()
+                border = JBUI.Borders.empty(0, 16)
+            }
+        val stagesTab =
+            JButton("Stages").apply {
+                isFocusPainted = false
+                isContentAreaFilled = true
+                border = JBUI.Borders.empty(6, 16)
+                font = font.deriveFont(Font.BOLD, 12f)
+            }
+        val testsTab =
+            JButton("Tests").apply {
+                isFocusPainted = false
+                isContentAreaFilled = false
+                border = JBUI.Borders.empty(6, 16)
+                font = font.deriveFont(Font.PLAIN, 12f)
+                foreground = JBColor.GRAY
+            }
         tabBar.add(stagesTab)
         tabBar.add(testsTab)
 
-        val northPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-            add(headerPanel)
-            add(tabBar)
-            add(JSeparator().apply { maximumSize = Dimension(Int.MAX_VALUE, 1) })
-        }
+        val northPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+                add(headerPanel)
+                add(tabBar)
+                add(JSeparator().apply { maximumSize = Dimension(Int.MAX_VALUE, 1) })
+            }
         mainPanel.add(northPanel, BorderLayout.NORTH)
 
         // Diagram canvas
         val stages = timeline.getStages()
         val diagramPanel = PipelineStageDiagramPanel(stages)
-        val scrollPane = JBScrollPane(diagramPanel).apply {
-            border = JBUI.Borders.empty()
-            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
-            verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
-        }
+        val scrollPane =
+            JBScrollPane(diagramPanel).apply {
+                border = JBUI.Borders.empty()
+                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
+                verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+            }
         mainPanel.add(scrollPane, BorderLayout.CENTER)
     }
 
     override fun getComponent(): JComponent = mainPanel
+
     override fun getPreferredFocusedComponent(): JComponent? = mainPanel
+
     override fun getName(): String = "Pipeline Diagram"
+
     override fun setState(state: FileEditorState) {}
+
     override fun isModified(): Boolean = false
+
     override fun isValid(): Boolean = true
+
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun getCurrentLocation(): FileEditorLocation? = null
+
     override fun getFile() = file
 
     override fun dispose() {
         PipelineTabService.getInstance(project).unregisterFile(file)
     }
 
-    private fun escapeHtml(text: String): String {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    }
+    private fun escapeHtml(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 }
 
 /**
  * Custom panel that paints the pipeline stages as a horizontal flowchart.
  */
 private class PipelineStageDiagramPanel(
-    private val stages: List<TimelineRecord>
+    private val stages: List<TimelineRecord>,
 ) : JPanel() {
-
     companion object {
         private const val STAGE_WIDTH = 180
         private const val STAGE_HEIGHT = 50
@@ -158,8 +173,12 @@ private class PipelineStageDiagramPanel(
 
     init {
         isOpaque = false
-        val totalWidth = if (stages.isEmpty()) 300
-        else PADDING * 2 + stages.size * STAGE_WIDTH + (stages.size - 1) * ARROW_LENGTH
+        val totalWidth =
+            if (stages.isEmpty()) {
+                300
+            } else {
+                PADDING * 2 + stages.size * STAGE_WIDTH + (stages.size - 1) * ARROW_LENGTH
+            }
         val totalHeight = PADDING * 2 + STAGE_HEIGHT + 60 // extra space for labels
         preferredSize = Dimension(totalWidth, totalHeight.coerceAtLeast(200))
     }
@@ -197,21 +216,31 @@ private class PipelineStageDiagramPanel(
         }
     }
 
-    private fun drawStageBox(g2: Graphics2D, x: Int, y: Int, stage: TimelineRecord) {
-        val (fillColor, borderColor) = when {
-            stage.isSucceeded() -> SUCCEEDED_FILL to SUCCEEDED_BORDER
-            stage.isFailed() -> FAILED_FILL to FAILED_BORDER
-            stage.isRunning() -> RUNNING_FILL to RUNNING_BORDER
-            stage.isCanceled() -> CANCELED_FILL to CANCELED_BORDER
-            stage.isSkipped() -> SKIPPED_FILL to SKIPPED_BORDER
-            else -> SKIPPED_FILL to SKIPPED_BORDER
-        }
+    private fun drawStageBox(
+        g2: Graphics2D,
+        x: Int,
+        y: Int,
+        stage: TimelineRecord,
+    ) {
+        val (fillColor, borderColor) =
+            when {
+                stage.isSucceeded() -> SUCCEEDED_FILL to SUCCEEDED_BORDER
+                stage.isFailed() -> FAILED_FILL to FAILED_BORDER
+                stage.isRunning() -> RUNNING_FILL to RUNNING_BORDER
+                stage.isCanceled() -> CANCELED_FILL to CANCELED_BORDER
+                stage.isSkipped() -> SKIPPED_FILL to SKIPPED_BORDER
+                else -> SKIPPED_FILL to SKIPPED_BORDER
+            }
 
-        val shape = RoundRectangle2D.Float(
-            x.toFloat(), y.toFloat(),
-            STAGE_WIDTH.toFloat(), STAGE_HEIGHT.toFloat(),
-            ARC.toFloat(), ARC.toFloat()
-        )
+        val shape =
+            RoundRectangle2D.Float(
+                x.toFloat(),
+                y.toFloat(),
+                STAGE_WIDTH.toFloat(),
+                STAGE_HEIGHT.toFloat(),
+                ARC.toFloat(),
+                ARC.toFloat(),
+            )
 
         // Fill
         g2.color = fillColor
@@ -276,7 +305,13 @@ private class PipelineStageDiagramPanel(
         }
     }
 
-    private fun drawArrow(g2: Graphics2D, x1: Int, y1: Int, x2: Int, y2: Int) {
+    private fun drawArrow(
+        g2: Graphics2D,
+        x1: Int,
+        y1: Int,
+        x2: Int,
+        y2: Int,
+    ) {
         g2.color = ARROW_COLOR
         g2.stroke = BasicStroke(2f)
 
@@ -289,11 +324,15 @@ private class PipelineStageDiagramPanel(
         g2.fillPolygon(
             intArrayOf(tipX, tipX - arrowSize, tipX - arrowSize),
             intArrayOf(y2, y2 - arrowSize / 2, y2 + arrowSize / 2),
-            3
+            3,
         )
     }
 
-    private fun truncateText(fm: FontMetrics, text: String, maxWidth: Int): String {
+    private fun truncateText(
+        fm: FontMetrics,
+        text: String,
+        maxWidth: Int,
+    ): String {
         if (fm.stringWidth(text) <= maxWidth) return text
         var truncated = text
         while (truncated.isNotEmpty() && fm.stringWidth("$truncated...") > maxWidth) {

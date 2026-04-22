@@ -15,8 +15,9 @@ import paol0b.azuredevops.toolwindow.review.editor.PrTimelineVirtualFile
 import java.util.concurrent.ConcurrentHashMap
 
 @Service(Service.Level.PROJECT)
-class PrReviewTabService(private val project: Project) {
-
+class PrReviewTabService(
+    private val project: Project,
+) {
     /** PR data stored by VirtualFile (for all virtual file types) */
     private val prByFile = ConcurrentHashMap<VirtualFile, PullRequest>()
 
@@ -33,9 +34,7 @@ class PrReviewTabService(private val project: Project) {
     private val changeByFile = ConcurrentHashMap<VirtualFile, PullRequestChange>()
 
     companion object {
-        fun getInstance(project: Project): PrReviewTabService {
-            return project.getService(PrReviewTabService::class.java)
-        }
+        fun getInstance(project: Project): PrReviewTabService = project.getService(PrReviewTabService::class.java)
     }
 
     // ------------------------------------------------------------------
@@ -62,7 +61,10 @@ class PrReviewTabService(private val project: Project) {
     // Individual file diff editor tab
     // ------------------------------------------------------------------
 
-    fun openDiffTab(pullRequest: PullRequest, change: PullRequestChange) {
+    fun openDiffTab(
+        pullRequest: PullRequest,
+        change: PullRequestChange,
+    ) {
         val editorManager = FileEditorManager.getInstance(project)
         val filePath = change.effectivePath().takeIf { it.isNotBlank() } ?: return
         // Use only PR ID as key - reuse the same tab for different files in the same PR
@@ -73,7 +75,7 @@ class PrReviewTabService(private val project: Project) {
             // File already exists for this PR - update it with the new file path and change
             existing.filePath = filePath
             changeByFile[existing] = change
-            
+
             // Update the editor if it's already open
             val editors = editorManager.getEditors(existing)
             for (editor in editors) {
@@ -81,7 +83,7 @@ class PrReviewTabService(private val project: Project) {
                     editor.updateChange(change)
                 }
             }
-            
+
             editorManager.openFile(existing, true, true)
             return
         }

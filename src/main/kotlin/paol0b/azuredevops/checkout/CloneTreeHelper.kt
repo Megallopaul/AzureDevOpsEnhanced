@@ -10,21 +10,21 @@ import javax.swing.tree.TreePath
  * [AzureDevOpsCloneDialog] and [AzureDevOpsCloneDialogComponent].
  */
 object CloneTreeHelper {
-
     /**
      * Converts an API [AzureDevOpsCloneApiClient.Repository] into the domain
      * [AzureDevOpsRepository] model used throughout the clone dialogs.
      */
     fun toAzureDevOpsRepository(
         repo: AzureDevOpsCloneApiClient.Repository,
-        projectName: String
-    ): AzureDevOpsRepository = AzureDevOpsRepository(
-        id = repo.id,
-        name = repo.name,
-        projectName = projectName,
-        remoteUrl = repo.remoteUrl,
-        webUrl = repo.webUrl
-    )
+        projectName: String,
+    ): AzureDevOpsRepository =
+        AzureDevOpsRepository(
+            id = repo.id,
+            name = repo.name,
+            projectName = projectName,
+            remoteUrl = repo.remoteUrl,
+            webUrl = repo.webUrl,
+        )
 
     /**
      * Populates the tree from [data], sorting projects and repositories alphabetically
@@ -34,7 +34,7 @@ object CloneTreeHelper {
         rootNode: DefaultMutableTreeNode,
         treeModel: DefaultTreeModel,
         tree: Tree,
-        data: ProjectsData
+        data: ProjectsData,
     ) {
         rootNode.removeAllChildren()
 
@@ -74,7 +74,7 @@ object CloneTreeHelper {
         treeModel: DefaultTreeModel,
         tree: Tree,
         data: ProjectsData,
-        searchText: String
+        searchText: String,
     ) {
         val query = searchText.trim().lowercase()
 
@@ -87,10 +87,12 @@ object CloneTreeHelper {
 
         data.projects.sortedBy { it.name.lowercase() }.forEach { proj ->
             val repos = data.repositories[proj.id] ?: emptyList()
-            val matchingRepos = repos.filter { repo ->
-                repo.name.lowercase().contains(query) ||
-                    proj.name.lowercase().contains(query)
-            }.sortedBy { it.name.lowercase() }
+            val matchingRepos =
+                repos
+                    .filter { repo ->
+                        repo.name.lowercase().contains(query) ||
+                            proj.name.lowercase().contains(query)
+                    }.sortedBy { it.name.lowercase() }
 
             if (matchingRepos.isNotEmpty()) {
                 val projectNode = DefaultMutableTreeNode(proj)
@@ -116,7 +118,7 @@ object CloneTreeHelper {
     fun showEmptyState(
         rootNode: DefaultMutableTreeNode,
         treeModel: DefaultTreeModel,
-        message: String
+        message: String,
     ) {
         rootNode.removeAllChildren()
         rootNode.add(DefaultMutableTreeNode(message))

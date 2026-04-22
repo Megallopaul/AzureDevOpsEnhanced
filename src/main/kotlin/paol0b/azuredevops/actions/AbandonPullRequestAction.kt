@@ -16,46 +16,48 @@ import paol0b.azuredevops.util.PluginUtil
 class AbandonPullRequestAction(
     private val pullRequest: PullRequest,
     private val currentUserId: String?,
-    private val onAbandoned: (() -> Unit)? = null
+    private val onAbandoned: (() -> Unit)? = null,
 ) : AnAction("Abandon PR...", "Abandon this Pull Request", null) {
-
     fun performAbandonPR(project: Project) {
-        val confirm = Messages.showYesNoDialog(
-            project,
-            "Abandon PR #${pullRequest.pullRequestId}?\n\n${pullRequest.title}",
-            "Abandon Pull Request",
-            "Abandon",
-            "Cancel",
-            Messages.getWarningIcon()
-        )
+        val confirm =
+            Messages.showYesNoDialog(
+                project,
+                "Abandon PR #${pullRequest.pullRequestId}?\n\n${pullRequest.title}",
+                "Abandon Pull Request",
+                "Abandon",
+                "Cancel",
+                Messages.getWarningIcon(),
+            )
 
         if (confirm != Messages.YES) {
             return
         }
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project,
-            "Abandoning PR #${pullRequest.pullRequestId}...",
-            true
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(
+                project,
+                "Abandoning PR #${pullRequest.pullRequestId}...",
+                true,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
 
-                try {
-                    val apiClient = AzureDevOpsApiClient.getInstance(project)
-                    apiClient.abandonPullRequest(pullRequest)
+                    try {
+                        val apiClient = AzureDevOpsApiClient.getInstance(project)
+                        apiClient.abandonPullRequest(pullRequest)
 
-                    ApplicationManager.getApplication().invokeLater {
-                        NotificationUtil.info(project, "Pull Request Abandoned", "PR #${pullRequest.pullRequestId} has been abandoned")
-                        onAbandoned?.invoke()
-                    }
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        NotificationUtil.error(project, "Failed to Abandon PR", PluginUtil.parseApiErrorMessage(e.message))
+                        ApplicationManager.getApplication().invokeLater {
+                            NotificationUtil.info(project, "Pull Request Abandoned", "PR #${pullRequest.pullRequestId} has been abandoned")
+                            onAbandoned?.invoke()
+                        }
+                    } catch (e: Exception) {
+                        ApplicationManager.getApplication().invokeLater {
+                            NotificationUtil.error(project, "Failed to Abandon PR", PluginUtil.parseApiErrorMessage(e.message))
+                        }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -68,5 +70,4 @@ class AbandonPullRequestAction(
             pullRequest.isActive() &&
             pullRequest.isCreatedByUser(currentUserId)
     }
-
 }

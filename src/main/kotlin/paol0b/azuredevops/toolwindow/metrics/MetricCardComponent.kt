@@ -20,9 +20,8 @@ class MetricCardComponent(
     private var title: String,
     private var value: String,
     private var subtitle: String = "",
-    private var accentColor: Color = JBColor(Color(0x3574F0), Color(0x548AF7))
+    private var accentColor: Color = JBColor(Color(0x3574F0), Color(0x548AF7)),
 ) : JPanel() {
-
     init {
         isOpaque = true
         border = JBUI.Borders.empty(12, 14)
@@ -30,7 +29,10 @@ class MetricCardComponent(
         minimumSize = Dimension(140, 80)
     }
 
-    fun update(newValue: String, newSubtitle: String = subtitle) {
+    fun update(
+        newValue: String,
+        newSubtitle: String = subtitle,
+    ) {
         value = newValue
         subtitle = newSubtitle
         repaint()

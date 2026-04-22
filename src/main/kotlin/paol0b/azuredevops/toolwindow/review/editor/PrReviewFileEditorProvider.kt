@@ -8,15 +8,21 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import paol0b.azuredevops.services.PrReviewTabService
 
-class PrReviewFileEditorProvider : FileEditorProvider, DumbAware {
+class PrReviewFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is PrReviewVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is PrReviewVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-        val pullRequest = PrReviewTabService.getInstance(project).getPullRequest(file)
-            ?: throw IllegalStateException("Missing pull request data for review tab")
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor {
+        val pullRequest =
+            PrReviewTabService.getInstance(project).getPullRequest(file)
+                ?: throw IllegalStateException("Missing pull request data for review tab")
         return PrReviewFileEditor(project, file, pullRequest)
     }
 

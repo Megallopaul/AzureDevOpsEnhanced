@@ -32,22 +32,20 @@ import java.util.concurrent.TimeUnit
 @Service(Service.Level.APP)
 @State(
     name = "AzureDevOpsGitTokenManager",
-    storages = [Storage("azureDevOpsGitTokenManager.xml")]
+    storages = [Storage("azureDevOpsGitTokenManager.xml")],
 )
 class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
-
     private val logger = Logger.getInstance(GitTokenManager::class.java)
 
     /** Persisted state: repoAbsolutePath → accountId */
     data class State(
-        var managedRepos: MutableMap<String, String> = ConcurrentHashMap()
+        var managedRepos: MutableMap<String, String> = ConcurrentHashMap(),
     )
 
     private var myState = State()
 
     companion object {
-        fun getInstance(): GitTokenManager =
-            ApplicationManager.getApplication().getService(GitTokenManager::class.java)
+        fun getInstance(): GitTokenManager = ApplicationManager.getApplication().getService(GitTokenManager::class.java)
     }
 
     override fun getState(): State = myState
@@ -59,7 +57,10 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
     // ─── Registration ────────────────────────────────────────────────────────
 
     /** Associates a local repository directory with the plugin account that manages it. */
-    fun registerRepo(repoPath: String, accountId: String) {
+    fun registerRepo(
+        repoPath: String,
+        accountId: String,
+    ) {
         myState.managedRepos[repoPath] = accountId
         logger.info("GitTokenManager: registered repo '$repoPath' → account '$accountId'")
     }
@@ -79,7 +80,10 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
      * Updates the `http.extraHeader` git-config entry in every repository that is associated
      * with [accountId].  Called automatically from [AzureDevOpsAccountManager.updateToken].
      */
-    fun updateAllReposForAccount(accountId: String, token: String) {
+    fun updateAllReposForAccount(
+        accountId: String,
+        token: String,
+    ) {
         val repos = myState.managedRepos.filter { it.value == accountId }
         if (repos.isEmpty()) {
             logger.debug("GitTokenManager: no registered repos for account '$accountId'")
@@ -105,7 +109,10 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
      * @return `true` on success, `false` if the repository directory is invalid or the
      *         `git config` command fails.
      */
-    fun writeAuthHeader(repoPath: String, token: String): Boolean {
+    fun writeAuthHeader(
+        repoPath: String,
+        token: String,
+    ): Boolean {
         val repoDir = File(repoPath)
         if (!repoDir.exists() || !File(repoDir, ".git").exists()) {
             logger.warn("GitTokenManager: '$repoPath' is not a valid git repository – skipping")
@@ -115,10 +122,14 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
         val authValue = buildAuthHeaderValue(token)
 
         return try {
-            val result = runGitConfig(
-                repoDir,
-                "--local", "--replace-all", "http.extraHeader", authValue
-            )
+            val result =
+                runGitConfig(
+                    repoDir,
+                    "--local",
+                    "--replace-all",
+                    "http.extraHeader",
+                    authValue,
+                )
             if (result) {
                 logger.info("GitTokenManager: wrote http.extraHeader for '$repoPath'")
                 // Remove stale credentials from the OS credential store to avoid conflicts
@@ -153,21 +164,24 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private fun buildAuthHeaderValue(token: String): String {
-        val encoded = Base64.getEncoder()
-            .encodeToString(":$token".toByteArray(StandardCharsets.UTF_8))
+        val encoded =
+            Base64
+                .getEncoder()
+                .encodeToString(":$token".toByteArray(StandardCharsets.UTF_8))
         return "Authorization: Basic $encoded"
     }
 
     private fun runGitConfig(
         repoDir: File,
         vararg args: String,
-        allowExitCode5: Boolean = false
+        allowExitCode5: Boolean = false,
     ): Boolean {
         val cmd = mutableListOf("git", "config") + args.toList()
-        val process = ProcessBuilder(cmd)
-            .directory(repoDir)
-            .redirectErrorStream(true)
-            .start()
+        val process =
+            ProcessBuilder(cmd)
+                .directory(repoDir)
+                .redirectErrorStream(true)
+                .start()
 
         // Drain stdout so the process does not block on a full pipe
         val output = process.inputStream.bufferedReader().readText()
@@ -196,16 +210,18 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
         try {
             val remoteUrl = getOriginUrl(repoDir) ?: return
             val uri = URI(remoteUrl)
-            val inputData = buildString {
-                appendLine("protocol=${uri.scheme}")
-                appendLine("host=${uri.host}")
-                appendLine()
-            }
+            val inputData =
+                buildString {
+                    appendLine("protocol=${uri.scheme}")
+                    appendLine("host=${uri.host}")
+                    appendLine()
+                }
 
-            val process = ProcessBuilder("git", "credential", "erase")
-                .directory(repoDir)
-                .redirectErrorStream(true)
-                .start()
+            val process =
+                ProcessBuilder("git", "credential", "erase")
+                    .directory(repoDir)
+                    .redirectErrorStream(true)
+                    .start()
 
             process.outputStream.use { os ->
                 os.write(inputData.toByteArray(StandardCharsets.UTF_8))
@@ -217,17 +233,21 @@ class GitTokenManager : PersistentStateComponent<GitTokenManager.State> {
         }
     }
 
-    private fun getOriginUrl(repoDir: File): String? {
-        return try {
-            val process = ProcessBuilder("git", "config", "--local", "--get", "remote.origin.url")
-                .directory(repoDir)
-                .redirectErrorStream(true)
-                .start()
-            val url = process.inputStream.bufferedReader().readText().trim()
+    private fun getOriginUrl(repoDir: File): String? =
+        try {
+            val process =
+                ProcessBuilder("git", "config", "--local", "--get", "remote.origin.url")
+                    .directory(repoDir)
+                    .redirectErrorStream(true)
+                    .start()
+            val url =
+                process.inputStream
+                    .bufferedReader()
+                    .readText()
+                    .trim()
             process.waitFor(5, TimeUnit.SECONDS)
             url.ifBlank { null }
         } catch (e: Exception) {
             null
         }
-    }
 }

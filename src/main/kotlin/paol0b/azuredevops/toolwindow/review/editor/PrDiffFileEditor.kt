@@ -21,31 +21,43 @@ class PrDiffFileEditor(
     private val project: Project,
     private val file: VirtualFile,
     private val pullRequest: PullRequest,
-    private var change: PullRequestChange
-) : UserDataHolderBase(), FileEditor {
-
-    private val diffPanel = DiffViewerPanel(
-        project,
-        pullRequest.pullRequestId,
-        pullRequest.repository?.project?.name,
-        pullRequest.repository?.id
-    ).apply {
-        loadDiff(change)
-    }
+    private var change: PullRequestChange,
+) : UserDataHolderBase(),
+    FileEditor {
+    private val diffPanel =
+        DiffViewerPanel(
+            project,
+            pullRequest.pullRequestId,
+            pullRequest.repository?.project?.name,
+            pullRequest.repository?.id,
+        ).apply {
+            loadDiff(change)
+        }
 
     private var isDisposed = false
 
     override fun getComponent(): JComponent = diffPanel
+
     override fun getPreferredFocusedComponent(): JComponent? = diffPanel
+
     override fun getName(): String = change.effectivePath().substringAfterLast('/').ifEmpty { "Diff" }
+
     override fun getFile(): VirtualFile = file
+
     override fun setState(state: FileEditorState) {}
+
     override fun isModified(): Boolean = false
+
     override fun isValid(): Boolean = !isDisposed
+
     override fun selectNotify() {}
+
     override fun deselectNotify() {}
+
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun getCurrentLocation(): FileEditorLocation? = null
 
     /**

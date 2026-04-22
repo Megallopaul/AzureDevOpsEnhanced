@@ -23,13 +23,17 @@ import java.awt.Color
  * - Visual indicators for active vs resolved comments
  * - Tooltips with detailed information
  */
-class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeDecorator {
-
+class FileWithCommentsDecorator(
+    private val project: Project,
+) : ProjectViewNodeDecorator {
     private val logger = Logger.getInstance(FileWithCommentsDecorator::class.java)
     private val commentsTracker: PullRequestCommentsTracker
         get() = project.service()
 
-    override fun decorate(node: ProjectViewNode<*>, data: PresentationData) {
+    override fun decorate(
+        node: ProjectViewNode<*>,
+        data: PresentationData,
+    ) {
         try {
             // Respect visibility setting - don't decorate if comments are hidden
             if (!CommentsVisibilityService.getInstance(project).isCommentsVisible()) return
@@ -47,32 +51,40 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
         }
     }
 
-    private fun decorateDirectory(dir: VirtualFile, data: PresentationData) {
+    private fun decorateDirectory(
+        dir: VirtualFile,
+        data: PresentationData,
+    ) {
         val (totalComments, activeComments) = countCommentsInDirectory(dir)
 
         if (totalComments > 0) {
-            val icon = if (activeComments > 0) {
-                AllIcons.Toolwindows.ToolWindowMessages
-            } else {
-                AllIcons.RunConfigurations.TestPassed
-            }
+            val icon =
+                if (activeComments > 0) {
+                    AllIcons.Toolwindows.ToolWindowMessages
+                } else {
+                    AllIcons.RunConfigurations.TestPassed
+                }
 
-            val badgeColor = if (activeComments > 0) {
-                JBColor(Color(255, 140, 0), Color(255, 160, 50)) // Orange for active
-            } else {
-                JBColor(Color(100, 200, 100), Color(80, 150, 80)) // Green for resolved
-            }
+            val badgeColor =
+                if (activeComments > 0) {
+                    JBColor(Color(255, 140, 0), Color(255, 160, 50)) // Orange for active
+                } else {
+                    JBColor(Color(100, 200, 100), Color(80, 150, 80)) // Green for resolved
+                }
 // Preserve the original folder name and append the badge
             val originalText = data.presentableText ?: dir.name
             val badgeText = " ($activeComments)"
-            
+
             // Clear existing text and rebuild with folder name + badge
             data.clearText()
             data.addText(originalText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            data.addText(badgeText, SimpleTextAttributes(
-                SimpleTextAttributes.STYLE_PLAIN,
-                badgeColor
-            ))
+            data.addText(
+                badgeText,
+                SimpleTextAttributes(
+                    SimpleTextAttributes.STYLE_PLAIN,
+                    badgeColor,
+                ),
+            )
             if (activeComments > 0) {
                 data.setIcon(combineIcons(data.getIcon(false), icon))
             }
@@ -80,33 +92,41 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
         }
     }
 
-    private fun decorateFile(file: VirtualFile, data: PresentationData) {
+    private fun decorateFile(
+        file: VirtualFile,
+        data: PresentationData,
+    ) {
         val commentCount = commentsTracker.getCommentCount(file)
         val activeCount = commentsTracker.getActiveCommentCount(file)
 
         if (commentCount > 0) {
-            val icon = if (activeCount > 0) {
-                AllIcons.Toolwindows.ToolWindowMessages
-            } else {
-                AllIcons.RunConfigurations.TestPassed
-            }
+            val icon =
+                if (activeCount > 0) {
+                    AllIcons.Toolwindows.ToolWindowMessages
+                } else {
+                    AllIcons.RunConfigurations.TestPassed
+                }
 
-            val badgeColor = if (activeCount > 0) {
-                JBColor(Color(255, 140, 0), Color(255, 160, 50)) // Orange
-            } else {
-                JBColor(Color(100, 200, 100), Color(80, 150, 80)) // Green
-            }
+            val badgeColor =
+                if (activeCount > 0) {
+                    JBColor(Color(255, 140, 0), Color(255, 160, 50)) // Orange
+                } else {
+                    JBColor(Color(100, 200, 100), Color(80, 150, 80)) // Green
+                }
 // Preserve the original file name and append the badge
             val originalText = data.presentableText ?: file.name
             val badgeText = " ($activeCount)"
-            
+
             // Clear existing text and rebuild with file name + badge
             data.clearText()
             data.addText(originalText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-            data.addText(badgeText, SimpleTextAttributes(
-                SimpleTextAttributes.STYLE_PLAIN,
-                badgeColor
-            ))
+            data.addText(
+                badgeText,
+                SimpleTextAttributes(
+                    SimpleTextAttributes.STYLE_PLAIN,
+                    badgeColor,
+                ),
+            )
             if (activeCount > 0) {
                 data.setIcon(combineIcons(data.getIcon(false), icon))
             }
@@ -120,7 +140,7 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
     private fun countCommentsInDirectory(dir: VirtualFile): Pair<Int, Int> {
         var totalComments = 0
         var activeComments = 0
-        
+
         try {
             dir.children?.forEach { child ->
                 if (child.isDirectory) {
@@ -137,12 +157,16 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
         } catch (e: Exception) {
             logger.warn("Error counting comments in directory ${dir.path}: ${e.message}")
         }
-        
+
         return Pair(totalComments, activeComments)
     }
 
-    private fun buildFileTooltip(total: Int, active: Int, fileName: String): String {
-        return buildString {
+    private fun buildFileTooltip(
+        total: Int,
+        active: Int,
+        fileName: String,
+    ): String =
+        buildString {
             append("<html><b>$fileName</b><br>")
             if (active > 0) {
                 append("<font color='orange'>● $active active PR comment${if (active != 1) "s" else ""}</font>")
@@ -154,10 +178,12 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
             }
             append("<br><i>Click to view in editor</i></html>")
         }
-    }
 
-    private fun buildDirectoryTooltip(total: Int, active: Int): String {
-        return buildString {
+    private fun buildDirectoryTooltip(
+        total: Int,
+        active: Int,
+    ): String =
+        buildString {
             append("<html><b>PR Comments in Folder</b><br>")
             if (active > 0) {
                 append("<font color='orange'>● $active active</font>")
@@ -169,19 +195,20 @@ class FileWithCommentsDecorator(private val project: Project) : ProjectViewNodeD
             }
             append("</html>")
         }
-    }
 
     /**
      * Combine two icons (base icon + overlay)
      * This ensures the file type icon is preserved with comment indicator
      */
-    private fun combineIcons(baseIcon: javax.swing.Icon?, overlayIcon: javax.swing.Icon?): javax.swing.Icon? {
+    private fun combineIcons(
+        baseIcon: javax.swing.Icon?,
+        overlayIcon: javax.swing.Icon?,
+    ): javax.swing.Icon? {
         if (baseIcon == null) return overlayIcon
         if (overlayIcon == null) return baseIcon
-        
+
         // For now, return base icon - proper icon combining would require RowIcon or LayeredIcon
         // which is complex but the text badge already provides visual feedback
         return baseIcon
     }
-
 }

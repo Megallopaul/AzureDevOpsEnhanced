@@ -13,22 +13,22 @@ import javax.swing.JPanel
  * Each slice is colored from a predefined palette with hover tooltips.
  */
 class DonutChartComponent(
-    private val chartTitle: String
+    private val chartTitle: String,
 ) : JPanel() {
-
     private var data: List<LabeledValue> = emptyList()
     private var hoveredIndex: Int = -1
 
     companion object {
-        private val PALETTE = arrayOf(
-            JBColor(Color(0x3574F0), Color(0x548AF7)),  // Blue
-            JBColor(Color(0x2DA44E), Color(0x3FB950)),  // Green
-            JBColor(Color(0xCF222E), Color(0xF85149)),  // Red
-            JBColor(Color(0xBF8700), Color(0xD29922)),  // Yellow
-            JBColor(Color(0x8250DF), Color(0xA371F7)),  // Purple
-            JBColor(Color(0x0969DA), Color(0x58A6FF)),  // Light blue
-            JBColor(Color(0x6E7781), Color(0x8B949E))   // Gray
-        )
+        private val PALETTE =
+            arrayOf(
+                JBColor(Color(0x3574F0), Color(0x548AF7)), // Blue
+                JBColor(Color(0x2DA44E), Color(0x3FB950)), // Green
+                JBColor(Color(0xCF222E), Color(0xF85149)), // Red
+                JBColor(Color(0xBF8700), Color(0xD29922)), // Yellow
+                JBColor(Color(0x8250DF), Color(0xA371F7)), // Purple
+                JBColor(Color(0x0969DA), Color(0x58A6FF)), // Light blue
+                JBColor(Color(0x6E7781), Color(0x8B949E)), // Gray
+            )
     }
 
     init {
@@ -36,21 +36,26 @@ class DonutChartComponent(
         preferredSize = Dimension(300, 200)
         minimumSize = Dimension(200, 150)
 
-        addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
-            override fun mouseMoved(e: java.awt.event.MouseEvent) {
-                val newIndex = hitTestSlice(e.x, e.y)
-                if (newIndex != hoveredIndex) {
-                    hoveredIndex = newIndex
-                    toolTipText = if (newIndex >= 0 && newIndex < data.size) {
-                        val d = data[newIndex]
-                        val total = data.sumOf { it.value }
-                        val pct = if (total > 0) (d.value / total * 100) else 0.0
-                        "${d.label}: ${d.value.toInt()} (${String.format("%.0f", pct)}%)"
-                    } else null
-                    repaint()
+        addMouseMotionListener(
+            object : java.awt.event.MouseMotionAdapter() {
+                override fun mouseMoved(e: java.awt.event.MouseEvent) {
+                    val newIndex = hitTestSlice(e.x, e.y)
+                    if (newIndex != hoveredIndex) {
+                        hoveredIndex = newIndex
+                        toolTipText =
+                            if (newIndex >= 0 && newIndex < data.size) {
+                                val d = data[newIndex]
+                                val total = data.sumOf { it.value }
+                                val pct = if (total > 0) (d.value / total * 100) else 0.0
+                                "${d.label}: ${d.value.toInt()} (${String.format("%.0f", pct)}%)"
+                            } else {
+                                null
+                            }
+                        repaint()
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     fun setData(values: List<LabeledValue>) {
@@ -101,15 +106,16 @@ class DonutChartComponent(
 
             g2.color = if (index == hoveredIndex) color.brighter() else color
             g2.stroke = BasicStroke(thickness.toFloat(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER)
-            val arc = Arc2D.Double(
-                (donutX + thickness / 2).toDouble(),
-                (donutY + thickness / 2).toDouble(),
-                (donutSize - thickness).toDouble(),
-                (donutSize - thickness).toDouble(),
-                startAngle,
-                -sweep,
-                Arc2D.OPEN
-            )
+            val arc =
+                Arc2D.Double(
+                    (donutX + thickness / 2).toDouble(),
+                    (donutY + thickness / 2).toDouble(),
+                    (donutSize - thickness).toDouble(),
+                    (donutSize - thickness).toDouble(),
+                    startAngle,
+                    -sweep,
+                    Arc2D.OPEN,
+                )
             g2.draw(arc)
             startAngle -= sweep
         }
@@ -147,7 +153,10 @@ class DonutChartComponent(
         g2.dispose()
     }
 
-    private fun hitTestSlice(mx: Int, my: Int): Int {
+    private fun hitTestSlice(
+        mx: Int,
+        my: Int,
+    ): Int {
         if (data.isEmpty()) return -1
         val insets = insets
         val titleHeight = JBUI.scale(24)

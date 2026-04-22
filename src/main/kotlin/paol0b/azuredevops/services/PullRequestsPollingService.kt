@@ -15,17 +15,16 @@ import java.util.concurrent.TimeUnit
  * Implements Disposable to ensure scheduler threads are properly terminated on project close.
  */
 @Service(Service.Level.PROJECT)
-class PullRequestsPollingService(private val project: Project) : Disposable {
-
+class PullRequestsPollingService(
+    private val project: Project,
+) : Disposable {
     private val logger = Logger.getInstance(PullRequestsPollingService::class.java)
     private var scheduler: ScheduledExecutorService? = null
     private var isPolling = false
     private var refreshAction: (() -> Unit)? = null
 
     companion object {
-        fun getInstance(project: Project): PullRequestsPollingService {
-            return project.getService(PullRequestsPollingService::class.java)
-        }
+        fun getInstance(project: Project): PullRequestsPollingService = project.getService(PullRequestsPollingService::class.java)
     }
 
     /**

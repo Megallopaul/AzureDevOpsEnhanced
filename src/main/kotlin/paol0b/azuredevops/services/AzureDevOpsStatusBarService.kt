@@ -13,18 +13,23 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 @Service(Service.Level.PROJECT)
-class AzureDevOpsStatusBarService(private val project: Project) : Disposable {
-
+class AzureDevOpsStatusBarService(
+    private val project: Project,
+) : Disposable {
     private val logger = Logger.getInstance(AzureDevOpsStatusBarService::class.java)
 
     enum class BuildStatusSummary {
-        Succeeded, Failed, PartiallySucceeded, InProgress, Unknown
+        Succeeded,
+        Failed,
+        PartiallySucceeded,
+        InProgress,
+        Unknown,
     }
 
     data class StatusBarData(
         val buildStatus: BuildStatusSummary = BuildStatusSummary.Unknown,
         val activePrCount: Int = 0,
-        val activeWorkItemCount: Int = 0
+        val activeWorkItemCount: Int = 0,
     )
 
     @Volatile
@@ -34,9 +39,7 @@ class AzureDevOpsStatusBarService(private val project: Project) : Disposable {
     private val listeners = CopyOnWriteArrayList<() -> Unit>()
 
     companion object {
-        fun getInstance(project: Project): AzureDevOpsStatusBarService {
-            return project.getService(AzureDevOpsStatusBarService::class.java)
-        }
+        fun getInstance(project: Project): AzureDevOpsStatusBarService = project.getService(AzureDevOpsStatusBarService::class.java)
     }
 
     fun getData(): StatusBarData = cachedData
@@ -110,11 +113,12 @@ class AzureDevOpsStatusBarService(private val project: Project) : Disposable {
             val prCount = fetchActivePrCount(apiClient)
             val wiCount = fetchActiveWorkItemCount(apiClient)
 
-            cachedData = StatusBarData(
-                buildStatus = buildStatus,
-                activePrCount = prCount,
-                activeWorkItemCount = wiCount
-            )
+            cachedData =
+                StatusBarData(
+                    buildStatus = buildStatus,
+                    activePrCount = prCount,
+                    activeWorkItemCount = wiCount,
+                )
             notifyListeners()
         } catch (e: Exception) {
             logger.warn("Failed to refresh status bar data: ${e.message}")
@@ -143,8 +147,9 @@ class AzureDevOpsStatusBarService(private val project: Project) : Disposable {
 
     private fun fetchBuildStatus(apiClient: AzureDevOpsApiClient): BuildStatusSummary {
         return try {
-            val branchName = GitRepositoryService.getInstance(project).getCurrentBranch()?.displayName
-                ?: return BuildStatusSummary.Unknown
+            val branchName =
+                GitRepositoryService.getInstance(project).getCurrentBranch()?.displayName
+                    ?: return BuildStatusSummary.Unknown
             val builds = apiClient.getBuilds(branchName = "refs/heads/$branchName", top = 1)
             val build = builds.firstOrNull() ?: return BuildStatusSummary.Unknown
 
@@ -161,23 +166,21 @@ class AzureDevOpsStatusBarService(private val project: Project) : Disposable {
         }
     }
 
-    private fun fetchActivePrCount(apiClient: AzureDevOpsApiClient): Int {
-        return try {
+    private fun fetchActivePrCount(apiClient: AzureDevOpsApiClient): Int =
+        try {
             apiClient.getPullRequests(status = "active").size
         } catch (e: Exception) {
             logger.warn("Failed to fetch PR count: ${e.message}")
             cachedData.activePrCount
         }
-    }
 
-    private fun fetchActiveWorkItemCount(apiClient: AzureDevOpsApiClient): Int {
-        return try {
+    private fun fetchActiveWorkItemCount(apiClient: AzureDevOpsApiClient): Int =
+        try {
             apiClient.getMyWorkItems().size
         } catch (e: Exception) {
             logger.warn("Failed to fetch work item count: ${e.message}")
             cachedData.activeWorkItemCount
         }
-    }
 
     private fun notifyListeners() {
         ApplicationManager.getApplication().invokeLater {

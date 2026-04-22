@@ -11,19 +11,26 @@ import paol0b.azuredevops.services.PrReviewTabService
 /**
  * Provider that creates a [PrDiffFileEditor] for [PrDiffVirtualFile] instances.
  */
-class PrDiffFileEditorProvider : FileEditorProvider, DumbAware {
+class PrDiffFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is PrDiffVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is PrDiffVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor {
         val diffFile = file as PrDiffVirtualFile
         val tabService = PrReviewTabService.getInstance(project)
-        val pullRequest = tabService.getPullRequest(file)
-            ?: throw IllegalStateException("Missing pull request data for diff tab PR #${diffFile.pullRequestId}")
-        val change = tabService.getChange(file)
-            ?: throw IllegalStateException("Missing change data for diff tab ${diffFile.filePath}")
+        val pullRequest =
+            tabService.getPullRequest(file)
+                ?: throw IllegalStateException("Missing pull request data for diff tab PR #${diffFile.pullRequestId}")
+        val change =
+            tabService.getChange(file)
+                ?: throw IllegalStateException("Missing change data for diff tab ${diffFile.filePath}")
         return PrDiffFileEditor(project, file, pullRequest, change)
     }
 

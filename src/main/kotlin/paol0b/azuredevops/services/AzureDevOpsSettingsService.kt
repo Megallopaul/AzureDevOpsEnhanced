@@ -11,16 +11,17 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 @Service(Service.Level.PROJECT)
 @State(
     name = "AzureDevOpsSettings",
-    storages = [Storage("azureDevOpsSettings.xml")]
+    storages = [Storage("azureDevOpsSettings.xml")],
 )
-class AzureDevOpsSettingsService(private val project: Project) : PersistentStateComponent<AzureDevOpsSettingsService.State> {
-
+class AzureDevOpsSettingsService(
+    private val project: Project,
+) : PersistentStateComponent<AzureDevOpsSettingsService.State> {
     data class State(
         // --- Polling ---
         var pullRequestIntervalSeconds: Long = 30,
         var commentsIntervalSeconds: Long = 15,
         var timelineIntervalSeconds: Long = 15,
-        var statusBarIntervalSeconds: Long = 60
+        var statusBarIntervalSeconds: Long = 60,
     )
 
     private var myState = State()
@@ -32,8 +33,6 @@ class AzureDevOpsSettingsService(private val project: Project) : PersistentState
     }
 
     companion object {
-        fun getInstance(project: Project): AzureDevOpsSettingsService {
-            return project.service()
-        }
+        fun getInstance(project: Project): AzureDevOpsSettingsService = project.service()
     }
 }

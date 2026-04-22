@@ -16,9 +16,8 @@ class CommentGutterIconRenderer(
     private val thread: CommentThread,
     private val pullRequest: PullRequest,
     private val icon: Icon,
-    private val commentsService: PullRequestCommentsService
+    private val commentsService: PullRequestCommentsService,
 ) : GutterIconRenderer() {
-
     override fun getIcon(): Icon = icon
 
     override fun getTooltipText(): String {
@@ -26,29 +25,30 @@ class CommentGutterIconRenderer(
         val firstComment = comments.firstOrNull()
         val status = if (thread.isResolved()) "✓ Resolved" else "⚠ Active"
         val count = comments.size
-        
+
         return buildString {
             append("<html><b>PR Comment - $status</b>")
-            
+
             if (firstComment != null) {
                 append("<br><b>Author:</b> ${firstComment.author?.displayName ?: "Unknown"}")
-                
+
                 val content = firstComment.content ?: ""
                 if (content.isNotEmpty()) {
                     append("<br><hr>")
-                    val preview = if (content.length > 150) {
-                        content.take(150).replace("\n", "<br>") + "..."
-                    } else {
-                        content.replace("\n", "<br>")
-                    }
+                    val preview =
+                        if (content.length > 150) {
+                            content.take(150).replace("\n", "<br>") + "..."
+                        } else {
+                            content.replace("\n", "<br>")
+                        }
                     append(preview)
                 }
             }
-            
+
             if (count > 1) {
                 append("<br><hr><i>+${count - 1} ${if (count == 2) "reply" else "replies"}</i>")
             }
-            
+
             append("<br><br><font size='-2' color='gray'>Click to view and reply</font>")
             append("</html>")
         }
@@ -58,14 +58,14 @@ class CommentGutterIconRenderer(
         return object : AnAction("View Comment Thread") {
             override fun actionPerformed(e: AnActionEvent) {
                 val project = e.project ?: return
-                
+
                 // Open dialog to view and manage the thread
                 val dialog = CommentThreadDialog(project, thread, pullRequest, commentsService)
                 dialog.show()
             }
         }
     }
-    
+
     override fun getAlignment(): Alignment {
         // Align the icon to the right in the gutter for better visibility
         return Alignment.RIGHT
@@ -77,7 +77,5 @@ class CommentGutterIconRenderer(
         return thread.id == other.thread.id
     }
 
-    override fun hashCode(): Int {
-        return thread.id?.hashCode() ?: 0
-    }
+    override fun hashCode(): Int = thread.id?.hashCode() ?: 0
 }

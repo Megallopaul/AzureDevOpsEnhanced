@@ -8,35 +8,28 @@ import com.google.gson.annotations.SerializedName
 data class PullRequestChange(
     @SerializedName("changeId")
     val changeId: Int?,
-
     @SerializedName("changeTrackingId")
     val changeTrackingId: Int?,
-    
     @SerializedName("changeType")
     val changeType: String?, // "add", "edit", "delete", "rename"
-    
     @SerializedName("item")
     val item: GitItem?,
-    
     @SerializedName("originalPath")
-    val originalPath: String? // For rename/move
+    val originalPath: String?, // For rename/move
 )
 
 private val FILE_CHANGE_TYPE_PRIORITY = listOf("add", "delete", "rename", "edit")
 
-fun PullRequestChange.changeTypeTokens(): Set<String> {
-    return changeType
+fun PullRequestChange.changeTypeTokens(): Set<String> =
+    changeType
         ?.split(',')
         ?.asSequence()
         ?.map { it.trim().lowercase() }
         ?.filter { it.isNotEmpty() }
         ?.toSet()
         .orEmpty()
-}
 
-fun PullRequestChange.hasChangeType(type: String): Boolean {
-    return changeTypeTokens().contains(type.lowercase())
-}
+fun PullRequestChange.hasChangeType(type: String): Boolean = changeTypeTokens().contains(type.lowercase())
 
 fun PullRequestChange.primaryChangeType(): String {
     val tokens = changeTypeTokens()
@@ -45,34 +38,32 @@ fun PullRequestChange.primaryChangeType(): String {
         ?: "unknown"
 }
 
-fun PullRequestChange.isAddedFile(): Boolean {
-    return hasChangeType("add") && !hasChangeType("delete")
-}
+fun PullRequestChange.isAddedFile(): Boolean = hasChangeType("add") && !hasChangeType("delete")
 
-fun PullRequestChange.isRemovedFile(): Boolean {
-    return hasChangeType("delete") && !hasChangeType("add")
-}
+fun PullRequestChange.isRemovedFile(): Boolean = hasChangeType("delete") && !hasChangeType("add")
 
-fun PullRequestChange.displayChangeLabel(): String {
-    return when {
+fun PullRequestChange.displayChangeLabel(): String =
+    when {
         isAddedFile() -> "Added"
         isRemovedFile() -> "Removed"
         hasChangeType("rename") && hasChangeType("edit") -> "Renamed + Modified"
         hasChangeType("rename") -> "Renamed"
         hasChangeType("edit") -> "Modified"
-        else -> primaryChangeType().replaceFirstChar { char ->
-            if (char.isLowerCase()) char.titlecase() else char.toString()
-        }
+        else ->
+            primaryChangeType().replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase() else char.toString()
+            }
     }
-}
 
-fun PullRequestChange.diffSideTitles(targetBranch: String, sourceBranch: String): Pair<String, String> {
-    return when {
+fun PullRequestChange.diffSideTitles(
+    targetBranch: String,
+    sourceBranch: String,
+): Pair<String, String> =
+    when {
         isAddedFile() -> "Base ($targetBranch) - file absent" to "Changes ($sourceBranch) - added file"
         isRemovedFile() -> "Base ($targetBranch) - removed file" to "Changes ($sourceBranch) - file absent"
         else -> "Base ($targetBranch)" to "Changes ($sourceBranch)"
     }
-}
 
 /**
  * Returns the canonical path that identifies this change in the file tree.
@@ -80,42 +71,35 @@ fun PullRequestChange.diffSideTitles(targetBranch: String, sourceBranch: String)
  * item = null (e.g., as the "delete" half of a rename), originalPath is used
  * as a fallback so the file still appears in the review tree.
  */
-fun PullRequestChange.effectivePath(): String {
-    return item?.path?.takeIf { it.isNotBlank() }
+fun PullRequestChange.effectivePath(): String =
+    item?.path?.takeIf { it.isNotBlank() }
         ?: originalPath?.takeIf { it.isNotBlank() }
         ?: ""
-}
 
-fun PullRequestChange.previousPath(): String {
-    return if (hasChangeType("rename")) {
+fun PullRequestChange.previousPath(): String =
+    if (hasChangeType("rename")) {
         originalPath ?: item?.path.orEmpty()
     } else {
         // For a plain delete the path lives in item.path; guard against null item.
         item?.path?.takeIf { it.isNotBlank() } ?: originalPath.orEmpty()
     }
-}
 
 data class GitItem(
     @SerializedName("objectId")
     val objectId: String?, // SHA object
-    
     @SerializedName("path")
     val path: String?,
-    
     @SerializedName("gitObjectType")
     val gitObjectType: String?, // "blob", "tree"
-    
     @SerializedName("commitId")
     val commitId: String?,
-    
     @SerializedName("url")
-    val url: String?
+    val url: String?,
 )
 
 data class PullRequestChanges(
     @SerializedName("changeEntries")
     val changeEntries: List<PullRequestChange>?,
-    
     @SerializedName("count")
-    val count: Int?
+    val count: Int?,
 )

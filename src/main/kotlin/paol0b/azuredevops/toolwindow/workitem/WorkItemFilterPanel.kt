@@ -2,23 +2,21 @@ package paol0b.azuredevops.toolwindow.workitem
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
-import com.intellij.ui.JBColor
-import com.intellij.ui.SearchTextField
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBThinOverlappingScrollBar
-import com.intellij.ui.scale.JBUIScale
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
+import com.intellij.ui.SearchTextField
 import com.intellij.ui.awt.RelativePoint
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBThinOverlappingScrollBar
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.JBUI
 import paol0b.azuredevops.model.TeamIteration
 import paol0b.azuredevops.toolwindow.filters.FilterBadgeIcon
 import paol0b.azuredevops.toolwindow.filters.FilterChipComponent
 import paol0b.azuredevops.toolwindow.filters.FilterPopupUtil
 import java.awt.*
-import java.awt.geom.Ellipse2D
 import javax.swing.*
 
 /**
@@ -29,16 +27,16 @@ import javax.swing.*
  */
 class WorkItemFilterPanel(
     private val project: Project,
-    private val onFilterChanged: (WorkItemSearchValue) -> Unit
+    private val onFilterChanged: (WorkItemSearchValue) -> Unit,
 ) {
-
     private val panel: JPanel
     private var currentValue = WorkItemSearchValue.DEFAULT
 
     // Search field
-    private val searchField = SearchTextField(false).apply {
-        textEditor.emptyText.text = "Search work items"
-    }
+    private val searchField =
+        SearchTextField(false).apply {
+            textEditor.emptyText.text = "Search work items"
+        }
 
     // Filter chips
     private val typeChip: FilterChipComponent
@@ -56,97 +54,117 @@ class WorkItemFilterPanel(
     private var cachedIterations: List<TeamIteration> = emptyList()
 
     init {
-        quickFilterButton = JButton().apply {
-            icon = filterBadgeIcon
-            toolTipText = "Quick Filters"
-            isFocusPainted = false
-            isContentAreaFilled = false
-            border = JBUI.Borders.empty(2, 4)
-            cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-            preferredSize = Dimension(JBUIScale.scale(28), JBUIScale.scale(24))
-            addActionListener { showQuickFilterPopup(this) }
-        }
+        quickFilterButton =
+            JButton().apply {
+                icon = filterBadgeIcon
+                toolTipText = "Quick Filters"
+                isFocusPainted = false
+                isContentAreaFilled = false
+                border = JBUI.Borders.empty(2, 4)
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                preferredSize = Dimension(JBUIScale.scale(28), JBUIScale.scale(24))
+                addActionListener { showQuickFilterPopup(this) }
+            }
 
-        typeChip = FilterChipComponent("Type",
-            onShowPopup = { chip -> showTypePopup(chip) },
-            onClear = { updateFilter(currentValue.copy(type = null)) }
-        )
+        typeChip =
+            FilterChipComponent(
+                "Type",
+                onShowPopup = { chip -> showTypePopup(chip) },
+                onClear = { updateFilter(currentValue.copy(type = null)) },
+            )
 
-        stateChip = FilterChipComponent("State",
-            onShowPopup = { chip -> showStatePopup(chip) },
-            onClear = { updateFilter(currentValue.copy(state = null)) }
-        )
+        stateChip =
+            FilterChipComponent(
+                "State",
+                onShowPopup = { chip -> showStatePopup(chip) },
+                onClear = { updateFilter(currentValue.copy(state = null)) },
+            )
 
-        assignedToChip = FilterChipComponent("Assigned",
-            onShowPopup = { chip -> showAssignedToPopup(chip) },
-            onClear = { updateFilter(currentValue.copy(assignedTo = null)) }
-        )
+        assignedToChip =
+            FilterChipComponent(
+                "Assigned",
+                onShowPopup = { chip -> showAssignedToPopup(chip) },
+                onClear = { updateFilter(currentValue.copy(assignedTo = null)) },
+            )
 
-        iterationChip = FilterChipComponent("Iteration",
-            onShowPopup = { chip -> showIterationPopup(chip) },
-            onClear = { updateFilter(currentValue.copy(iteration = null)) }
-        )
+        iterationChip =
+            FilterChipComponent(
+                "Iteration",
+                onShowPopup = { chip -> showIterationPopup(chip) },
+                onClear = { updateFilter(currentValue.copy(iteration = null)) },
+            )
 
-        priorityChip = FilterChipComponent("Priority",
-            onShowPopup = { chip -> showPriorityPopup(chip) },
-            onClear = { updateFilter(currentValue.copy(priority = null)) }
-        )
+        priorityChip =
+            FilterChipComponent(
+                "Priority",
+                onShowPopup = { chip -> showPriorityPopup(chip) },
+                onClear = { updateFilter(currentValue.copy(priority = null)) },
+            )
 
-        sortChip = FilterChipComponent("Sort",
-            onShowPopup = { chip -> showSortPopup(chip) },
-            onClear = { updateFilter(currentValue.copy(sort = null)) }
-        )
+        sortChip =
+            FilterChipComponent(
+                "Sort",
+                onShowPopup = { chip -> showSortPopup(chip) },
+                onClear = { updateFilter(currentValue.copy(sort = null)) },
+            )
 
         // Search field listener
-        searchField.addDocumentListener(object : com.intellij.ui.DocumentAdapter() {
-            override fun textChanged(e: javax.swing.event.DocumentEvent) {
-                val query = searchField.text.trim()
-                updateFilter(currentValue.copy(searchQuery = query.ifBlank { null }))
-            }
-        })
+        searchField.addDocumentListener(
+            object : com.intellij.ui.DocumentAdapter() {
+                override fun textChanged(e: javax.swing.event.DocumentEvent) {
+                    val query = searchField.text.trim()
+                    updateFilter(currentValue.copy(searchQuery = query.ifBlank { null }))
+                }
+            },
+        )
 
         // Build filter bar
-        val filtersContent = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.X_AXIS)
-            isOpaque = false
-            add(typeChip)
-            add(Box.createHorizontalStrut(JBUIScale.scale(4)))
-            add(stateChip)
-            add(Box.createHorizontalStrut(JBUIScale.scale(4)))
-            add(assignedToChip)
-            add(Box.createHorizontalStrut(JBUIScale.scale(4)))
-            add(iterationChip)
-            add(Box.createHorizontalStrut(JBUIScale.scale(4)))
-            add(priorityChip)
-            add(Box.createHorizontalStrut(JBUIScale.scale(4)))
-            add(sortChip)
-        }
+        val filtersContent =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                isOpaque = false
+                add(typeChip)
+                add(Box.createHorizontalStrut(JBUIScale.scale(4)))
+                add(stateChip)
+                add(Box.createHorizontalStrut(JBUIScale.scale(4)))
+                add(assignedToChip)
+                add(Box.createHorizontalStrut(JBUIScale.scale(4)))
+                add(iterationChip)
+                add(Box.createHorizontalStrut(JBUIScale.scale(4)))
+                add(priorityChip)
+                add(Box.createHorizontalStrut(JBUIScale.scale(4)))
+                add(sortChip)
+            }
 
-        val filtersScrollPane = JBScrollPane(filtersContent).apply {
-            border = JBUI.Borders.empty()
-            isOpaque = false
-            viewport.isOpaque = false
-            verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER
-            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
-            horizontalScrollBar = JBThinOverlappingScrollBar(Adjustable.HORIZONTAL)
-        }
+        val filtersScrollPane =
+            JBScrollPane(filtersContent).apply {
+                border = JBUI.Borders.empty()
+                isOpaque = false
+                viewport.isOpaque = false
+                verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER
+                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
+                horizontalScrollBar = JBThinOverlappingScrollBar(Adjustable.HORIZONTAL)
+            }
 
-        val filterBar = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            border = JBUI.Borders.emptyTop(4)
-            add(quickFilterButton, BorderLayout.WEST)
-            add(filtersScrollPane, BorderLayout.CENTER)
-        }
+        val filterBar =
+            JPanel(BorderLayout()).apply {
+                isOpaque = false
+                border = JBUI.Borders.emptyTop(4)
+                add(quickFilterButton, BorderLayout.WEST)
+                add(filtersScrollPane, BorderLayout.CENTER)
+            }
 
-        panel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(8, 10, 4, 10)
-            isOpaque = false
-            add(searchField, BorderLayout.CENTER)
-            add(filterBar, BorderLayout.SOUTH)
-        }
+        panel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.empty(8, 10, 4, 10)
+                isOpaque = false
+                add(searchField, BorderLayout.CENTER)
+                add(filterBar, BorderLayout.SOUTH)
+            }
     }
 
     fun getComponent(): JPanel = panel
+
     fun getCurrentFilter(): WorkItemSearchValue = currentValue
 
     fun updateIterations(iterations: List<TeamIteration>) {
@@ -157,55 +175,66 @@ class WorkItemFilterPanel(
 
     private fun showQuickFilterPopup(button: JComponent) {
         val diffCount = diffFromDefaultCount()
-        val items = mutableListOf<WorkItemQuickFilterItem>(
-            WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.MY_WORK_ITEMS),
-            WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.ALL_ACTIVE),
-            WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.MY_BUGS),
-            WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.CURRENT_SPRINT)
-        )
+        val items =
+            mutableListOf<WorkItemQuickFilterItem>(
+                WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.MY_WORK_ITEMS),
+                WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.ALL_ACTIVE),
+                WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.MY_BUGS),
+                WorkItemQuickFilterItem.Filter(WorkItemQuickFilter.CURRENT_SPRINT),
+            )
         if (diffCount > 0) items += WorkItemQuickFilterItem.ClearFilters(diffCount)
 
-        val step = object : BaseListPopupStep<WorkItemQuickFilterItem>("Quick Filters", items) {
-            override fun getTextFor(value: WorkItemQuickFilterItem): String = when (value) {
-                is WorkItemQuickFilterItem.Filter -> "  ${value.filter.displayName}"
-                is WorkItemQuickFilterItem.ClearFilters -> "Clear ${value.count} Filters"
-            }
-
-            override fun getSeparatorAbove(value: WorkItemQuickFilterItem): ListSeparator? =
-                if (value is WorkItemQuickFilterItem.ClearFilters) ListSeparator() else null
-
-            override fun onChosen(selectedValue: WorkItemQuickFilterItem, finalChoice: Boolean): PopupStep<*>? {
-                when (selectedValue) {
-                    is WorkItemQuickFilterItem.Filter -> when (selectedValue.filter) {
-                        WorkItemQuickFilter.MY_WORK_ITEMS -> applyQuickFilter(
-                            WorkItemSearchValue(assignedTo = WorkItemSearchValue.AssignedToFilter.ME)
-                        )
-                        WorkItemQuickFilter.ALL_ACTIVE -> applyQuickFilter(
-                            WorkItemSearchValue(state = WorkItemSearchValue.StateFilter.ACTIVE)
-                        )
-                        WorkItemQuickFilter.MY_BUGS -> applyQuickFilter(
-                            WorkItemSearchValue(
-                                assignedTo = WorkItemSearchValue.AssignedToFilter.ME,
-                                type = WorkItemSearchValue.TypeFilter.BUG
-                            )
-                        )
-                        WorkItemQuickFilter.CURRENT_SPRINT -> {
-                            val currentIter = cachedIterations.firstOrNull { it.isCurrent() }
-                            applyQuickFilter(
-                                WorkItemSearchValue(
-                                    assignedTo = WorkItemSearchValue.AssignedToFilter.ME,
-                                    iteration = currentIter?.let {
-                                        WorkItemSearchValue.IterationFilter(it.path, it.name ?: "", true)
-                                    }
-                                )
-                            )
-                        }
+        val step =
+            object : BaseListPopupStep<WorkItemQuickFilterItem>("Quick Filters", items) {
+                override fun getTextFor(value: WorkItemQuickFilterItem): String =
+                    when (value) {
+                        is WorkItemQuickFilterItem.Filter -> "  ${value.filter.displayName}"
+                        is WorkItemQuickFilterItem.ClearFilters -> "Clear ${value.count} Filters"
                     }
-                    is WorkItemQuickFilterItem.ClearFilters -> applyQuickFilter(WorkItemSearchValue.EMPTY)
+
+                override fun getSeparatorAbove(value: WorkItemQuickFilterItem): ListSeparator? =
+                    if (value is WorkItemQuickFilterItem.ClearFilters) ListSeparator() else null
+
+                override fun onChosen(
+                    selectedValue: WorkItemQuickFilterItem,
+                    finalChoice: Boolean,
+                ): PopupStep<*>? {
+                    when (selectedValue) {
+                        is WorkItemQuickFilterItem.Filter ->
+                            when (selectedValue.filter) {
+                                WorkItemQuickFilter.MY_WORK_ITEMS ->
+                                    applyQuickFilter(
+                                        WorkItemSearchValue(assignedTo = WorkItemSearchValue.AssignedToFilter.ME),
+                                    )
+                                WorkItemQuickFilter.ALL_ACTIVE ->
+                                    applyQuickFilter(
+                                        WorkItemSearchValue(state = WorkItemSearchValue.StateFilter.ACTIVE),
+                                    )
+                                WorkItemQuickFilter.MY_BUGS ->
+                                    applyQuickFilter(
+                                        WorkItemSearchValue(
+                                            assignedTo = WorkItemSearchValue.AssignedToFilter.ME,
+                                            type = WorkItemSearchValue.TypeFilter.BUG,
+                                        ),
+                                    )
+                                WorkItemQuickFilter.CURRENT_SPRINT -> {
+                                    val currentIter = cachedIterations.firstOrNull { it.isCurrent() }
+                                    applyQuickFilter(
+                                        WorkItemSearchValue(
+                                            assignedTo = WorkItemSearchValue.AssignedToFilter.ME,
+                                            iteration =
+                                                currentIter?.let {
+                                                    WorkItemSearchValue.IterationFilter(it.path, it.name ?: "", true)
+                                                },
+                                        ),
+                                    )
+                                }
+                            }
+                        is WorkItemQuickFilterItem.ClearFilters -> applyQuickFilter(WorkItemSearchValue.EMPTY)
+                    }
+                    return PopupStep.FINAL_CHOICE
                 }
-                return PopupStep.FINAL_CHOICE
             }
-        }
 
         val popup = JBPopupFactory.getInstance().createListPopup(step)
         popup.show(RelativePoint(button, Point(0, button.height + JBUIScale.scale(2))))
@@ -226,7 +255,7 @@ class WorkItemFilterPanel(
             onSelected = { type ->
                 chip.setValue(type.displayName)
                 updateFilter(currentValue.copy(type = type))
-            }
+            },
         )
     }
 
@@ -238,7 +267,7 @@ class WorkItemFilterPanel(
             onSelected = { state ->
                 chip.setValue(state.displayName)
                 updateFilter(currentValue.copy(state = state))
-            }
+            },
         )
     }
 
@@ -250,7 +279,7 @@ class WorkItemFilterPanel(
             onSelected = { assignedTo ->
                 chip.setValue(assignedTo.displayName)
                 updateFilter(currentValue.copy(assignedTo = assignedTo))
-            }
+            },
         )
     }
 
@@ -260,14 +289,15 @@ class WorkItemFilterPanel(
                 component = chip,
                 items = listOf("No iterations available"),
                 presenter = { it },
-                onSelected = {}
+                onSelected = {},
             )
             return
         }
 
-        val iterItems = cachedIterations.map { iter ->
-            WorkItemSearchValue.IterationFilter(iter.path, iter.name ?: "", iter.isCurrent())
-        }
+        val iterItems =
+            cachedIterations.map { iter ->
+                WorkItemSearchValue.IterationFilter(iter.path, iter.name ?: "", iter.isCurrent())
+            }
 
         FilterPopupUtil.showSimplePopup(
             component = chip,
@@ -279,7 +309,7 @@ class WorkItemFilterPanel(
             onSelected = { iter ->
                 chip.setValue(iter.name)
                 updateFilter(currentValue.copy(iteration = iter))
-            }
+            },
         )
     }
 
@@ -291,7 +321,7 @@ class WorkItemFilterPanel(
             onSelected = { priority ->
                 chip.setValue(priority.displayName)
                 updateFilter(currentValue.copy(priority = priority))
-            }
+            },
         )
     }
 
@@ -303,7 +333,7 @@ class WorkItemFilterPanel(
             onSelected = { sort ->
                 chip.setValue(sort.displayName)
                 updateFilter(currentValue.copy(sort = sort))
-            }
+            },
         )
     }
 
@@ -344,6 +374,11 @@ class WorkItemFilterPanel(
 }
 
 private sealed class WorkItemQuickFilterItem {
-    data class Filter(val filter: WorkItemQuickFilter) : WorkItemQuickFilterItem()
-    data class ClearFilters(val count: Int) : WorkItemQuickFilterItem()
+    data class Filter(
+        val filter: WorkItemQuickFilter,
+    ) : WorkItemQuickFilterItem()
+
+    data class ClearFilters(
+        val count: Int,
+    ) : WorkItemQuickFilterItem()
 }

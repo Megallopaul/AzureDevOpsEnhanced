@@ -18,9 +18,8 @@ import paol0b.azuredevops.util.PluginUtil
  */
 class SetAutoCompletePullRequestAction(
     private val pullRequest: PullRequest,
-    private val onCompleted: (() -> Unit)? = null
+    private val onCompleted: (() -> Unit)? = null,
 ) : AnAction("Set Auto-Complete...", "Set auto-complete options for this Pull Request", null) {
-
     /**
      * Perform the set auto-complete action without requiring an AnActionEvent
      */
@@ -36,7 +35,7 @@ class SetAutoCompletePullRequestAction(
 
         // Show dialog to get completion options
         val dialog = CompletePullRequestDialog(project, pullRequest, isAutoComplete = true, currentUserId = currentUserId)
-        
+
         if (!dialog.showAndGet()) {
             return
         }
@@ -45,34 +44,40 @@ class SetAutoCompletePullRequestAction(
         val comment = dialog.getComment()
 
         // Execute auto-complete setting
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project,
-            "Setting auto-complete on PR #${pullRequest.pullRequestId}...",
-            true
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                
-                try {
-                    val apiClient = AzureDevOpsApiClient.getInstance(project)
-                    val updatedPr = apiClient.setAutoComplete(
-                        pullRequest.pullRequestId,
-                        completionOptions,
-                        comment
-                    )
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(
+                project,
+                "Setting auto-complete on PR #${pullRequest.pullRequestId}...",
+                true,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
 
-                    ApplicationManager.getApplication().invokeLater {
-                        NotificationUtil.info(project, "Auto-Complete Set", "PR #${pullRequest.pullRequestId} will auto-complete when policies are met")
-                        onCompleted?.invoke()
-                    }
+                    try {
+                        val apiClient = AzureDevOpsApiClient.getInstance(project)
+                        val updatedPr =
+                            apiClient.setAutoComplete(
+                                pullRequest.pullRequestId,
+                                completionOptions,
+                                comment,
+                            )
 
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        NotificationUtil.error(project, "Failed to Set Auto-Complete", PluginUtil.parseApiErrorMessage(e.message))
+                        ApplicationManager.getApplication().invokeLater {
+                            NotificationUtil.info(
+                                project,
+                                "Auto-Complete Set",
+                                "PR #${pullRequest.pullRequestId} will auto-complete when policies are met",
+                            )
+                            onCompleted?.invoke()
+                        }
+                    } catch (e: Exception) {
+                        ApplicationManager.getApplication().invokeLater {
+                            NotificationUtil.error(project, "Failed to Set Auto-Complete", PluginUtil.parseApiErrorMessage(e.message))
+                        }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -85,10 +90,9 @@ class SetAutoCompletePullRequestAction(
         // - PR is active
         // - Auto-complete is NOT already set
         // - PR is NOT yet ready to complete (if ready, user should use Complete instead)
-        e.presentation.isEnabledAndVisible = e.project != null && 
-            pullRequest.isActive() && 
-            !pullRequest.hasAutoComplete() && 
+        e.presentation.isEnabledAndVisible = e.project != null &&
+            pullRequest.isActive() &&
+            !pullRequest.hasAutoComplete() &&
             !pullRequest.isReadyToComplete()
     }
-
 }

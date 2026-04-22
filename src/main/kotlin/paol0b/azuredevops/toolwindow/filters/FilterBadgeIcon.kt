@@ -17,13 +17,21 @@ import javax.swing.Icon
  *
  * Shared across PR, Pipeline, and Work Item filter panels.
  */
-class FilterBadgeIcon(private val base: Icon) : Icon {
+class FilterBadgeIcon(
+    private val base: Icon,
+) : Icon {
     var showBadge: Boolean = false
 
     override fun getIconWidth(): Int = base.iconWidth
+
     override fun getIconHeight(): Int = base.iconHeight
 
-    override fun paintIcon(c: Component?, g: Graphics, x: Int, y: Int) {
+    override fun paintIcon(
+        c: Component?,
+        g: Graphics,
+        x: Int,
+        y: Int,
+    ) {
         base.paintIcon(c, g, x, y)
         if (!showBadge) return
         val g2 = g.create() as Graphics2D
@@ -31,10 +39,14 @@ class FilterBadgeIcon(private val base: Icon) : Icon {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val dotSize = JBUIScale.scale(6)
             g2.color = JBColor(Color(71, 136, 227), Color(75, 110, 175))
-            g2.fill(Ellipse2D.Double(
-                (x + iconWidth - dotSize).toDouble(), y.toDouble(),
-                dotSize.toDouble(), dotSize.toDouble()
-            ))
+            g2.fill(
+                Ellipse2D.Double(
+                    (x + iconWidth - dotSize).toDouble(),
+                    y.toDouble(),
+                    dotSize.toDouble(),
+                    dotSize.toDouble(),
+                ),
+            )
         } finally {
             g2.dispose()
         }

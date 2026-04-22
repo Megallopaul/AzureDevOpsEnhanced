@@ -10,9 +10,8 @@ data class PipelineSearchValue(
     val definition: DefinitionFilter? = null,
     val branch: String? = null,
     val requestedBy: RequestedByFilter? = null,
-    val sort: Sort? = null
+    val sort: Sort? = null,
 ) {
-
     val filterCount: Int
         get() {
             var count = 0
@@ -25,33 +24,44 @@ data class PipelineSearchValue(
             return count
         }
 
-    enum class ResultFilter(val displayName: String, val apiResult: String?, val apiStatus: String?) {
+    enum class ResultFilter(
+        val displayName: String,
+        val apiResult: String?,
+        val apiStatus: String?,
+    ) {
         SUCCEEDED("Succeeded", "succeeded", null),
         FAILED("Failed", "failed", null),
         CANCELED("Canceled", "canceled", null),
         PARTIALLY_SUCCEEDED("Partially Succeeded", "partiallySucceeded", null),
-        IN_PROGRESS("In Progress", null, "inProgress");
+        IN_PROGRESS("In Progress", null, "inProgress"),
+        ;
 
         override fun toString(): String = displayName
     }
 
     data class DefinitionFilter(
         val id: Int,
-        val name: String
+        val name: String,
     ) {
         override fun toString(): String = name
     }
 
-    enum class RequestedByFilter(val displayName: String) {
+    enum class RequestedByFilter(
+        val displayName: String,
+    ) {
         ME("Me"),
-        ALL("All Users");
+        ALL("All Users"),
+        ;
 
         override fun toString(): String = displayName
     }
 
-    enum class Sort(val displayName: String) {
+    enum class Sort(
+        val displayName: String,
+    ) {
         NEWEST("Newest first"),
-        OLDEST("Oldest first");
+        OLDEST("Oldest first"),
+        ;
 
         override fun toString(): String = displayName
     }
@@ -62,11 +72,14 @@ data class PipelineSearchValue(
     }
 }
 
-enum class PipelineQuickFilter(val displayName: String) {
+enum class PipelineQuickFilter(
+    val displayName: String,
+) {
     ALL_RUNS("All runs"),
     MY_RUNS("My runs"),
     FAILED_RUNS("Failed runs"),
-    RUNNING("Currently running");
+    RUNNING("Currently running"),
+    ;
 
     override fun toString(): String = displayName
 }

@@ -13,10 +13,7 @@ import paol0b.azuredevops.toolwindow.PullRequestToolWindowFactory
  * Opens the inline Create PR panel in the PR ToolWindow.
  */
 class CreatePullRequestAction : AnAction() {
-
-    override fun getActionUpdateThread(): ActionUpdateThread {
-        return ActionUpdateThread.BGT
-    }
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
@@ -27,7 +24,7 @@ class CreatePullRequestAction : AnAction() {
             Messages.showErrorDialog(
                 project,
                 "No Git repository found in this project.",
-                "Missing Git Repository"
+                "Missing Git Repository",
             )
             return
         }
@@ -35,19 +32,21 @@ class CreatePullRequestAction : AnAction() {
         // Check that it's an Azure DevOps repository or manually configured
         val configService = AzureDevOpsConfigService.getInstance(project)
         if (!configService.isAzureDevOpsRepository()) {
-            val result = Messages.showYesNoDialog(
-                project,
-                "Azure DevOps is not configured for this project.\n\n" +
+            val result =
+                Messages.showYesNoDialog(
+                    project,
+                    "Azure DevOps is not configured for this project.\n\n" +
                         "The plugin can:\n" +
                         "1. Automatically detect repositories cloned from Azure DevOps\n" +
                         "2. Be manually configured if the repository is not Azure DevOps\n\n" +
                         "Do you want to configure it now?",
-                "Azure DevOps Configuration Required",
-                Messages.getQuestionIcon()
-            )
+                    "Azure DevOps Configuration Required",
+                    Messages.getQuestionIcon(),
+                )
 
             if (result == Messages.YES) {
-                com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+                com.intellij.openapi.options.ShowSettingsUtil
+                    .getInstance()
                     .showSettingsDialog(project, "Azure DevOps")
             }
             return
@@ -55,17 +54,19 @@ class CreatePullRequestAction : AnAction() {
 
         // Check that the PAT is configured
         if (!configService.isConfigured()) {
-            val result = Messages.showYesNoDialog(
-                project,
-                "The Personal Access Token (PAT) is not configured.\n\n" +
+            val result =
+                Messages.showYesNoDialog(
+                    project,
+                    "The Personal Access Token (PAT) is not configured.\n\n" +
                         "Detected repository: ${configService.getDetectedRepositoryInfo()}\n\n" +
                         "Do you want to configure the PAT now?",
-                "PAT Configuration Required",
-                Messages.getQuestionIcon()
-            )
+                    "PAT Configuration Required",
+                    Messages.getQuestionIcon(),
+                )
 
             if (result == Messages.YES) {
-                com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+                com.intellij.openapi.options.ShowSettingsUtil
+                    .getInstance()
                     .showSettingsDialog(project, "Azure DevOps")
             }
             return

@@ -10,15 +10,18 @@ import com.intellij.openapi.vfs.VirtualFile
 /**
  * Provider that creates a [WorkItemBoardFileEditor] for [WorkItemBoardVirtualFile] instances.
  */
-class WorkItemBoardFileEditorProvider : FileEditorProvider, DumbAware {
+class WorkItemBoardFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is WorkItemBoardVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is WorkItemBoardVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-        return WorkItemBoardFileEditor(project, file as WorkItemBoardVirtualFile)
-    }
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor = WorkItemBoardFileEditor(project, file as WorkItemBoardVirtualFile)
 
     override fun getEditorTypeId(): String = "azuredevops-workitem-board"
 

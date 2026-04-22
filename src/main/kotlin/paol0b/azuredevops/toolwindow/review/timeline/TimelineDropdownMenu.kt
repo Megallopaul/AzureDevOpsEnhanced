@@ -16,7 +16,6 @@ import javax.swing.JSeparator
  *  ─ Closed
  */
 object TimelineDropdownMenu {
-
     /**
      * Create the popup menu for a comment thread.
      *
@@ -27,7 +26,7 @@ object TimelineDropdownMenu {
     fun createThreadPopup(
         threadId: Int,
         currentStatus: ThreadStatus,
-        onStatusChange: (ThreadStatus) -> Unit
+        onStatusChange: (ThreadStatus) -> Unit,
     ): JPopupMenu {
         val popup = JPopupMenu()
 
@@ -57,9 +56,11 @@ object TimelineDropdownMenu {
         return popup
     }
 
-    private fun menuItem(text: String, action: () -> Unit): JMenuItem {
-        return JMenuItem(text).apply {
+    private fun menuItem(
+        text: String,
+        action: () -> Unit,
+    ): JMenuItem =
+        JMenuItem(text).apply {
             addActionListener { action() }
         }
-    }
 }

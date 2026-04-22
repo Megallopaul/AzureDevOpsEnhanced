@@ -26,34 +26,37 @@ import javax.swing.JScrollPane
 class EditWorkItemDialog(
     private val project: Project,
     private val workItem: WorkItem,
-    private val iterations: List<TeamIteration>
+    private val iterations: List<TeamIteration>,
 ) : DialogWrapper(project) {
-
     private val logger = Logger.getInstance(EditWorkItemDialog::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
 
     private val titleField = JBTextField(workItem.getTitle())
-    private val descriptionArea = JBTextArea(5, 40).apply {
-        text = workItem.getDescription() ?: ""
-        lineWrap = true
-        wrapStyleWord = true
-    }
-    private val assignedToField = JBTextField(workItem.getAssignedTo() ?: "")
-    private val iterationCombo = ComboBox<String>().apply {
-        addItem("(Unchanged)")
-        iterations.forEach { iter ->
-            val prefix = if (iter.isCurrent()) "* " else ""
-            addItem("$prefix${iter.name}")
+    private val descriptionArea =
+        JBTextArea(5, 40).apply {
+            text = workItem.getDescription() ?: ""
+            lineWrap = true
+            wrapStyleWord = true
         }
-        selectedIndex = 0
-    }
-    private val priorityCombo = ComboBox(arrayOf("1 - Critical", "2 - High", "3 - Medium", "4 - Low")).apply {
-        selectedIndex = (workItem.getPriority() ?: 3) - 1
-    }
+    private val assignedToField = JBTextField(workItem.getAssignedTo() ?: "")
+    private val iterationCombo =
+        ComboBox<String>().apply {
+            addItem("(Unchanged)")
+            iterations.forEach { iter ->
+                val prefix = if (iter.isCurrent()) "* " else ""
+                addItem("$prefix${iter.name}")
+            }
+            selectedIndex = 0
+        }
+    private val priorityCombo =
+        ComboBox(arrayOf("1 - Critical", "2 - High", "3 - Medium", "4 - Low")).apply {
+            selectedIndex = (workItem.getPriority() ?: 3) - 1
+        }
     private val tagsField = JBTextField(workItem.getTags() ?: "")
-    private val storyPointsField = JBTextField().apply {
-        text = workItem.getStoryPoints()?.let { String.format("%.0f", it) } ?: ""
-    }
+    private val storyPointsField =
+        JBTextField().apply {
+            text = workItem.getStoryPoints()?.let { String.format("%.0f", it) } ?: ""
+        }
 
     private var updatedWorkItem: WorkItem? = null
 
@@ -71,22 +74,25 @@ class EditWorkItemDialog(
         init()
     }
 
-    override fun createCenterPanel(): JComponent {
-        return FormBuilder.createFormBuilder()
+    override fun createCenterPanel(): JComponent =
+        FormBuilder
+            .createFormBuilder()
             .addLabeledComponent("Title:", titleField)
-            .addLabeledComponent("Description:", JScrollPane(descriptionArea).apply {
-                preferredSize = Dimension(450, 120)
-            })
-            .addLabeledComponent("Assigned To:", assignedToField)
+            .addLabeledComponent(
+                "Description:",
+                JScrollPane(descriptionArea).apply {
+                    preferredSize = Dimension(450, 120)
+                },
+            ).addLabeledComponent("Assigned To:", assignedToField)
             .addLabeledComponent("Iteration:", iterationCombo)
             .addLabeledComponent("Priority:", priorityCombo)
             .addLabeledComponent("Tags:", tagsField)
             .addLabeledComponent("Story Points:", storyPointsField)
-            .panel.apply {
+            .panel
+            .apply {
                 border = JBUI.Borders.empty(8)
                 preferredSize = Dimension(500, 380)
             }
-    }
 
     override fun doValidate(): ValidationInfo? {
         if (titleField.text.isBlank()) {
@@ -94,7 +100,9 @@ class EditWorkItemDialog(
         }
         val sp = storyPointsField.text.trim()
         if (sp.isNotBlank()) {
-            try { sp.toDouble() } catch (e: NumberFormatException) {
+            try {
+                sp.toDouble()
+            } catch (e: NumberFormatException) {
                 return ValidationInfo("Story Points must be a number", storyPointsField)
             }
         }
@@ -141,7 +149,8 @@ class EditWorkItemDialog(
         if (newSp != originalStoryPoints && newSp.isNotBlank()) {
             try {
                 operations.add(JsonPatchOperation("replace", "/fields/Microsoft.VSTS.Scheduling.StoryPoints", newSp.toDouble()))
-            } catch (_: NumberFormatException) { }
+            } catch (_: NumberFormatException) {
+            }
         }
 
         if (operations.isEmpty()) {
@@ -156,8 +165,11 @@ class EditWorkItemDialog(
                 val updated = apiClient.updateWorkItem(workItem.id, operations)
                 updatedWorkItem = updated
                 ApplicationManager.getApplication().invokeLater {
-                    NotificationUtil.info(project, "Work Item Updated",
-                        "${updated.getWorkItemType()} #${updated.id} updated successfully")
+                    NotificationUtil.info(
+                        project,
+                        "Work Item Updated",
+                        "${updated.getWorkItemType()} #${updated.id} updated successfully",
+                    )
                     super.doOKAction()
                 }
             } catch (e: Exception) {

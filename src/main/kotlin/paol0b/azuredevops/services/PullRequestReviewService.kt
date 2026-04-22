@@ -14,14 +14,13 @@ import paol0b.azuredevops.ui.PullRequestReviewDialog
  * Opens Rider's integrated diff viewer to display changes
  */
 @Service(Service.Level.PROJECT)
-class PullRequestReviewService(private val project: Project) {
-
+class PullRequestReviewService(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(PullRequestReviewService::class.java)
 
     companion object {
-        fun getInstance(project: Project): PullRequestReviewService {
-            return project.getService(PullRequestReviewService::class.java)
-        }
+        fun getInstance(project: Project): PullRequestReviewService = project.getService(PullRequestReviewService::class.java)
     }
 
     /**
@@ -31,17 +30,17 @@ class PullRequestReviewService(private val project: Project) {
      */
     fun startReview(pullRequest: PullRequest) {
         logger.info("=== START REVIEW FOR PR #${pullRequest.pullRequestId} ===")
-        
+
         val apiClient = AzureDevOpsApiClient.getInstance(project)
-        
+
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 logger.info("Fetching changes from API...")
-                
+
                 val changes = apiClient.getPullRequestChanges(pullRequest.pullRequestId)
-                
+
                 logger.info("Found ${changes.size} changes in PR #${pullRequest.pullRequestId}")
-                
+
                 if (changes.isEmpty()) {
                     logger.warn("No changes found!")
                     ApplicationManager.getApplication().invokeLater {
@@ -49,29 +48,29 @@ class PullRequestReviewService(private val project: Project) {
                     }
                     return@executeOnPooledThread
                 }
-                
+
                 // Filter only actual file (blob) changes - skip directories and entries with no resolvable path
-                val fileChanges = changes.filter { change ->
-                    val path = change.effectivePath()
-                    val isBlob = change.item?.gitObjectType?.equals("tree", ignoreCase = true) != true
-                    val tokens = change.changeTypeTokens()
-                    val isFileChange = tokens.any { it in setOf("edit", "add", "rename", "delete") }
-                    path.isNotBlank() && isBlob && isFileChange
-                }
-                
+                val fileChanges =
+                    changes.filter { change ->
+                        val path = change.effectivePath()
+                        val isBlob = change.item?.gitObjectType?.equals("tree", ignoreCase = true) != true
+                        val tokens = change.changeTypeTokens()
+                        val isFileChange = tokens.any { it in setOf("edit", "add", "rename", "delete") }
+                        path.isNotBlank() && isBlob && isFileChange
+                    }
+
                 logger.info("Filtered to ${fileChanges.size} file changes")
-                
+
                 if (fileChanges.isEmpty()) {
                     logger.warn("No file changes after filtering!")
                     return@executeOnPooledThread
                 }
-                
+
                 // Open the review dialog
                 ApplicationManager.getApplication().invokeLater {
                     val dialog = PullRequestReviewDialog(project, pullRequest, fileChanges)
                     dialog.show()
                 }
-                
             } catch (e: Exception) {
                 logger.error("Failed to start review", e)
                 ApplicationManager.getApplication().invokeLater {
@@ -83,25 +82,25 @@ class PullRequestReviewService(private val project: Project) {
 
     private fun showNoChangesNotification() {
         logger.info("No changes notification")
-        com.intellij.notification.NotificationGroupManager.getInstance()
+        com.intellij.notification.NotificationGroupManager
+            .getInstance()
             .getNotificationGroup("AzureDevOps.Notifications")
             .createNotification(
                 "No Changes",
                 "This Pull Request has no file changes to review.",
-                com.intellij.notification.NotificationType.INFORMATION
-            )
-            .notify(project)
+                com.intellij.notification.NotificationType.INFORMATION,
+            ).notify(project)
     }
 
     private fun showErrorNotification(message: String) {
         logger.error("Review error notification: $message")
-        com.intellij.notification.NotificationGroupManager.getInstance()
+        com.intellij.notification.NotificationGroupManager
+            .getInstance()
             .getNotificationGroup("AzureDevOps.Notifications")
             .createNotification(
                 "Review Error",
                 "Failed to start review: $message",
-                com.intellij.notification.NotificationType.ERROR
-            )
-            .notify(project)
+                com.intellij.notification.NotificationType.ERROR,
+            ).notify(project)
     }
 }

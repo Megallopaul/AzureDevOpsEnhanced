@@ -25,9 +25,8 @@ import javax.swing.*
 class BoardViewPanel(
     private val project: Project,
     private val iterationPath: String?,
-    private val iterationName: String
+    private val iterationName: String,
 ) : JPanel(BorderLayout()) {
-
     private val logger = Logger.getInstance(BoardViewPanel::class.java)
     private val columnsPanel: JPanel
     private val statusLabel: JLabel
@@ -44,55 +43,62 @@ class BoardViewPanel(
         background = UIUtil.getPanelBackground()
 
         // Header toolbar
-        val headerPanel = JPanel(BorderLayout()).apply {
-            isOpaque = false
-            border = JBUI.Borders.empty(12, 16, 8, 16)
-
-            val titleLabel = JBLabel().apply {
-                text = if (iterationName.isNotBlank()) "Board — $iterationName" else "Work Item Board"
-                font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f)
-            }
-            add(titleLabel, BorderLayout.WEST)
-
-            val rightPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 8, 0)).apply {
+        val headerPanel =
+            JPanel(BorderLayout()).apply {
                 isOpaque = false
+                border = JBUI.Borders.empty(12, 16, 8, 16)
 
-                countLabel = JBLabel("0 items")
-                countLabel.foreground = JBColor.GRAY
-                add(countLabel)
+                val titleLabel =
+                    JBLabel().apply {
+                        text = if (iterationName.isNotBlank()) "Board — $iterationName" else "Work Item Board"
+                        font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f)
+                    }
+                add(titleLabel, BorderLayout.WEST)
 
-                val refreshButton = JButton("Refresh", AllIcons.Actions.Refresh).apply {
-                    addActionListener { refresh() }
-                    isFocusPainted = false
-                }
-                add(refreshButton)
+                val rightPanel =
+                    JPanel(FlowLayout(FlowLayout.RIGHT, 8, 0)).apply {
+                        isOpaque = false
+
+                        countLabel = JBLabel("0 items")
+                        countLabel.foreground = JBColor.GRAY
+                        add(countLabel)
+
+                        val refreshButton =
+                            JButton("Refresh", AllIcons.Actions.Refresh).apply {
+                                addActionListener { refresh() }
+                                isFocusPainted = false
+                            }
+                        add(refreshButton)
+                    }
+                add(rightPanel, BorderLayout.EAST)
             }
-            add(rightPanel, BorderLayout.EAST)
-        }
         add(headerPanel, BorderLayout.NORTH)
 
         // Columns area
-        columnsPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.X_AXIS)
-            isOpaque = false
-            border = JBUI.Borders.empty(0, 12, 12, 12)
-        }
+        columnsPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                isOpaque = false
+                border = JBUI.Borders.empty(0, 12, 12, 12)
+            }
 
-        val columnsScroll = JBScrollPane(columnsPanel).apply {
-            border = JBUI.Borders.empty()
-            horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
-            verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
-            verticalScrollBar.unitIncrement = 16
-            horizontalScrollBar.unitIncrement = 16
-        }
+        val columnsScroll =
+            JBScrollPane(columnsPanel).apply {
+                border = JBUI.Borders.empty()
+                horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
+                verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+                verticalScrollBar.unitIncrement = 16
+                horizontalScrollBar.unitIncrement = 16
+            }
         add(columnsScroll, BorderLayout.CENTER)
 
         // Status bar
-        statusLabel = JLabel("Click Refresh to load").apply {
-            border = JBUI.Borders.empty(4, 16)
-            font = font.deriveFont(Font.PLAIN, 11f)
-            foreground = JBColor.GRAY
-        }
+        statusLabel =
+            JLabel("Click Refresh to load").apply {
+                border = JBUI.Borders.empty(4, 16)
+                font = font.deriveFont(Font.PLAIN, 11f)
+                foreground = JBColor.GRAY
+            }
         add(statusLabel, BorderLayout.SOUTH)
     }
 
@@ -128,11 +134,12 @@ class BoardViewPanel(
                 }
 
                 // Fetch ALL work items (not just assigned to me) so unassigned items are visible
-                val items = if (iterationPath != null) {
-                    apiClient.getAllWorkItems(iterationPath = iterationPath)
-                } else {
-                    apiClient.getAllWorkItems()
-                }
+                val items =
+                    if (iterationPath != null) {
+                        apiClient.getAllWorkItems(iterationPath = iterationPath)
+                    } else {
+                        apiClient.getAllWorkItems()
+                    }
                 cachedWorkItems = items
 
                 ApplicationManager.getApplication().invokeLater {
@@ -189,9 +196,10 @@ class BoardViewPanel(
         for (state in orderedStates) {
             val items = grouped[state] ?: emptyList()
             val color = stateColorMap[state] ?: WorkItem.stateColor(state)
-            val column = BoardColumnPanel(project, state, items, color) { workItem, targetState ->
-                onItemDropped(workItem, targetState)
-            }
+            val column =
+                BoardColumnPanel(project, state, items, color) { workItem, targetState ->
+                    onItemDropped(workItem, targetState)
+                }
             columnPanels[state] = column
             columnsPanel.add(column)
             columnsPanel.add(Box.createHorizontalStrut(JBUI.scale(10)))
@@ -201,7 +209,10 @@ class BoardViewPanel(
         columnsPanel.repaint()
     }
 
-    private fun onItemDropped(workItem: WorkItem, targetState: String) {
+    private fun onItemDropped(
+        workItem: WorkItem,
+        targetState: String,
+    ) {
         if (workItem.getState() == targetState) return
 
         statusLabel.text = "Moving #${workItem.id} to $targetState..."
@@ -210,21 +221,28 @@ class BoardViewPanel(
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val apiClient = AzureDevOpsApiClient.getInstance(project)
-                val operations = listOf(
-                    JsonPatchOperation("replace", "/fields/System.State", targetState)
-                )
+                val operations =
+                    listOf(
+                        JsonPatchOperation("replace", "/fields/System.State", targetState),
+                    )
                 apiClient.updateWorkItem(workItem.id, operations)
 
                 ApplicationManager.getApplication().invokeLater {
-                    NotificationUtil.info(project, "State Changed",
-                        "#${workItem.id} → $targetState")
+                    NotificationUtil.info(
+                        project,
+                        "State Changed",
+                        "#${workItem.id} → $targetState",
+                    )
                     refresh()
                 }
             } catch (e: Exception) {
                 logger.error("Failed to move work item #${workItem.id} to $targetState", e)
                 ApplicationManager.getApplication().invokeLater {
-                    NotificationUtil.error(project, "Move Failed",
-                        "Could not change state: ${e.message?.take(80)}")
+                    NotificationUtil.error(
+                        project,
+                        "Move Failed",
+                        "Could not change state: ${e.message?.take(80)}",
+                    )
                     refresh()
                 }
             }
@@ -233,10 +251,11 @@ class BoardViewPanel(
 
     fun startAutoRefresh() {
         if (refreshTimer != null) return
-        refreshTimer = Timer(30_000) { refresh() }.apply {
-            isRepeats = true
-            start()
-        }
+        refreshTimer =
+            Timer(30_000) { refresh() }.apply {
+                isRepeats = true
+                start()
+            }
     }
 
     fun stopAutoRefresh() {

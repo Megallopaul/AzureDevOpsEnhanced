@@ -12,21 +12,23 @@ import java.util.concurrent.ConcurrentHashMap
  * mirroring the pattern of [PipelineTabService].
  */
 @Service(Service.Level.PROJECT)
-class WorkItemTabService(private val project: Project) {
-
+class WorkItemTabService(
+    private val project: Project,
+) {
     /** Board virtual files, keyed by iteration path (or "all"). */
     private val boardFiles = ConcurrentHashMap<String, WorkItemBoardVirtualFile>()
 
     companion object {
-        fun getInstance(project: Project): WorkItemTabService {
-            return project.getService(WorkItemTabService::class.java)
-        }
+        fun getInstance(project: Project): WorkItemTabService = project.getService(WorkItemTabService::class.java)
     }
 
     /**
      * Open (or focus) the Kanban board as an editor tab.
      */
-    fun openBoardTab(iterationPath: String?, iterationName: String) {
+    fun openBoardTab(
+        iterationPath: String?,
+        iterationName: String,
+    ) {
         val editorManager = FileEditorManager.getInstance(project)
         val key = iterationPath ?: "all"
 

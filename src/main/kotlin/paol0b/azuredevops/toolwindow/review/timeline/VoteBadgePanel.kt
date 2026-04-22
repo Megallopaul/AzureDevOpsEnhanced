@@ -13,9 +13,8 @@ import javax.swing.*
  * Horizontal panel showing reviewer vote badges as rounded pills.
  */
 class VoteBadgePanel(
-    private val project: Project
+    private val project: Project,
 ) : JPanel() {
-
     private val avatarService = AvatarService.getInstance(project)
 
     init {
@@ -28,17 +27,21 @@ class VoteBadgePanel(
     fun update(summaries: List<ReviewerVoteSummary>) {
         removeAll()
 
-        add(JBLabel("Reviewers").apply {
-            font = font.deriveFont(Font.BOLD, 11f)
-            foreground = TimelineTheme.SECONDARY_FG
-            border = JBUI.Borders.emptyRight(2)
-        })
+        add(
+            JBLabel("Reviewers").apply {
+                font = font.deriveFont(Font.BOLD, 11f)
+                foreground = TimelineTheme.SECONDARY_FG
+                border = JBUI.Borders.emptyRight(2)
+            },
+        )
 
         if (summaries.isEmpty()) {
-            add(JBLabel("No reviewers assigned").apply {
-                foreground = TimelineTheme.MUTED_FG
-                font = font.deriveFont(Font.ITALIC, 11f)
-            })
+            add(
+                JBLabel("No reviewers assigned").apply {
+                    foreground = TimelineTheme.MUTED_FG
+                    font = font.deriveFont(Font.ITALIC, 11f)
+                },
+            )
         } else {
             for (summary in summaries) {
                 add(createBadge(summary))
@@ -54,13 +57,14 @@ class VoteBadgePanel(
         val vote = summary.vote
         val name = reviewer.displayName ?: "Unknown"
 
-        val (bg, fg, symbol) = when (vote) {
-            ReviewerVote.Approved -> Triple(TimelineTheme.APPROVED_BG, TimelineTheme.APPROVED_FG, "\u2713")
-            ReviewerVote.ApprovedWithSuggestions -> Triple(TimelineTheme.SUGGEST_BG, TimelineTheme.SUGGEST_FG, "\u2713")
-            ReviewerVote.WaitingForAuthor -> Triple(TimelineTheme.WAIT_BG, TimelineTheme.WAIT_FG, "\u26A0")
-            ReviewerVote.Rejected -> Triple(TimelineTheme.REJECT_BG, TimelineTheme.REJECT_FG, "\u2717")
-            ReviewerVote.NoVote -> Triple(TimelineTheme.NOVOTE_BG, TimelineTheme.NOVOTE_FG, "\u25CB")
-        }
+        val (bg, fg, symbol) =
+            when (vote) {
+                ReviewerVote.Approved -> Triple(TimelineTheme.APPROVED_BG, TimelineTheme.APPROVED_FG, "\u2713")
+                ReviewerVote.ApprovedWithSuggestions -> Triple(TimelineTheme.SUGGEST_BG, TimelineTheme.SUGGEST_FG, "\u2713")
+                ReviewerVote.WaitingForAuthor -> Triple(TimelineTheme.WAIT_BG, TimelineTheme.WAIT_FG, "\u26A0")
+                ReviewerVote.Rejected -> Triple(TimelineTheme.REJECT_BG, TimelineTheme.REJECT_FG, "\u2717")
+                ReviewerVote.NoVote -> Triple(TimelineTheme.NOVOTE_BG, TimelineTheme.NOVOTE_FG, "\u25CB")
+            }
 
         val avatarIcon = avatarService.getAvatar(reviewer.imageUrl, 18) { repaint() }
         val label = "$symbol $name"
@@ -72,10 +76,12 @@ class VoteBadgePanel(
                 border = JBUI.Borders.empty(3, 10, 3, 10)
                 toolTipText = tooltip
                 add(JBLabel(avatarIcon))
-                add(JBLabel(label).apply {
-                    foreground = fg
-                    font = getFont().deriveFont(Font.BOLD, 11f)
-                })
+                add(
+                    JBLabel(label).apply {
+                        foreground = fg
+                        font = getFont().deriveFont(Font.BOLD, 11f)
+                    },
+                )
             }
 
             override fun paintComponent(g: Graphics) {

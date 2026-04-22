@@ -12,7 +12,6 @@ object AzureDevOpsIcons {
     @JvmField
     val ToolWindow: Icon = IconLoader.getIcon("/icons/azure-devops-pr.svg", AzureDevOpsIcons::class.java)
 
-
     @JvmField
     val ToolWindowComments: Icon = IconLoader.getIcon("/icons/azure-devops-comments.svg", AzureDevOpsIcons::class.java)
 
@@ -21,15 +20,14 @@ object AzureDevOpsIcons {
 
     @JvmField
     val ToolWindowWorkItem: Icon = IconLoader.getIcon("/icons/azure-devops-workitem.svg", AzureDevOpsIcons::class.java)
-    
+
     @JvmField
     val Logo: Icon = IconLoader.getIcon("/icons/azuredevops.svg", AzureDevOpsIcons::class.java)
 
-    
     // Project icon - folder with special mark (like Azure DevOps projects)
     @JvmField
     val Project: Icon = AllIcons.Nodes.Folder
-    
+
     // Repository icon - standard git repo icon
     @JvmField
     val Repository: Icon = AllIcons.Vcs.Branch

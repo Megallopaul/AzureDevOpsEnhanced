@@ -33,9 +33,8 @@ import javax.swing.*
  */
 class PullRequestListPanel(
     private val project: Project,
-    private val onSelectionChanged: (PullRequest?) -> Unit
+    private val onSelectionChanged: (PullRequest?) -> Unit,
 ) {
-
     private val panel: JPanel
     private val listModel: DefaultListModel<PullRequest>
     private val prList: JBList<PullRequest>
@@ -57,11 +56,12 @@ class PullRequestListPanel(
         val avatarService = AvatarService.getInstance(project)
         val cellRenderer = PullRequestListCellRenderer(avatarService) { currentSearchValue.showAllOrg }
 
-        prList = JBList(listModel).apply {
-            this.cellRenderer = cellRenderer
-            selectionMode = ListSelectionModel.SINGLE_SELECTION
-            border = JBUI.Borders.empty()
-        }
+        prList =
+            JBList(listModel).apply {
+                this.cellRenderer = cellRenderer
+                selectionMode = ListSelectionModel.SINGLE_SELECTION
+                border = JBUI.Borders.empty()
+            }
 
         prList.addListSelectionListener { e ->
             if (!e.valueIsAdjusting) {
@@ -71,43 +71,51 @@ class PullRequestListPanel(
             }
         }
 
-        prList.addMouseListener(object : MouseAdapter() {
-            override fun mousePressed(e: MouseEvent) {
-                if (e.isPopupTrigger) showContextMenu(e)
-            }
-            override fun mouseReleased(e: MouseEvent) {
-                if (e.isPopupTrigger) showContextMenu(e)
-            }
-            override fun mouseClicked(e: MouseEvent) {
-                if (e.clickCount == 2) {
-                    val pr = prList.selectedValue ?: return
-                    PullRequestToolWindowFactory.openPrReviewTab(project, pr)
+        prList.addMouseListener(
+            object : MouseAdapter() {
+                override fun mousePressed(e: MouseEvent) {
+                    if (e.isPopupTrigger) showContextMenu(e)
                 }
-            }
-        })
 
-        statusLabel = JLabel("Ready").apply {
-            border = JBUI.Borders.empty(8, 12)
-            font = font.deriveFont(Font.PLAIN, 11f)
-            foreground = JBColor.GRAY
-        }
+                override fun mouseReleased(e: MouseEvent) {
+                    if (e.isPopupTrigger) showContextMenu(e)
+                }
+
+                override fun mouseClicked(e: MouseEvent) {
+                    if (e.clickCount == 2) {
+                        val pr = prList.selectedValue ?: return
+                        PullRequestToolWindowFactory.openPrReviewTab(project, pr)
+                    }
+                }
+            },
+        )
+
+        statusLabel =
+            JLabel("Ready").apply {
+                border = JBUI.Borders.empty(8, 12)
+                font = font.deriveFont(Font.PLAIN, 11f)
+                foreground = JBColor.GRAY
+            }
 
         // GitHub-style filter panel
-        filterPanel = PullRequestFilterPanel(project) { newFilter ->
-            onFilterChanged(newFilter)
-        }
+        filterPanel =
+            PullRequestFilterPanel(project) { newFilter ->
+                onFilterChanged(newFilter)
+            }
 
-        val scrollPane = JBScrollPane(prList).apply {
-            border = JBUI.Borders.empty()
-            verticalScrollBar.unitIncrement = 16
-        }
+        val scrollPane =
+            JBScrollPane(prList).apply {
+                border = JBUI.Borders.empty()
+                verticalScrollBar.unitIncrement = 16
+            }
 
-        panel = JPanel(BorderLayout()).apply {
-            add(filterPanel.getComponent(), BorderLayout.NORTH)
-            add(scrollPane, BorderLayout.CENTER)
-            add(statusLabel, BorderLayout.SOUTH)
-            minimumSize = Dimension(250, 0)
-        }
+        panel =
+            JPanel(BorderLayout()).apply {
+                add(filterPanel.getComponent(), BorderLayout.NORTH)
+                add(scrollPane, BorderLayout.CENTER)
+                add(statusLabel, BorderLayout.SOUTH)
+                minimumSize = Dimension(250, 0)
+            }
     }
 
     fun getComponent(): JPanel = panel
@@ -135,46 +143,51 @@ class PullRequestListPanel(
         val apiStatus = currentSearchValue.state?.apiValue ?: "active"
         val showAllOrg = currentSearchValue.showAllOrg
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project, "Loading Pull Requests...", false
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                try {
-                    val apiClient = AzureDevOpsApiClient.getInstance(project)
-                    val pullRequests = if (showAllOrg) {
-                        apiClient.getAllOrganizationPullRequests(status = apiStatus, top = 100)
-                    } else {
-                        apiClient.getPullRequests(status = apiStatus)
-                    }
-                    val resolvedCurrentUserId = apiClient.getCurrentUserIdCached()
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(
+                project,
+                "Loading Pull Requests...",
+                false,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
+                    try {
+                        val apiClient = AzureDevOpsApiClient.getInstance(project)
+                        val pullRequests =
+                            if (showAllOrg) {
+                                apiClient.getAllOrganizationPullRequests(status = apiStatus, top = 100)
+                            } else {
+                                apiClient.getPullRequests(status = apiStatus)
+                            }
+                        val resolvedCurrentUserId = apiClient.getCurrentUserIdCached()
 
-                    ApplicationManager.getApplication().invokeLater {
-                        currentUserId = resolvedCurrentUserId
-                        cachedPullRequests = pullRequests
-                        lastLoadedPullRequests = pullRequests
-                        filterPanel.updateAuthorsFromPullRequests(pullRequests)
-                        val filtered = applyAllFilters(pullRequests)
-                        updateList(filtered, selectedPrId)
-                        updateStatusLabel(filtered.size, pullRequests.size)
-                        isErrorState = false
-                    }
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        isErrorState = true
-                        listModel.clear()
-                        val isConfigError = e.message?.contains("not configured", ignoreCase = true) == true
-                        if (isConfigError) {
-                            statusLabel.text = "Azure DevOps not configured"
-                            statusLabel.icon = AllIcons.General.Warning
-                        } else {
-                            statusLabel.text = "Error: ${e.message}"
-                            statusLabel.icon = AllIcons.General.Error
+                        ApplicationManager.getApplication().invokeLater {
+                            currentUserId = resolvedCurrentUserId
+                            cachedPullRequests = pullRequests
+                            lastLoadedPullRequests = pullRequests
+                            filterPanel.updateAuthorsFromPullRequests(pullRequests)
+                            val filtered = applyAllFilters(pullRequests)
+                            updateList(filtered, selectedPrId)
+                            updateStatusLabel(filtered.size, pullRequests.size)
+                            isErrorState = false
+                        }
+                    } catch (e: Exception) {
+                        ApplicationManager.getApplication().invokeLater {
+                            isErrorState = true
+                            listModel.clear()
+                            val isConfigError = e.message?.contains("not configured", ignoreCase = true) == true
+                            if (isConfigError) {
+                                statusLabel.text = "Azure DevOps not configured"
+                                statusLabel.icon = AllIcons.General.Warning
+                            } else {
+                                statusLabel.text = "Error: ${e.message}"
+                                statusLabel.icon = AllIcons.General.Error
+                            }
                         }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     fun getSelectedPullRequest(): PullRequest? = prList.selectedValue
@@ -197,37 +210,51 @@ class PullRequestListPanel(
         val query = sv.searchQuery
         if (!query.isNullOrBlank()) {
             val normalizedQuery = query.lowercase()
-            result = result.filter { pr ->
-                pr.title.lowercase().contains(normalizedQuery) ||
-                (pr.createdBy?.displayName?.lowercase()?.contains(normalizedQuery) == true) ||
-                (pr.createdBy?.uniqueName?.lowercase()?.contains(normalizedQuery) == true)
-            }
+            result =
+                result.filter { pr ->
+                    pr.title.lowercase().contains(normalizedQuery) ||
+                        (
+                            pr.createdBy
+                                ?.displayName
+                                ?.lowercase()
+                                ?.contains(normalizedQuery) == true
+                        ) ||
+                        (
+                            pr.createdBy
+                                ?.uniqueName
+                                ?.lowercase()
+                                ?.contains(normalizedQuery) == true
+                        )
+                }
         }
 
         // Author filter
         val author = sv.author
         if (author != null) {
-            result = if (author.id == "@me") {
-                result.filter { pr -> pr.isCreatedByUser(currentUserId) }
-            } else {
-                result.filter { pr -> pr.createdBy?.id == author.id || pr.createdBy?.displayName == author.displayName }
-            }
+            result =
+                if (author.id == "@me") {
+                    result.filter { pr -> pr.isCreatedByUser(currentUserId) }
+                } else {
+                    result.filter { pr -> pr.createdBy?.id == author.id || pr.createdBy?.displayName == author.displayName }
+                }
         }
 
         // Project filter
         val projFilter = sv.projectFilter
         if (projFilter != null) {
-            result = result.filter { pr ->
-                pr.repository?.project?.id == projFilter.id || pr.repository?.project?.name == projFilter.name
-            }
+            result =
+                result.filter { pr ->
+                    pr.repository?.project?.id == projFilter.id || pr.repository?.project?.name == projFilter.name
+                }
         }
 
         // Repository filter
         val repoFilter = sv.repositoryFilter
         if (repoFilter != null) {
-            result = result.filter { pr ->
-                pr.repository?.id == repoFilter.id || pr.repository?.name == repoFilter.name
-            }
+            result =
+                result.filter { pr ->
+                    pr.repository?.id == repoFilter.id || pr.repository?.name == repoFilter.name
+                }
         }
 
         // Review filter
@@ -237,16 +264,20 @@ class PullRequestListPanel(
         }
 
         // Sort
-        result = when (sv.sort) {
-            PullRequestSearchValue.Sort.OLDEST -> result.sortedBy { it.pullRequestId }
-            PullRequestSearchValue.Sort.RECENTLY_UPDATED -> result
-            else -> result.sortedByDescending { it.pullRequestId }
-        }
+        result =
+            when (sv.sort) {
+                PullRequestSearchValue.Sort.OLDEST -> result.sortedBy { it.pullRequestId }
+                PullRequestSearchValue.Sort.RECENTLY_UPDATED -> result
+                else -> result.sortedByDescending { it.pullRequestId }
+            }
 
         return result
     }
 
-    private fun matchesReviewFilter(pr: PullRequest, review: PullRequestSearchValue.ReviewState): Boolean {
+    private fun matchesReviewFilter(
+        pr: PullRequest,
+        review: PullRequestSearchValue.ReviewState,
+    ): Boolean {
         val reviewers = pr.reviewers ?: emptyList()
         return when (review) {
             PullRequestSearchValue.ReviewState.NO_REVIEW -> {
@@ -266,7 +297,10 @@ class PullRequestListPanel(
 
     // ---- List management ----
 
-    private fun updateList(pullRequests: List<PullRequest>, previouslySelectedPrId: Int? = null) {
+    private fun updateList(
+        pullRequests: List<PullRequest>,
+        previouslySelectedPrId: Int? = null,
+    ) {
         listModel.clear()
         pullRequests.forEach { listModel.addElement(it) }
 
@@ -291,15 +325,21 @@ class PullRequestListPanel(
 
         val popup = JBPopupMenu()
 
-        popup.add(JMenuItem("Open Review in Tab").apply {
-            addActionListener { PullRequestToolWindowFactory.openPrReviewTab(project, pr) }
-        })
+        popup.add(
+            JMenuItem("Open Review in Tab").apply {
+                addActionListener { PullRequestToolWindowFactory.openPrReviewTab(project, pr) }
+            },
+        )
         popup.addSeparator()
-        popup.add(JMenuItem("Enter This Branch").apply {
-            addActionListener {
-                paol0b.azuredevops.services.PullRequestBranchService.getInstance(project).enterPullRequestBranch(pr)
-            }
-        })
+        popup.add(
+            JMenuItem("Enter This Branch").apply {
+                addActionListener {
+                    paol0b.azuredevops.services.PullRequestBranchService
+                        .getInstance(project)
+                        .enterPullRequestBranch(pr)
+                }
+            },
+        )
 
         if (pr.isActive()) {
             val isMyPr = pr.isCreatedByUser(currentUserId)
@@ -311,51 +351,73 @@ class PullRequestListPanel(
             if (showAbandonPr || showCompletePR || showAutoComplete || showConvertToDraft || showPublishPr) popup.addSeparator()
 
             if (showConvertToDraft) {
-                popup.add(JMenuItem("Convert to Draft").apply {
-                    addActionListener {
-                        ConvertToDraftPullRequestAction(pr, currentUserId, convertToDraft = true) { refreshPullRequests() }.perform(project)
-                    }
-                })
+                popup.add(
+                    JMenuItem("Convert to Draft").apply {
+                        addActionListener {
+                            ConvertToDraftPullRequestAction(
+                                pr,
+                                currentUserId,
+                                convertToDraft = true,
+                            ) { refreshPullRequests() }.perform(project)
+                        }
+                    },
+                )
             }
             if (showPublishPr) {
-                popup.add(JMenuItem("Publish PR").apply {
-                    addActionListener {
-                        ConvertToDraftPullRequestAction(pr, currentUserId, convertToDraft = false) { refreshPullRequests() }.perform(project)
-                    }
-                })
+                popup.add(
+                    JMenuItem("Publish PR").apply {
+                        addActionListener {
+                            ConvertToDraftPullRequestAction(
+                                pr,
+                                currentUserId,
+                                convertToDraft = false,
+                            ) { refreshPullRequests() }.perform(project)
+                        }
+                    },
+                )
             }
             if (showAbandonPr) {
-                popup.add(JMenuItem("Abandon PR...").apply {
-                    addActionListener {
-                        AbandonPullRequestAction(pr, currentUserId) { refreshPullRequests() }.performAbandonPR(project)
-                    }
-                })
+                popup.add(
+                    JMenuItem("Abandon PR...").apply {
+                        addActionListener {
+                            AbandonPullRequestAction(pr, currentUserId) { refreshPullRequests() }.performAbandonPR(project)
+                        }
+                    },
+                )
             }
             if (showCompletePR) {
-                popup.add(JMenuItem("Complete PR...").apply {
-                    addActionListener {
-                        CompletePullRequestAction(pr) { refreshPullRequests() }.performCompletePR(project)
-                    }
-                })
+                popup.add(
+                    JMenuItem("Complete PR...").apply {
+                        addActionListener {
+                            CompletePullRequestAction(pr) { refreshPullRequests() }.performCompletePR(project)
+                        }
+                    },
+                )
             }
             if (showAutoComplete) {
-                popup.add(JMenuItem("Set Auto-Complete...").apply {
-                    addActionListener {
-                        SetAutoCompletePullRequestAction(pr) { refreshPullRequests() }.performSetAutoComplete(project)
-                    }
-                })
+                popup.add(
+                    JMenuItem("Set Auto-Complete...").apply {
+                        addActionListener {
+                            SetAutoCompletePullRequestAction(pr) { refreshPullRequests() }.performSetAutoComplete(project)
+                        }
+                    },
+                )
             }
         }
 
         popup.show(prList, e.x, e.y)
     }
 
-    private fun updateStatusLabel(filteredCount: Int, totalCount: Int) {
+    private fun updateStatusLabel(
+        filteredCount: Int,
+        totalCount: Int,
+    ) {
         statusLabel.icon = AllIcons.General.InspectionsOK
-        statusLabel.text = if (filteredCount < totalCount) {
-            "Showing $filteredCount of $totalCount Pull Request(s)"
-        } else {
-            "Loaded $totalCount Pull Request(s)"
-        }
+        statusLabel.text =
+            if (filteredCount < totalCount) {
+                "Showing $filteredCount of $totalCount Pull Request(s)"
+            } else {
+                "Loaded $totalCount Pull Request(s)"
+            }
     }
 }

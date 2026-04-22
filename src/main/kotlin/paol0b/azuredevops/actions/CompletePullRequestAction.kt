@@ -19,9 +19,8 @@ import paol0b.azuredevops.util.PluginUtil
  */
 class CompletePullRequestAction(
     private val pullRequest: PullRequest,
-    private val onCompleted: (() -> Unit)? = null
+    private val onCompleted: (() -> Unit)? = null,
 ) : AnAction("Complete PR...", "Complete and merge this Pull Request", null) {
-
     private var cachedProject: Project? = null
 
     /**
@@ -41,7 +40,7 @@ class CompletePullRequestAction(
 
         // Show dialog to get completion options
         val dialog = CompletePullRequestDialog(project, pullRequest, isAutoComplete = false, currentUserId = currentUserId)
-        
+
         if (!dialog.showAndGet()) {
             return
         }
@@ -50,57 +49,64 @@ class CompletePullRequestAction(
         val comment = dialog.getComment()
 
         // Execute completion
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project,
-            "Completing PR #${pullRequest.pullRequestId}...",
-            true
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                
-                try {
-                    val apiClient = AzureDevOpsApiClient.getInstance(project)
-                    val completedPr = apiClient.completePullRequest(
-                        pullRequest.pullRequestId,
-                        completionOptions,
-                        comment
-                    )
+        ProgressManager.getInstance().run(
+            object : Task.Backgroundable(
+                project,
+                "Completing PR #${pullRequest.pullRequestId}...",
+                true,
+            ) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = true
 
-                    ApplicationManager.getApplication().invokeLater {
-                        NotificationUtil.info(project, "Pull Request Completed", "PR #${pullRequest.pullRequestId} has been successfully merged")
-                        onCompleted?.invoke()
-                    }
-
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        val errorMessage = PluginUtil.parseApiErrorMessage(e.message)
-
-                        if (errorMessage.contains("permission", ignoreCase = true) ||
-                            errorMessage.contains("policies", ignoreCase = true)) {
-
-                            val result = Messages.showYesNoDialog(
-                                project,
-                                "You don't have permission to complete this PR or policies are not met.\n\n" +
-                                        "Error: $errorMessage\n\n" +
-                                        "Would you like to set auto-complete instead?",
-                                "Cannot Complete PR",
-                                "Set Auto-Complete",
-                                "Cancel",
-                                Messages.getWarningIcon()
+                    try {
+                        val apiClient = AzureDevOpsApiClient.getInstance(project)
+                        val completedPr =
+                            apiClient.completePullRequest(
+                                pullRequest.pullRequestId,
+                                completionOptions,
+                                comment,
                             )
 
-                            if (result == Messages.YES) {
-                                // Trigger auto-complete action
-                                val autoCompleteAction = SetAutoCompletePullRequestAction(pullRequest, onCompleted)
-                                autoCompleteAction.performSetAutoComplete(project)
+                        ApplicationManager.getApplication().invokeLater {
+                            NotificationUtil.info(
+                                project,
+                                "Pull Request Completed",
+                                "PR #${pullRequest.pullRequestId} has been successfully merged",
+                            )
+                            onCompleted?.invoke()
+                        }
+                    } catch (e: Exception) {
+                        ApplicationManager.getApplication().invokeLater {
+                            val errorMessage = PluginUtil.parseApiErrorMessage(e.message)
+
+                            if (errorMessage.contains("permission", ignoreCase = true) ||
+                                errorMessage.contains("policies", ignoreCase = true)
+                            ) {
+                                val result =
+                                    Messages.showYesNoDialog(
+                                        project,
+                                        "You don't have permission to complete this PR or policies are not met.\n\n" +
+                                            "Error: $errorMessage\n\n" +
+                                            "Would you like to set auto-complete instead?",
+                                        "Cannot Complete PR",
+                                        "Set Auto-Complete",
+                                        "Cancel",
+                                        Messages.getWarningIcon(),
+                                    )
+
+                                if (result == Messages.YES) {
+                                    // Trigger auto-complete action
+                                    val autoCompleteAction = SetAutoCompletePullRequestAction(pullRequest, onCompleted)
+                                    autoCompleteAction.performSetAutoComplete(project)
+                                }
+                            } else {
+                                NotificationUtil.error(project, "Failed to Complete PR", errorMessage)
                             }
-                        } else {
-                            NotificationUtil.error(project, "Failed to Complete PR", errorMessage)
                         }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -111,9 +117,8 @@ class CompletePullRequestAction(
     override fun update(e: AnActionEvent) {
         // Show "Complete PR" only if PR is ready to complete (all checks passed, reviews approved)
         // This matches when Azure DevOps shows the "Complete" button
-        e.presentation.isEnabledAndVisible = e.project != null && 
-            pullRequest.isActive() && 
+        e.presentation.isEnabledAndVisible = e.project != null &&
+            pullRequest.isActive() &&
             pullRequest.isReadyToComplete()
     }
-
 }

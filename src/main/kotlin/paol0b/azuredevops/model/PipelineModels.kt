@@ -29,14 +29,18 @@ data class PipelineBuild(
     @SerializedName("repository") val repository: BuildRepository?,
     @SerializedName("project") val project: Project?,
     @SerializedName("url") val url: String?,
-    @SerializedName("_links") val links: BuildLinks?
+    @SerializedName("_links") val links: BuildLinks?,
 ) {
     fun getBranchName(): String = sourceBranch?.removePrefix("refs/heads/") ?: ""
 
     fun isSucceeded(): Boolean = result == BuildResult.Succeeded
+
     fun isFailed(): Boolean = result == BuildResult.Failed
+
     fun isPartiallySucceeded(): Boolean = result == BuildResult.PartiallySucceeded
+
     fun isCanceled(): Boolean = result == BuildResult.Canceled
+
     fun isRunning(): Boolean = status == BuildStatus.InProgress
 
     /**
@@ -48,7 +52,9 @@ data class PipelineBuild(
             val dateTime = OffsetDateTime.parse(dateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
             val buildDate = dateTime.toLocalDate()
             val today = LocalDate.now()
-            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(buildDate, today)
+            val daysBetween =
+                java.time.temporal.ChronoUnit.DAYS
+                    .between(buildDate, today)
             when {
                 daysBetween == 0L -> "Today"
                 daysBetween == 1L -> "Yesterday"
@@ -84,9 +90,7 @@ data class PipelineBuild(
 
     fun getDefinitionName(): String = definition?.name ?: "Unknown Pipeline"
 
-    fun getWebUrl(): String {
-        return links?.web?.href ?: ""
-    }
+    fun getWebUrl(): String = links?.web?.href ?: ""
 
     private fun formatDateTime(dateStr: String?): String {
         if (dateStr.isNullOrBlank()) return "—"
@@ -100,17 +104,17 @@ data class PipelineBuild(
 }
 
 data class BuildLinks(
-    @SerializedName("web") val web: BuildLink?
+    @SerializedName("web") val web: BuildLink?,
 )
 
 data class BuildLink(
-    @SerializedName("href") val href: String?
+    @SerializedName("href") val href: String?,
 )
 
 data class BuildRepository(
     @SerializedName("id") val id: String?,
     @SerializedName("name") val name: String?,
-    @SerializedName("type") val type: String?
+    @SerializedName("type") val type: String?,
 )
 
 // endregion
@@ -118,47 +122,76 @@ data class BuildRepository(
 // region Build Status & Result
 
 enum class BuildStatus {
-    @SerializedName("all") All,
-    @SerializedName("inProgress") InProgress,
-    @SerializedName("completed") Completed,
-    @SerializedName("cancelling") Cancelling,
-    @SerializedName("postponed") Postponed,
-    @SerializedName("notStarted") NotStarted,
-    @SerializedName("none") None;
+    @SerializedName("all")
+    All,
 
-    fun toApiValue(): String = when (this) {
-        All -> "all"
-        InProgress -> "inProgress"
-        Completed -> "completed"
-        Cancelling -> "cancelling"
-        Postponed -> "postponed"
-        NotStarted -> "notStarted"
-        None -> "none"
-    }
+    @SerializedName("inProgress")
+    InProgress,
+
+    @SerializedName("completed")
+    Completed,
+
+    @SerializedName("cancelling")
+    Cancelling,
+
+    @SerializedName("postponed")
+    Postponed,
+
+    @SerializedName("notStarted")
+    NotStarted,
+
+    @SerializedName("none")
+    None,
+
+    ;
+
+    fun toApiValue(): String =
+        when (this) {
+            All -> "all"
+            InProgress -> "inProgress"
+            Completed -> "completed"
+            Cancelling -> "cancelling"
+            Postponed -> "postponed"
+            NotStarted -> "notStarted"
+            None -> "none"
+        }
 }
 
 enum class BuildResult {
-    @SerializedName("succeeded") Succeeded,
-    @SerializedName("partiallySucceeded") PartiallySucceeded,
-    @SerializedName("failed") Failed,
-    @SerializedName("canceled") Canceled,
-    @SerializedName("none") None;
+    @SerializedName("succeeded")
+    Succeeded,
 
-    fun toApiValue(): String = when (this) {
-        Succeeded -> "succeeded"
-        PartiallySucceeded -> "partiallySucceeded"
-        Failed -> "failed"
-        Canceled -> "canceled"
-        None -> "none"
-    }
+    @SerializedName("partiallySucceeded")
+    PartiallySucceeded,
 
-    fun getDisplayName(): String = when (this) {
-        Succeeded -> "Succeeded"
-        PartiallySucceeded -> "Partially Succeeded"
-        Failed -> "Failed"
-        Canceled -> "Canceled"
-        None -> "None"
-    }
+    @SerializedName("failed")
+    Failed,
+
+    @SerializedName("canceled")
+    Canceled,
+
+    @SerializedName("none")
+    None,
+
+    ;
+
+    fun toApiValue(): String =
+        when (this) {
+            Succeeded -> "succeeded"
+            PartiallySucceeded -> "partiallySucceeded"
+            Failed -> "failed"
+            Canceled -> "canceled"
+            None -> "none"
+        }
+
+    fun getDisplayName(): String =
+        when (this) {
+            Succeeded -> "Succeeded"
+            PartiallySucceeded -> "Partially Succeeded"
+            Failed -> "Failed"
+            Canceled -> "Canceled"
+            None -> "None"
+        }
 }
 
 // endregion
@@ -168,20 +201,21 @@ enum class BuildResult {
 data class BuildDefinitionRef(
     @SerializedName("id") val id: Int?,
     @SerializedName("name") val name: String?,
-    @SerializedName("path") val path: String?
+    @SerializedName("path") val path: String?,
 )
 
 data class BuildDefinition(
     @SerializedName("id") val id: Int?,
     @SerializedName("name") val name: String?,
     @SerializedName("path") val path: String?,
-    @SerializedName("queueStatus") val queueStatus: String?
+    @SerializedName("queueStatus") val queueStatus: String?,
 ) {
-    fun getDisplayName(): String = if (path.isNullOrBlank() || path == "\\") {
-        name ?: "Unknown"
-    } else {
-        "$path\\$name"
-    }
+    fun getDisplayName(): String =
+        if (path.isNullOrBlank() || path == "\\") {
+            name ?: "Unknown"
+        } else {
+            "$path\\$name"
+        }
 }
 
 // endregion
@@ -196,22 +230,24 @@ data class BuildTimeline(
     @SerializedName("records") val records: List<TimelineRecord>?,
     @SerializedName("id") val id: String?,
     @SerializedName("lastChangedBy") val lastChangedBy: String?,
-    @SerializedName("lastChangedOn") val lastChangedOn: String?
+    @SerializedName("lastChangedOn") val lastChangedOn: String?,
 ) {
     /**
      * Returns records organized in a hierarchy: Stage → Job → Task.
      */
-    fun getStages(): List<TimelineRecord> {
-        return records?.filter { it.type == "Stage" }?.sortedBy { it.order } ?: emptyList()
-    }
+    fun getStages(): List<TimelineRecord> = records?.filter { it.type == "Stage" }?.sortedBy { it.order } ?: emptyList()
 
-    fun getJobsForStage(stageId: String): List<TimelineRecord> {
-        return records?.filter { it.type == "Job" && it.parentId == stageId }?.sortedBy { it.order } ?: emptyList()
-    }
+    fun getJobsForStage(stageId: String): List<TimelineRecord> =
+        records
+            ?.filter {
+                it.type == "Job" && it.parentId == stageId
+            }?.sortedBy { it.order } ?: emptyList()
 
-    fun getTasksForJob(jobId: String): List<TimelineRecord> {
-        return records?.filter { it.type == "Task" && it.parentId == jobId }?.sortedBy { it.order } ?: emptyList()
-    }
+    fun getTasksForJob(jobId: String): List<TimelineRecord> =
+        records
+            ?.filter {
+                it.type == "Task" && it.parentId == jobId
+            }?.sortedBy { it.order } ?: emptyList()
 
     /**
      * Returns top-level timeline records (no parentId), ordered by `order`.
@@ -219,16 +255,16 @@ data class BuildTimeline(
     fun getRootRecords(): List<TimelineRecord> {
         val all = records ?: return emptyList()
         val ids = all.mapNotNull { it.id }.toSet()
-        return all.filter { it.parentId == null || (it.parentId != null && it.parentId !in ids) }
+        return all
+            .filter { it.parentId == null || (it.parentId != null && it.parentId !in ids) }
             .sortedBy { it.order }
     }
 
     /**
      * Returns child records for a parent id, ordered by `order`.
      */
-    fun getChildren(parentId: String): List<TimelineRecord> {
-        return records?.filter { it.parentId == parentId }?.sortedBy { it.order } ?: emptyList()
-    }
+    fun getChildren(parentId: String): List<TimelineRecord> =
+        records?.filter { it.parentId == parentId }?.sortedBy { it.order } ?: emptyList()
 }
 
 /**
@@ -248,13 +284,18 @@ data class TimelineRecord(
     @SerializedName("workerName") val workerName: String?,
     @SerializedName("errorCount") val errorCount: Int?,
     @SerializedName("warningCount") val warningCount: Int?,
-    @SerializedName("percentComplete") val percentComplete: Int?
+    @SerializedName("percentComplete") val percentComplete: Int?,
 ) {
     fun isSucceeded(): Boolean = result == "succeeded"
+
     fun isFailed(): Boolean = result == "failed"
+
     fun isCanceled(): Boolean = result == "canceled" || result == "abandoned"
+
     fun isSkipped(): Boolean = result == "skipped"
+
     fun isRunning(): Boolean = state == "inProgress"
+
     fun isPending(): Boolean = state == "pending"
 
     fun getDuration(): String {
@@ -269,7 +310,7 @@ data class TimelineRecord(
 data class TimelineRecordLog(
     @SerializedName("id") val id: Int?,
     @SerializedName("type") val type: String?,
-    @SerializedName("url") val url: String?
+    @SerializedName("url") val url: String?,
 )
 
 // endregion
@@ -284,7 +325,7 @@ data class BuildLog(
     @SerializedName("id") val id: Int?,
     @SerializedName("lineCount") val lineCount: Int?,
     @SerializedName("url") val url: String?,
-    @SerializedName("value") val value: List<String>?
+    @SerializedName("value") val value: List<String>?,
 )
 
 // endregion
@@ -298,11 +339,11 @@ data class BuildLog(
 data class QueueBuildRequest(
     @SerializedName("definition") val definition: QueueBuildDefinitionRef,
     @SerializedName("sourceBranch") val sourceBranch: String? = null,
-    @SerializedName("parameters") val parameters: String? = null
+    @SerializedName("parameters") val parameters: String? = null,
 )
 
 data class QueueBuildDefinitionRef(
-    @SerializedName("id") val id: Int
+    @SerializedName("id") val id: Int,
 )
 
 // endregion
@@ -311,12 +352,12 @@ data class QueueBuildDefinitionRef(
 
 data class BuildListResponse(
     @SerializedName("value") val value: List<PipelineBuild>,
-    @SerializedName("count") val count: Int?
+    @SerializedName("count") val count: Int?,
 )
 
 data class BuildDefinitionListResponse(
     @SerializedName("value") val value: List<BuildDefinition>,
-    @SerializedName("count") val count: Int?
+    @SerializedName("count") val count: Int?,
 )
 
 // endregion
@@ -340,13 +381,13 @@ internal fun formatDuration(duration: Duration): String {
         totalSeconds < 3600 -> {
             val minutes = totalSeconds / 60
             val seconds = totalSeconds % 60
-            "$minutes m ${seconds} s"
+            "$minutes m $seconds s"
         }
         else -> {
             val hours = totalSeconds / 3600
             val minutes = (totalSeconds % 3600) / 60
             val seconds = totalSeconds % 60
-            "$hours h ${minutes} m ${seconds} s"
+            "$hours h $minutes m $seconds s"
         }
     }
 }

@@ -11,19 +11,26 @@ import paol0b.azuredevops.services.PipelineTabService
 /**
  * Provider that creates a [PipelineDiagramFileEditor] for [PipelineDiagramVirtualFile] instances.
  */
-class PipelineDiagramFileEditorProvider : FileEditorProvider, DumbAware {
+class PipelineDiagramFileEditorProvider :
+    FileEditorProvider,
+    DumbAware {
+    override fun accept(
+        project: Project,
+        file: VirtualFile,
+    ): Boolean = file is PipelineDiagramVirtualFile
 
-    override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file is PipelineDiagramVirtualFile
-    }
-
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor {
+    override fun createEditor(
+        project: Project,
+        file: VirtualFile,
+    ): FileEditor {
         val diagramFile = file as PipelineDiagramVirtualFile
         val tabService = PipelineTabService.getInstance(project)
-        val build = tabService.getBuild(file)
-            ?: throw IllegalStateException("Missing build data for diagram build #${diagramFile.buildId}")
-        val timeline = tabService.getTimeline(file)
-            ?: throw IllegalStateException("Missing timeline data for diagram build #${diagramFile.buildId}")
+        val build =
+            tabService.getBuild(file)
+                ?: throw IllegalStateException("Missing build data for diagram build #${diagramFile.buildId}")
+        val timeline =
+            tabService.getTimeline(file)
+                ?: throw IllegalStateException("Missing timeline data for diagram build #${diagramFile.buildId}")
         return PipelineDiagramFileEditor(project, diagramFile, build, timeline)
     }
 

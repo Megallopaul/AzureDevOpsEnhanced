@@ -11,7 +11,6 @@ import javax.swing.JPanel
  * Uses Zinc palette for neutrals, semantic colors for status.
  */
 object TimelineTheme {
-
     // ── Surfaces ────────────────────────────────────────────────────
     val CARD_BG: Color get() = JBColor(Color(0xFFFFFF), Color(0x1E1F22))
     val CARD_BORDER: Color get() = JBColor(Color(0xC8CCD0), Color(0x393B40))
@@ -59,7 +58,7 @@ object TimelineTheme {
     const val CARD_RADIUS = 12
     const val AVATAR_SIZE = 28
     const val AVATAR_SMALL = 20
-    const val TIMELINE_LEFT_MARGIN = 44  // px left of cards for the timeline connector
+    const val TIMELINE_LEFT_MARGIN = 44 // px left of cards for the timeline connector
 }
 
 /**
@@ -67,10 +66,11 @@ object TimelineTheme {
  * Optionally draws a colored top-accent bar.
  */
 class ElevatedCard(
-    private val accentColor: Color? = null
+    private val accentColor: Color? = null,
 ) : JPanel() {
-
-    init { isOpaque = false }
+    init {
+        isOpaque = false
+    }
 
     override fun paintComponent(g: Graphics) {
         val g2 = g.create() as Graphics2D
@@ -121,9 +121,8 @@ class TimelineRow(
     private val avatarIcon: javax.swing.Icon?,
     private val isFirst: Boolean = false,
     private val isLast: Boolean = false,
-    private val dotColor: Color = TimelineTheme.TIMELINE_DOT
+    private val dotColor: Color = TimelineTheme.TIMELINE_DOT,
 ) : JPanel(BorderLayout()) {
-
     init {
         isOpaque = false
         border = JBUI.Borders.empty(0, 0, 2, 0)
@@ -139,9 +138,9 @@ class TimelineRow(
         val g2 = g.create() as Graphics2D
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
-        val lineX = JBUI.scale(20)  // center of the timeline
+        val lineX = JBUI.scale(20) // center of the timeline
         val dotRadius = JBUI.scale(5)
-        val dotY = JBUI.scale(18)   // vertical center of avatar area
+        val dotY = JBUI.scale(18) // vertical center of avatar area
 
         // Vertical line
         g2.color = TimelineTheme.TIMELINE_LINE

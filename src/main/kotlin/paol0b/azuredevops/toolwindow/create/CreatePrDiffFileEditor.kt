@@ -22,23 +22,29 @@ import javax.swing.JPanel
  */
 class CreatePrDiffFileEditor(
     private val project: Project,
-    private val file: CreatePrDiffVirtualFile
-) : UserDataHolderBase(), FileEditor {
-
+    private val file: CreatePrDiffVirtualFile,
+) : UserDataHolderBase(),
+    FileEditor {
     private val wrapper = JPanel(BorderLayout())
     private var diffPanel: DiffRequestPanel? = null
 
     /** Called by [CreatePullRequestPanel] to update the diff shown in this tab. */
-    fun showChange(change: Change, sourceBranch: String, targetBranch: String) {
+    fun showChange(
+        change: Change,
+        sourceBranch: String,
+        targetBranch: String,
+    ) {
         val factory = DiffContentFactory.getInstance()
 
-        val left = change.beforeRevision?.content?.let {
-            factory.create(project, it)
-        } ?: factory.create(project, "")
+        val left =
+            change.beforeRevision?.content?.let {
+                factory.create(project, it)
+            } ?: factory.create(project, "")
 
-        val right = change.afterRevision?.content?.let {
-            factory.create(project, it)
-        } ?: factory.create(project, "")
+        val right =
+            change.afterRevision?.content?.let {
+                factory.create(project, it)
+            } ?: factory.create(project, "")
 
         val fileName = change.afterRevision?.file?.name ?: change.beforeRevision?.file?.name ?: "file"
         file.displayFileName = fileName
@@ -57,13 +63,21 @@ class CreatePrDiffFileEditor(
     }
 
     override fun getComponent(): JComponent = wrapper
+
     override fun getPreferredFocusedComponent(): JComponent? = diffPanel?.preferredFocusedComponent
+
     override fun getName(): String = "Create PR Diff"
+
     override fun isModified(): Boolean = false
+
     override fun isValid(): Boolean = true
+
     override fun setState(state: FileEditorState) {}
+
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun getFile(): VirtualFile = file
 
     override fun dispose() {

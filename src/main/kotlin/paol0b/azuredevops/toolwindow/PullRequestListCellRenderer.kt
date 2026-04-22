@@ -23,14 +23,15 @@ import javax.swing.*
  */
 class PullRequestListCellRenderer(
     private val avatarService: AvatarService,
-    private val showRepositoryInfo: () -> Boolean
-) : ListCellRenderer<PullRequest>, JPanel(BorderLayout()) {
-
+    private val showRepositoryInfo: () -> Boolean,
+) : JPanel(BorderLayout()),
+    ListCellRenderer<PullRequest> {
     // ── Components ──
     private val statusDot = JLabel()
-    private val titleLabel = JLabel().apply {
-        minimumSize = Dimension(0, 0)
-    }
+    private val titleLabel =
+        JLabel().apply {
+            minimumSize = Dimension(0, 0)
+        }
     private val stateLabel = StateBadgeLabel()
     private val draftLabel = StateBadgeLabel()
     private val conflictIcon = JLabel()
@@ -43,55 +44,73 @@ class PullRequestListCellRenderer(
     //
     // Custom firstLinePanel: rightPanel ALWAYS gets its preferred width from the right;
     // leftPanel fills whatever remains (can be 0) — so the title clips, never the badges.
-    private val firstLinePanel = object : JPanel(null) {
-        private val hgap = JBUIScale.scale(6)
-        init { isOpaque = false }
-        override fun doLayout() {
-            val ins = insets
-            val totalW = width - ins.left - ins.right
-            val totalH = height - ins.top - ins.bottom
-            val rightW = minOf(rightPanel.preferredSize.width, totalW)
-            val leftW = maxOf(0, totalW - rightW - hgap)
-            leftPanel.setBounds(ins.left, ins.top, leftW, totalH)
-            rightPanel.setBounds(ins.left + leftW + hgap, ins.top, rightW, totalH)
-        }
-        override fun getPreferredSize(): Dimension {
-            val l = leftPanel.preferredSize
-            val r = rightPanel.preferredSize
-            return Dimension(l.width + hgap + r.width, maxOf(l.height, r.height))
-        }
-    }
-    private val leftPanel = JPanel().apply {
-        layout = BoxLayout(this, BoxLayout.X_AXIS)
-        isOpaque = false
-    }
-    // Custom rightPanel: gaps only between *visible* components; size never shrinks below preferred.
-    private val rightPanel = object : JPanel(null) {
-        private val gap = JBUIScale.scale(4)
-        init { isOpaque = false }
-        private fun visibleItems() = listOf(stateLabel, draftLabel, autoCompleteIcon, conflictIcon, reviewersLabel, commentsLabel)
-            .filter { it.isVisible }
-        override fun doLayout() {
-            val totalH = height
-            var x = 0
-            val visible = visibleItems()
-            visible.forEachIndexed { i, c ->
-                val cPref = c.preferredSize
-                val cy = maxOf(0, (totalH - cPref.height) / 2)
-                c.setBounds(x, cy, cPref.width, cPref.height)
-                x += cPref.width + if (i < visible.size - 1) gap else 0
+    private val firstLinePanel =
+        object : JPanel(null) {
+            private val hgap = JBUIScale.scale(6)
+
+            init {
+                isOpaque = false
+            }
+
+            override fun doLayout() {
+                val ins = insets
+                val totalW = width - ins.left - ins.right
+                val totalH = height - ins.top - ins.bottom
+                val rightW = minOf(rightPanel.preferredSize.width, totalW)
+                val leftW = maxOf(0, totalW - rightW - hgap)
+                leftPanel.setBounds(ins.left, ins.top, leftW, totalH)
+                rightPanel.setBounds(ins.left + leftW + hgap, ins.top, rightW, totalH)
+            }
+
+            override fun getPreferredSize(): Dimension {
+                val l = leftPanel.preferredSize
+                val r = rightPanel.preferredSize
+                return Dimension(l.width + hgap + r.width, maxOf(l.height, r.height))
             }
         }
-        override fun getPreferredSize(): Dimension {
-            val visible = visibleItems()
-            if (visible.isEmpty()) return Dimension(0, 0)
-            val w = visible.sumOf { it.preferredSize.width } + (visible.size - 1) * gap
-            val h = visible.maxOf { it.preferredSize.height }
-            return Dimension(w, h)
+    private val leftPanel =
+        JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            isOpaque = false
         }
-        override fun getMinimumSize() = preferredSize
-        override fun getMaximumSize() = preferredSize
-    }
+
+    // Custom rightPanel: gaps only between *visible* components; size never shrinks below preferred.
+    private val rightPanel =
+        object : JPanel(null) {
+            private val gap = JBUIScale.scale(4)
+
+            init {
+                isOpaque = false
+            }
+
+            private fun visibleItems() =
+                listOf(stateLabel, draftLabel, autoCompleteIcon, conflictIcon, reviewersLabel, commentsLabel)
+                    .filter { it.isVisible }
+
+            override fun doLayout() {
+                val totalH = height
+                var x = 0
+                val visible = visibleItems()
+                visible.forEachIndexed { i, c ->
+                    val cPref = c.preferredSize
+                    val cy = maxOf(0, (totalH - cPref.height) / 2)
+                    c.setBounds(x, cy, cPref.width, cPref.height)
+                    x += cPref.width + if (i < visible.size - 1) gap else 0
+                }
+            }
+
+            override fun getPreferredSize(): Dimension {
+                val visible = visibleItems()
+                if (visible.isEmpty()) return Dimension(0, 0)
+                val w = visible.sumOf { it.preferredSize.width } + (visible.size - 1) * gap
+                val h = visible.maxOf { it.preferredSize.height }
+                return Dimension(w, h)
+            }
+
+            override fun getMinimumSize() = preferredSize
+
+            override fun getMaximumSize() = preferredSize
+        }
 
     init {
         isOpaque = true
@@ -126,16 +145,17 @@ class PullRequestListCellRenderer(
         value: PullRequest?,
         index: Int,
         isSelected: Boolean,
-        cellHasFocus: Boolean
+        cellHasFocus: Boolean,
     ): Component {
         if (value == null) return this
 
         // ── Colors ──
-        background = if (isSelected) {
-            UIUtil.getListSelectionBackground(list.hasFocus())
-        } else {
-            list.background
-        }
+        background =
+            if (isSelected) {
+                UIUtil.getListSelectionBackground(list.hasFocus())
+            } else {
+                list.background
+            }
         val primaryFg = if (isSelected) UIUtil.getListSelectionForeground(list.hasFocus()) else UIUtil.getListForeground()
         val secondaryFg = if (isSelected) UIUtil.getListSelectionForeground(list.hasFocus()) else JBColor.GRAY
 
@@ -156,7 +176,7 @@ class PullRequestListCellRenderer(
             draftLabel.text = "DRAFT"
             draftLabel.setColors(
                 JBColor(Color(255, 165, 0), Color(255, 140, 0)),
-                Color.WHITE
+                Color.WHITE,
             )
         } else {
             draftLabel.isVisible = false
@@ -195,17 +215,18 @@ class PullRequestListCellRenderer(
         // ── Info line (second row) ──
         val authorName = value.createdBy?.displayName ?: "Unknown"
         val dateStr = formatDate(value.creationDate)
-        val info = buildString {
-            append("#${value.pullRequestId}")
-            append(" · created $dateStr")
-            append(", by $authorName")
-            if (showRepositoryInfo()) {
-                val repoName = value.repository?.name
-                if (repoName != null) {
-                    append(" · $repoName")
+        val info =
+            buildString {
+                append("#${value.pullRequestId}")
+                append(" · created $dateStr")
+                append(", by $authorName")
+                if (showRepositoryInfo()) {
+                    val repoName = value.repository?.name
+                    if (repoName != null) {
+                        append(" · $repoName")
+                    }
                 }
             }
-        }
         infoLabel.text = info
         infoLabel.foreground = secondaryFg
 
@@ -219,7 +240,7 @@ class PullRequestListCellRenderer(
                 stateLabel.text = "MERGED"
                 stateLabel.setColors(
                     JBColor(Color(111, 66, 193), Color(137, 87, 229)),
-                    Color.WHITE
+                    Color.WHITE,
                 )
             }
             PullRequestStatus.Abandoned -> {
@@ -227,7 +248,7 @@ class PullRequestListCellRenderer(
                 stateLabel.text = "CLOSED"
                 stateLabel.setColors(
                     JBColor(Color(160, 55, 65), Color(200, 35, 51)),
-                    Color.WHITE
+                    Color.WHITE,
                 )
             }
             PullRequestStatus.Active -> {
@@ -243,7 +264,10 @@ class PullRequestListCellRenderer(
         }
     }
 
-    private fun updateReviewerAvatars(pr: PullRequest, list: JList<*>) {
+    private fun updateReviewerAvatars(
+        pr: PullRequest,
+        list: JList<*>,
+    ) {
         val reviewers = pr.reviewers
         if (reviewers.isNullOrEmpty()) {
             reviewersLabel.isVisible = false
@@ -251,29 +275,30 @@ class PullRequestListCellRenderer(
             return
         }
 
-        val icons = reviewers.take(MAX_REVIEWER_ICONS).map { reviewer ->
-            avatarService.getAvatar(reviewer.imageUrl, AVATAR_SIZE) {
-                list.repaint()
+        val icons =
+            reviewers.take(MAX_REVIEWER_ICONS).map { reviewer ->
+                avatarService.getAvatar(reviewer.imageUrl, AVATAR_SIZE) {
+                    list.repaint()
+                }
             }
-        }
 
         reviewersLabel.isVisible = true
-        reviewersLabel.icon = if (icons.size == 1) {
-            icons[0]
-        } else {
-            OverlaidAvatarIcon(icons)
-        }
+        reviewersLabel.icon =
+            if (icons.size == 1) {
+                icons[0]
+            } else {
+                OverlaidAvatarIcon(icons)
+            }
     }
 
-    private fun getStatusColor(pr: PullRequest): Color {
-        return when {
+    private fun getStatusColor(pr: PullRequest): Color =
+        when {
             pr.isDraft == true -> JBColor(Color(255, 165, 0), Color(255, 140, 0))
             pr.status == PullRequestStatus.Active -> JBColor(Color(63, 185, 80), Color(63, 185, 80))
             pr.status == PullRequestStatus.Completed -> JBColor(Color(137, 87, 229), Color(137, 87, 229))
             pr.status == PullRequestStatus.Abandoned -> JBColor(Color(160, 55, 65), Color(200, 35, 51))
             else -> JBColor.GRAY
         }
-    }
 
     private fun formatDate(dateString: String?): String {
         if (dateString == null) return "Unknown"
@@ -294,10 +319,17 @@ class PullRequestListCellRenderer(
 /**
  * Small colored circle icon used as the status indicator dot.
  */
-private class StatusDotIcon(private val color: Color) : Icon {
+private class StatusDotIcon(
+    private val color: Color,
+) : Icon {
     private val size = JBUIScale.scale(8)
 
-    override fun paintIcon(c: Component?, g: Graphics, x: Int, y: Int) {
+    override fun paintIcon(
+        c: Component?,
+        g: Graphics,
+        x: Int,
+        y: Int,
+    ) {
         val g2 = g.create() as Graphics2D
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.color = color
@@ -307,13 +339,16 @@ private class StatusDotIcon(private val color: Color) : Icon {
     }
 
     override fun getIconWidth(): Int = size
+
     override fun getIconHeight(): Int = size
 }
 
 /**
  * Overlapping avatar icons, similar to the GitHub plugin's OverlaidOffsetIconsIcon.
  */
-private class OverlaidAvatarIcon(private val icons: List<Icon>) : Icon {
+private class OverlaidAvatarIcon(
+    private val icons: List<Icon>,
+) : Icon {
     private val overlap = JBUIScale.scale(6)
 
     override fun getIconWidth(): Int {
@@ -324,7 +359,12 @@ private class OverlaidAvatarIcon(private val icons: List<Icon>) : Icon {
 
     override fun getIconHeight(): Int = if (icons.isEmpty()) 0 else icons[0].iconHeight
 
-    override fun paintIcon(c: Component?, g: Graphics, x: Int, y: Int) {
+    override fun paintIcon(
+        c: Component?,
+        g: Graphics,
+        x: Int,
+        y: Int,
+    ) {
         if (icons.isEmpty()) return
         val step = icons[0].iconWidth - overlap
         for (i in icons.indices) {
@@ -348,7 +388,10 @@ private class StateBadgeLabel : JLabel() {
         horizontalAlignment = CENTER
     }
 
-    fun setColors(background: Color, foreground: Color) {
+    fun setColors(
+        background: Color,
+        foreground: Color,
+    ) {
         this.bgColor = background
         this.foreground = foreground
     }

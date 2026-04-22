@@ -3,9 +3,6 @@ package paol0b.azuredevops.services
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
-import java.util.regex.Pattern
 
 /**
  * Information detected from an Azure DevOps repository
@@ -16,11 +13,12 @@ data class AzureDevOpsRepoInfo(
     val repository: String,
     val remoteUrl: String,
     val useVisualStudioDomain: Boolean = false,
-    val selfHostedUrl: String? = null
+    val selfHostedUrl: String? = null,
 ) {
-    fun isValid(): Boolean = organization.isNotBlank() && 
-                            project.isNotBlank() && 
-                            repository.isNotBlank()
+    fun isValid(): Boolean =
+        organization.isNotBlank() &&
+            project.isNotBlank() &&
+            repository.isNotBlank()
 
     fun isSelfHosted(): Boolean = selfHostedUrl != null
 }
@@ -30,29 +28,27 @@ data class AzureDevOpsRepoInfo(
  * and extract organization, project, and repository from the remote URL
  */
 @Service(Service.Level.PROJECT)
-class AzureDevOpsRepositoryDetector(private val project: Project) {
-
+class AzureDevOpsRepositoryDetector(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(AzureDevOpsRepositoryDetector::class.java)
-    
+
     // Cache to avoid repeated detections
     @Volatile
     private var cachedInfo: AzureDevOpsRepoInfo? = null
+
     @Volatile
     private var cacheTimestamp: Long = 0
     private val CACHE_VALIDITY_MS = 30000L // 30 seconds
 
     companion object {
-        fun getInstance(project: Project): AzureDevOpsRepositoryDetector {
-            return project.getService(AzureDevOpsRepositoryDetector::class.java)
-        }
+        fun getInstance(project: Project): AzureDevOpsRepositoryDetector = project.getService(AzureDevOpsRepositoryDetector::class.java)
     }
 
     /**
      * Detects if the current repository is an Azure DevOps repository
      */
-    fun isAzureDevOpsRepository(): Boolean {
-        return detectAzureDevOpsInfo() != null
-    }
+    fun isAzureDevOpsRepository(): Boolean = detectAzureDevOpsInfo() != null
 
     /**
      * Automatically detects Azure DevOps info from the remote URL of the repository
@@ -63,13 +59,14 @@ class AzureDevOpsRepositoryDetector(private val project: Project) {
         if (cachedInfo != null && (now - cacheTimestamp) < CACHE_VALIDITY_MS) {
             return cachedInfo
         }
-        
+
         val gitService = GitRepositoryService.getInstance(project)
-        val repository = gitService.getCurrentRepository() ?: run {
-            logger.debug("No Git repository found")
-            // Do not update cache if no repository, might be temporary
-            return cachedInfo // Return previous cache if exists
-        }
+        val repository =
+            gitService.getCurrentRepository() ?: run {
+                logger.debug("No Git repository found")
+                // Do not update cache if no repository, might be temporary
+                return cachedInfo // Return previous cache if exists
+            }
 
         val remotes = repository.remotes
         if (remotes.isEmpty()) {
@@ -82,7 +79,7 @@ class AzureDevOpsRepositoryDetector(private val project: Project) {
             val urls = remote.urls
             for (url in urls) {
                 logger.debug("Checking remote URL: $url")
-                
+
                 val info = AzureDevOpsUrlParser.parse(url)
                 if (info != null) {
                     logger.info("Detected Azure DevOps repository: ${info.organization}/${info.project}/${info.repository}")
@@ -101,7 +98,7 @@ class AzureDevOpsRepositoryDetector(private val project: Project) {
         }
         return cachedInfo
     }
-    
+
     /**
      * Invalidates the cache to force a new detection
      */

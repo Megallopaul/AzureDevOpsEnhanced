@@ -15,12 +15,13 @@ import javax.swing.JComponent
 class PrReviewFileEditor(
     private val project: Project,
     private val file: VirtualFile,
-    pullRequest: PullRequest
-) : UserDataHolderBase(), FileEditor {
-
-    private val reviewPanel = PrReviewToolWindow(project, showSelector = false).apply {
-        openPullRequest(pullRequest)
-    }
+    pullRequest: PullRequest,
+) : UserDataHolderBase(),
+    FileEditor {
+    private val reviewPanel =
+        PrReviewToolWindow(project, showSelector = false).apply {
+            openPullRequest(pullRequest)
+        }
 
     private var isDisposed = false
 

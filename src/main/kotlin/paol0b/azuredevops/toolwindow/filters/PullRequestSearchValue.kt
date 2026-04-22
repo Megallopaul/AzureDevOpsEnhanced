@@ -12,7 +12,7 @@ data class PullRequestSearchValue(
     val sort: Sort? = null,
     val projectFilter: ProjectFilter? = null,
     val repositoryFilter: RepositoryFilter? = null,
-    val showAllOrg: Boolean = false
+    val showAllOrg: Boolean = false,
 ) {
     val filterCount: Int
         get() {
@@ -28,11 +28,15 @@ data class PullRequestSearchValue(
         }
 
     /** Maps to Azure DevOps PR status API values. */
-    enum class State(val apiValue: String, val displayName: String) {
+    enum class State(
+        val apiValue: String,
+        val displayName: String,
+    ) {
         OPEN("active", "Open"),
         COMPLETED("completed", "Completed"),
         ABANDONED("abandoned", "Abandoned"),
-        ALL("all", "All");
+        ALL("all", "All"),
+        ;
 
         override fun toString(): String = displayName
     }
@@ -42,26 +46,32 @@ data class PullRequestSearchValue(
         val id: String?,
         val displayName: String,
         val uniqueName: String?,
-        val imageUrl: String?
+        val imageUrl: String?,
     ) {
         override fun toString(): String = displayName
     }
 
     /** Review state filter values, adapted for Azure DevOps PR reviewer votes. */
-    enum class ReviewState(val displayName: String) {
+    enum class ReviewState(
+        val displayName: String,
+    ) {
         NO_REVIEW("No reviews"),
         APPROVED("Approved review"),
         CHANGES_REQUESTED("Changes requested"),
-        REVIEWED_BY_YOU("Reviewed by you");
+        REVIEWED_BY_YOU("Reviewed by you"),
+        ;
 
         override fun toString(): String = displayName
     }
 
     /** Sort order for PRs. */
-    enum class Sort(val displayName: String) {
+    enum class Sort(
+        val displayName: String,
+    ) {
         NEWEST("Newest"),
         OLDEST("Oldest"),
-        RECENTLY_UPDATED("Recently updated");
+        RECENTLY_UPDATED("Recently updated"),
+        ;
 
         override fun toString(): String = displayName
     }
@@ -69,7 +79,7 @@ data class PullRequestSearchValue(
     /** Project filter: allows filtering PRs by Azure DevOps project. */
     data class ProjectFilter(
         val id: String?,
-        val name: String
+        val name: String,
     ) {
         override fun toString(): String = name
     }
@@ -78,7 +88,7 @@ data class PullRequestSearchValue(
     data class RepositoryFilter(
         val id: String?,
         val name: String,
-        val projectName: String?
+        val projectName: String?,
     ) {
         override fun toString(): String = name
     }
@@ -92,11 +102,14 @@ data class PullRequestSearchValue(
 /**
  * Quick filter presets, modeled after GHPRListQuickFilter.
  */
-enum class PullRequestQuickFilter(val displayName: String) {
+enum class PullRequestQuickFilter(
+    val displayName: String,
+) {
     OPEN("Open"),
     YOUR_PULL_REQUESTS("Your pull requests"),
     ASSIGNED_TO_YOU("Assigned to you"),
-    REVIEW_REQUESTS("Review requests");
+    REVIEW_REQUESTS("Review requests"),
+    ;
 
     override fun toString(): String = displayName
 }

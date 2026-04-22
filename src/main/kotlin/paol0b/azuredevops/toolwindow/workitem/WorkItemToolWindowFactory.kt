@@ -17,8 +17,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Additional closable tabs are opened when the user double-clicks a work item.
  * Mirrors [paol0b.azuredevops.toolwindow.pipeline.PipelineToolWindowFactory].
  */
-class WorkItemToolWindowFactory : ToolWindowFactory, DumbAware {
-
+class WorkItemToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
     companion object {
         const val TOOL_WINDOW_ID = "Azure DevOps Work Items"
 
@@ -28,7 +29,10 @@ class WorkItemToolWindowFactory : ToolWindowFactory, DumbAware {
         /**
          * Open (or focus) a detail tab for the given work item inside the tool window.
          */
-        fun openWorkItemDetailTab(project: Project, workItem: WorkItem) {
+        fun openWorkItemDetailTab(
+            project: Project,
+            workItem: WorkItem,
+        ) {
             val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
             val contentManager = toolWindow.contentManager
 
@@ -52,10 +56,11 @@ class WorkItemToolWindowFactory : ToolWindowFactory, DumbAware {
 
             val typeName = workItem.getWorkItemType()
             val tabTitle = "$typeName #${workItem.id}"
-            val content = contentManager.factory.createContent(panel, tabTitle, false).apply {
-                isCloseable = true
-                description = "${workItem.getTitle()}"
-            }
+            val content =
+                contentManager.factory.createContent(panel, tabTitle, false).apply {
+                    isCloseable = true
+                    description = "${workItem.getTitle()}"
+                }
             contentManager.addContent(content)
             contentManager.setSelectedContent(content, true)
 
@@ -63,42 +68,53 @@ class WorkItemToolWindowFactory : ToolWindowFactory, DumbAware {
         }
     }
 
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         val workItemToolWindow = WorkItemToolWindow(project)
-        val content = toolWindow.contentManager.factory.createContent(
-            workItemToolWindow.getContent(), "Work Items", false
-        ).apply {
-            isCloseable = false
-        }
+        val content =
+            toolWindow.contentManager.factory
+                .createContent(
+                    workItemToolWindow.getContent(),
+                    "Work Items",
+                    false,
+                ).apply {
+                    isCloseable = false
+                }
         toolWindow.contentManager.addContent(content)
 
         // Load work items when the list tab becomes visible
-        toolWindow.addContentManagerListener(object : ContentManagerListener {
-            override fun selectionChanged(event: ContentManagerEvent) {
-                if (event.content == content &&
-                    event.operation == ContentManagerEvent.ContentOperation.add
-                ) {
-                    workItemToolWindow.loadWorkItemsIfNeeded()
+        toolWindow.addContentManagerListener(
+            object : ContentManagerListener {
+                override fun selectionChanged(event: ContentManagerEvent) {
+                    if (event.content == content &&
+                        event.operation == ContentManagerEvent.ContentOperation.add
+                    ) {
+                        workItemToolWindow.loadWorkItemsIfNeeded()
+                    }
                 }
-            }
-        })
+            },
+        )
 
         // Dispose resources when content is removed
-        toolWindow.contentManager.addContentManagerListener(object : ContentManagerListener {
-            override fun contentRemoved(event: ContentManagerEvent) {
-                if (event.content == content) {
-                    workItemToolWindow.dispose()
-                    return
-                }
+        toolWindow.contentManager.addContentManagerListener(
+            object : ContentManagerListener {
+                override fun contentRemoved(event: ContentManagerEvent) {
+                    if (event.content == content) {
+                        workItemToolWindow.dispose()
+                        return
+                    }
 
-                // Clean up detail tab entries
-                val removedComponent = event.content.component
-                if (removedComponent is WorkItemDetailTabPanel) {
-                    removedComponent.dispose()
-                    detailTabs.entries.removeIf { it.value == removedComponent }
+                    // Clean up detail tab entries
+                    val removedComponent = event.content.component
+                    if (removedComponent is WorkItemDetailTabPanel) {
+                        removedComponent.dispose()
+                        detailTabs.entries.removeIf { it.value == removedComponent }
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun shouldBeAvailable(project: Project): Boolean = true

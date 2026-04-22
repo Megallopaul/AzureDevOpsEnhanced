@@ -7,7 +7,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import paol0b.azuredevops.model.CommentThread
 import paol0b.azuredevops.model.PullRequest
 import java.util.concurrent.CopyOnWriteArrayList
@@ -22,8 +21,9 @@ import java.util.concurrent.TimeUnit
  * Implements Disposable to ensure scheduler threads are properly terminated on project close.
  */
 @Service(Service.Level.PROJECT)
-class CommentsPollingService(private val project: Project) : Disposable {
-
+class CommentsPollingService(
+    private val project: Project,
+) : Disposable {
     private val logger = Logger.getInstance(CommentsPollingService::class.java)
     private var scheduler: ScheduledExecutorService? = null
     private var currentPullRequest: PullRequest? = null
@@ -32,9 +32,7 @@ class CommentsPollingService(private val project: Project) : Disposable {
     private val changeListeners = CopyOnWriteArrayList<() -> Unit>()
 
     companion object {
-        fun getInstance(project: Project): CommentsPollingService {
-            return project.getService(CommentsPollingService::class.java)
-        }
+        fun getInstance(project: Project): CommentsPollingService = project.getService(CommentsPollingService::class.java)
     }
 
     fun addChangeListener(listener: () -> Unit) {
@@ -183,8 +181,10 @@ class CommentsPollingService(private val project: Project) : Disposable {
                     if (filePath != null) {
                         val projectBasePath = project.basePath ?: return@forEach
                         val fullPath = "$projectBasePath/${filePath.trimStart('/')}"
-                        val virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance()
-                            .findFileByPath(fullPath)
+                        val virtualFile =
+                            com.intellij.openapi.vfs.LocalFileSystem
+                                .getInstance()
+                                .findFileByPath(fullPath)
 
                         if (virtualFile != null) {
                             val fileThreads = threads.filter { it.getFilePath() == filePath }
@@ -201,22 +201,31 @@ class CommentsPollingService(private val project: Project) : Disposable {
 
                 logger.info("Comments refreshed successfully")
             }
-
         } catch (e: Exception) {
             logger.warn("Failed to refresh comments", e)
         }
     }
 
-    private fun calculateCommentsHash(threads: List<CommentThread>): Int {
-        return threads.hashCode() + threads.sumOf { thread ->
-            var hash = thread.id ?: 0
-            hash = 31 * hash + (thread.status?.hashCode() ?: 0)
-            hash = 31 * hash + (thread.comments?.size ?: 0)
-            hash = 31 * hash + (thread.comments?.firstOrNull()?.content?.hashCode() ?: 0)
-            hash = 31 * hash + (thread.comments?.lastOrNull()?.content?.hashCode() ?: 0)
-            hash
-        }
-    }
+    private fun calculateCommentsHash(threads: List<CommentThread>): Int =
+        threads.hashCode() +
+            threads.sumOf { thread ->
+                var hash = thread.id ?: 0
+                hash = 31 * hash + (thread.status?.hashCode() ?: 0)
+                hash = 31 * hash + (thread.comments?.size ?: 0)
+                hash = 31 * hash + (
+                    thread.comments
+                        ?.firstOrNull()
+                        ?.content
+                        ?.hashCode() ?: 0
+                )
+                hash = 31 * hash + (
+                    thread.comments
+                        ?.lastOrNull()
+                        ?.content
+                        ?.hashCode() ?: 0
+                )
+                hash
+            }
 
     fun isPolling(): Boolean = isPollingActive
 

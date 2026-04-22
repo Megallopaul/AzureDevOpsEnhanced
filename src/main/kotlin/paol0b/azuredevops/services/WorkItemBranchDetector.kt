@@ -8,14 +8,13 @@ import com.intellij.openapi.project.Project
  * Used by the commit message provider to auto-fill #{id} in commit messages.
  */
 @Service(Service.Level.PROJECT)
-class WorkItemBranchDetector(private val project: Project) {
-
+class WorkItemBranchDetector(
+    private val project: Project,
+) {
     companion object {
         private val WORK_ITEM_PATTERN = Regex("(?:feature|bugfix|task|work)/(\\d+)")
 
-        fun getInstance(project: Project): WorkItemBranchDetector {
-            return project.getService(WorkItemBranchDetector::class.java)
-        }
+        fun getInstance(project: Project): WorkItemBranchDetector = project.getService(WorkItemBranchDetector::class.java)
     }
 
     @Volatile
@@ -27,14 +26,16 @@ class WorkItemBranchDetector(private val project: Project) {
      * Looks for patterns like feature/1234-title, bugfix/1234-title, etc.
      */
     fun detectFromBranch(branchName: String) {
-        currentWorkItemId = WORK_ITEM_PATTERN.find(branchName)
-            ?.groupValues?.get(1)?.toIntOrNull()
+        currentWorkItemId =
+            WORK_ITEM_PATTERN
+                .find(branchName)
+                ?.groupValues
+                ?.get(1)
+                ?.toIntOrNull()
     }
 
     /**
      * Returns a commit message prefix like "#1234" if a work item ID is detected.
      */
-    fun getCommitMessagePrefix(): String? {
-        return currentWorkItemId?.let { "#$it" }
-    }
+    fun getCommitMessagePrefix(): String? = currentWorkItemId?.let { "#$it" }
 }

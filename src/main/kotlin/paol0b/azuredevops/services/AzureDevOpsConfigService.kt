@@ -6,12 +6,11 @@ import com.intellij.credentialStore.generateServiceName
 import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.openapi.components.*
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.xmlb.XmlSerializerUtil
 import paol0b.azuredevops.checkout.AzureDevOpsAccountManager
-import paol0b.azuredevops.util.PluginUtil
 import paol0b.azuredevops.checkout.AzureDevOpsOAuthService
 import paol0b.azuredevops.model.AzureDevOpsConfig
+import paol0b.azuredevops.util.PluginUtil
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -23,26 +22,25 @@ import java.nio.charset.StandardCharsets
 @Service(Service.Level.PROJECT)
 @State(
     name = "AzureDevOpsConfig",
-    storages = [Storage("azureDevOpsConfig.xml")]
+    storages = [Storage("azureDevOpsConfig.xml")],
 )
-class AzureDevOpsConfigService(private val project: com.intellij.openapi.project.Project) : PersistentStateComponent<AzureDevOpsConfigService.State> {
-
+class AzureDevOpsConfigService(
+    private val project: com.intellij.openapi.project.Project,
+) : PersistentStateComponent<AzureDevOpsConfigService.State> {
     private var myState = State()
     private val logger = Logger.getInstance(AzureDevOpsConfigService::class.java)
 
     companion object {
         private const val CREDENTIAL_KEY = "paol0b.azuredevops.pat"
-        
-        fun getInstance(project: com.intellij.openapi.project.Project): AzureDevOpsConfigService {
-            return project.service()
-        }
+
+        fun getInstance(project: com.intellij.openapi.project.Project): AzureDevOpsConfigService = project.service()
     }
 
     data class State(
         // Keep these fields for backward compatibility and optional manual override
         var manualOrganization: String = "",
         var manualProject: String = "",
-        var manualRepository: String = ""
+        var manualRepository: String = "",
     )
 
     override fun getState(): State = myState
@@ -59,17 +57,17 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         val pat = getPersonalAccessToken()
         val detector = AzureDevOpsRepositoryDetector.getInstance(project)
         val repoInfo = detector.detectAzureDevOpsInfo()
-        
+
         // Use auto-detected values, or manual ones if set (override)
         val organization = myState.manualOrganization.ifBlank { repoInfo?.organization ?: "" }
         val project = myState.manualProject.ifBlank { repoInfo?.project ?: "" }
         val repository = myState.manualRepository.ifBlank { repoInfo?.repository ?: "" }
-        
+
         return AzureDevOpsConfig.create(
             organization = organization,
             project = project,
             repository = repository,
-            personalAccessToken = pat
+            personalAccessToken = pat,
         )
     }
 
@@ -82,7 +80,7 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         myState.manualRepository = config.repository
         savePersonalAccessToken(config.personalAccessToken)
     }
-    
+
     /**
      * Saves only the PAT (recommended method)
      */
@@ -104,17 +102,17 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
             if (isDevMode()) logger.info("Using token from OAuth account")
             return oauthToken
         }
-        
+
         // Second, try from IDE's PasswordSafe (per-project PAT)
         val credentialAttributes = createCredentialAttributes()
         val credentials = PasswordSafe.instance.get(credentialAttributes)
         val savedToken = credentials?.getPasswordAsString() ?: ""
-        
+
         if (savedToken.isNotBlank()) {
             if (isDevMode()) logger.info("Using token from IDE PasswordSafe")
             return savedToken
         }
-        
+
         // Third, try to retrieve it from Git Credential Helper
         val gitToken = tryGetTokenFromGitCredentialHelper()
         if (gitToken != null) {
@@ -125,7 +123,7 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         if (isDevMode()) logger.warn("No token found from any source (OAuth, PasswordSafe, or Git credentials)")
         return ""
     }
-    
+
     /**
      * Tries to match the current repository with a global OAuth account
      * and retrieve the OAuth token if a match is found.
@@ -134,10 +132,11 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
     private fun tryGetTokenFromOAuthAccount(): String? {
         try {
             val detector = AzureDevOpsRepositoryDetector.getInstance(project)
-            val repoInfo = detector.detectAzureDevOpsInfo() ?: return null.also {
-                if (isDevMode()) logger.info("No Azure DevOps repository info detected")
-            }
-            
+            val repoInfo =
+                detector.detectAzureDevOpsInfo() ?: return null.also {
+                    if (isDevMode()) logger.info("No Azure DevOps repository info detected")
+                }
+
             // Get the organization from the repository
             val organization = repoInfo.organization
             if (organization.isBlank()) {
@@ -146,22 +145,40 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
             }
 
             if (isDevMode()) logger.info("Looking for OAuth account matching organization: $organization")
-            
+
             // Check all OAuth accounts for a matching organization
             val accountManager = AzureDevOpsAccountManager.getInstance()
             val accounts = accountManager.getAccounts()
-            
+
             if (isDevMode()) logger.info("Found ${accounts.size} accounts in account manager")
-            
+
             for (account in accounts) {
                 // For self-hosted accounts, match by server URL host
                 if (account.selfHosted) {
-                    val accountHost = try { java.net.URI(account.serverUrl).host?.lowercase() } catch (_: Exception) { null }
-                    val remoteHost = try {
-                        val gitService = GitRepositoryService.getInstance(project)
-                        val remoteUrl = gitService.getRemoteUrl()
-                        if (remoteUrl != null) java.net.URI(remoteUrl).host?.lowercase() else null
-                    } catch (_: Exception) { null }
+                    val accountHost =
+                        try {
+                            java.net
+                                .URI(account.serverUrl)
+                                .host
+                                ?.lowercase()
+                        } catch (_: Exception) {
+                            null
+                        }
+                    val remoteHost =
+                        try {
+                            val gitService = GitRepositoryService.getInstance(project)
+                            val remoteUrl = gitService.getRemoteUrl()
+                            if (remoteUrl != null) {
+                                java.net
+                                    .URI(remoteUrl)
+                                    .host
+                                    ?.lowercase()
+                            } else {
+                                null
+                            }
+                        } catch (_: Exception) {
+                            null
+                        }
 
                     if (accountHost != null && accountHost == remoteHost) {
                         if (isDevMode()) logger.info("Found matching self-hosted account: ${account.displayName}")
@@ -174,14 +191,14 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
                 // Extract organization from account server URL
                 val accountOrg = extractOrganizationFromUrl(account.serverUrl)
                 if (isDevMode()) logger.info("Checking account: ${account.displayName}, org from URL: $accountOrg")
-                
+
                 if (accountOrg.equals(organization, ignoreCase = true)) {
                     if (isDevMode()) logger.info("Found matching account: ${account.displayName} for organization $organization")
-                    
+
                     // Found matching account
                     val authState = accountManager.getAccountAuthState(account.id)
                     if (isDevMode()) logger.info("Account auth state: $authState")
-                    
+
                     // If token is expired, try to refresh it
                     if (authState == AzureDevOpsAccountManager.AccountAuthState.EXPIRED) {
                         if (isDevMode()) logger.info("Token expired for account ${account.id}, attempting automatic refresh")
@@ -197,7 +214,7 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
                                     account.id,
                                     result.accessToken,
                                     result.refreshToken,
-                                    result.expiresIn
+                                    result.expiresIn,
                                 )
                                 return result.accessToken
                             } else {
@@ -207,48 +224,47 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
                             if (isDevMode()) logger.warn("No refresh token available for account ${account.id}")
                         }
                     }
-                    
+
                     // Return the token (valid or after refresh)
                     val token = accountManager.getToken(account.id)
                     if (isDevMode()) logger.info("Returning token from account ${account.id}, token present: ${!token.isNullOrBlank()}")
                     return token
                 }
             }
-            
+
             if (isDevMode()) logger.info("No matching OAuth account found for organization: $organization")
         } catch (e: Exception) {
             if (isDevMode()) logger.warn("Exception in tryGetTokenFromOAuthAccount", e)
             return null
         }
-        
+
         return null
     }
 
     private fun isDevMode(): Boolean = PluginUtil.isDevMode()
 
-    private fun extractOrganizationFromUrl(url: String): String? =
-        PluginUtil.extractOrganizationFromUrl(url)
-    
+    private fun extractOrganizationFromUrl(url: String): String? = PluginUtil.extractOrganizationFromUrl(url)
+
     /**
      * Attempts to retrieve the PAT from Git Credential Helper
      */
     private fun tryGetTokenFromGitCredentialHelper(): String? {
         return try {
             val gitCredHelper = GitCredentialHelperService.getInstance(project)
-            
+
             // Check if credential helper is available
             if (!gitCredHelper.isCredentialHelperAvailable()) {
                 return null
             }
-            
+
             // Try to retrieve credentials
             val token = gitCredHelper.getCredentialsForCurrentRepository()
-            
+
             if (token != null) {
                 // Save the token in PasswordSafe for future use
                 savePersonalAccessToken(token)
             }
-            
+
             token
         } catch (e: Exception) {
             null
@@ -264,11 +280,11 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         val credentialAttributes = createCredentialAttributes()
         val credentials = Credentials("azure-devops", token)
         PasswordSafe.instance.set(credentialAttributes, credentials)
-        
+
         // Try to also save in Git Credential Helper
         trySaveTokenToGitCredentialHelper(token)
     }
-    
+
     /**
      * Attempts to also save the PAT in Git Credential Helper
      * for synchronization with Git CLI
@@ -277,7 +293,7 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         try {
             val gitService = GitRepositoryService.getInstance(project)
             val remoteUrl = gitService.getRemoteUrl() ?: return
-            
+
             val gitCredHelper = GitCredentialHelperService.getInstance(project)
             if (gitCredHelper.isCredentialHelperAvailable()) {
                 gitCredHelper.saveCredentialsToHelper(remoteUrl, "", token)
@@ -300,11 +316,10 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
      */
     fun isConfigured(): Boolean = getConfig().isValid()
 
-    private fun createCredentialAttributes(): CredentialAttributes {
-        return CredentialAttributes(
-            generateServiceName("AzureDevOps", CREDENTIAL_KEY)
+    private fun createCredentialAttributes(): CredentialAttributes =
+        CredentialAttributes(
+            generateServiceName("AzureDevOps", CREDENTIAL_KEY),
         )
-    }
 
     /**
      * Gets the base URL for Azure DevOps APIs.
@@ -323,8 +338,9 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         // Check availability of visualstudio.com domain preference from detector
         val detector = AzureDevOpsRepositoryDetector.getInstance(project)
         val info = detector.detectAzureDevOpsInfo()
-        if (info != null && info.useVisualStudioDomain && 
-            info.organization.equals(config.organization, ignoreCase = true)) {
+        if (info != null && info.useVisualStudioDomain &&
+            info.organization.equals(config.organization, ignoreCase = true)
+        ) {
             return "https://${config.organization}.visualstudio.com"
         }
 
@@ -351,9 +367,21 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
             for (account in accountManager.getAccounts()) {
                 if (account.selfHosted) {
                     // Compare the account server URL host with the repo remote URL host
-                    val accountHost = java.net.URI(account.serverUrl).host?.lowercase()
+                    val accountHost =
+                        java.net
+                            .URI(account.serverUrl)
+                            .host
+                            ?.lowercase()
                     val remoteUrl = repoInfo.remoteUrl
-                    val remoteHost = try { java.net.URI(remoteUrl).host?.lowercase() } catch (_: Exception) { null }
+                    val remoteHost =
+                        try {
+                            java.net
+                                .URI(remoteUrl)
+                                .host
+                                ?.lowercase()
+                        } catch (_: Exception) {
+                            null
+                        }
                     if (accountHost != null && accountHost == remoteHost) {
                         return account.serverUrl.trimEnd('/')
                     }
@@ -364,24 +392,24 @@ class AzureDevOpsConfigService(private val project: com.intellij.openapi.project
         }
         return null
     }
-    
+
     /**
      * Checks if the repository is Azure DevOps OR if there is a valid manual configuration
      */
     fun isAzureDevOpsRepository(): Boolean {
         val detector = AzureDevOpsRepositoryDetector.getInstance(project)
         val autoDetected = detector.isAzureDevOpsRepository()
-        
+
         // If not auto-detected, check if there is a valid manual config
         if (!autoDetected) {
             return myState.manualOrganization.isNotBlank() &&
-                   myState.manualProject.isNotBlank() &&
-                   myState.manualRepository.isNotBlank()
+                myState.manualProject.isNotBlank() &&
+                myState.manualRepository.isNotBlank()
         }
-        
+
         return true
     }
-    
+
     /**
      * Gets the description of the detected repository
      */

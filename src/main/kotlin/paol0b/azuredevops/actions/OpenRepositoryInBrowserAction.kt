@@ -8,7 +8,6 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
 import paol0b.azuredevops.services.AzureDevOpsApiClient
 import paol0b.azuredevops.services.AzureDevOpsConfigService
 import paol0b.azuredevops.services.GitRepositoryService
@@ -17,12 +16,9 @@ import paol0b.azuredevops.services.GitRepositoryService
  * Action to open the current Azure DevOps repository in the browser
  */
 class OpenRepositoryInBrowserAction : AnAction() {
-
     private val logger = Logger.getInstance(OpenRepositoryInBrowserAction::class.java)
 
-    override fun getActionUpdateThread(): ActionUpdateThread {
-        return ActionUpdateThread.BGT
-    }
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
@@ -30,19 +26,19 @@ class OpenRepositoryInBrowserAction : AnAction() {
         try {
             val url = buildRepositoryUrl(project)
             BrowserUtil.browse(url)
-            
+
             logger.info("Opened repository in browser: $url")
         } catch (ex: Exception) {
             logger.error("Failed to open repository in browser", ex)
-            
-            NotificationGroupManager.getInstance()
+
+            NotificationGroupManager
+                .getInstance()
                 .getNotificationGroup("AzureDevOps.Notifications")
                 .createNotification(
                     "Failed to Open Repository",
                     ex.message ?: "Unknown error",
-                    NotificationType.ERROR
-                )
-                .notify(project)
+                    NotificationType.ERROR,
+                ).notify(project)
         }
     }
 

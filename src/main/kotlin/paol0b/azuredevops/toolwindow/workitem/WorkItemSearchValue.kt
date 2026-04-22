@@ -11,7 +11,7 @@ data class WorkItemSearchValue(
     val assignedTo: AssignedToFilter? = null,
     val iteration: IterationFilter? = null,
     val sort: Sort? = null,
-    val priority: PriorityFilter? = null
+    val priority: PriorityFilter? = null,
 ) {
     val filterCount: Int
         get() {
@@ -26,29 +26,38 @@ data class WorkItemSearchValue(
             return count
         }
 
-    enum class TypeFilter(val displayName: String) {
+    enum class TypeFilter(
+        val displayName: String,
+    ) {
         BUG("Bug"),
         TASK("Task"),
         USER_STORY("User Story"),
         FEATURE("Feature"),
-        EPIC("Epic");
+        EPIC("Epic"),
+        ;
 
         override fun toString(): String = displayName
     }
 
-    enum class StateFilter(val displayName: String) {
+    enum class StateFilter(
+        val displayName: String,
+    ) {
         NEW("New"),
         ACTIVE("Active"),
         RESOLVED("Resolved"),
         CLOSED("Closed"),
-        ALL("All");
+        ALL("All"),
+        ;
 
         override fun toString(): String = displayName
     }
 
-    enum class AssignedToFilter(val displayName: String) {
+    enum class AssignedToFilter(
+        val displayName: String,
+    ) {
         ME("Assigned to me"),
-        ALL("All users");
+        ALL("All users"),
+        ;
 
         override fun toString(): String = displayName
     }
@@ -56,24 +65,31 @@ data class WorkItemSearchValue(
     data class IterationFilter(
         val path: String?,
         val name: String,
-        val isCurrent: Boolean = false
+        val isCurrent: Boolean = false,
     ) {
         override fun toString(): String = name
     }
 
-    enum class Sort(val displayName: String) {
+    enum class Sort(
+        val displayName: String,
+    ) {
         RECENTLY_CHANGED("Recently changed"),
         OLDEST("Oldest"),
-        PRIORITY("By priority");
+        PRIORITY("By priority"),
+        ;
 
         override fun toString(): String = displayName
     }
 
-    enum class PriorityFilter(val displayName: String, val value: Int) {
+    enum class PriorityFilter(
+        val displayName: String,
+        val value: Int,
+    ) {
         P1("P1 - Critical", 1),
         P2("P2 - High", 2),
         P3("P3 - Medium", 3),
-        P4("P4 - Low", 4);
+        P4("P4 - Low", 4),
+        ;
 
         override fun toString(): String = displayName
     }
@@ -84,11 +100,14 @@ data class WorkItemSearchValue(
     }
 }
 
-enum class WorkItemQuickFilter(val displayName: String) {
+enum class WorkItemQuickFilter(
+    val displayName: String,
+) {
     MY_WORK_ITEMS("My work items"),
     ALL_ACTIVE("All active"),
     MY_BUGS("My bugs"),
-    CURRENT_SPRINT("Current sprint");
+    CURRENT_SPRINT("Current sprint"),
+    ;
 
     override fun toString(): String = displayName
 }

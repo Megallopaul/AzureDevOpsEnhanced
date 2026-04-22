@@ -8,7 +8,6 @@ import paol0b.azuredevops.model.BuildTimeline
 import paol0b.azuredevops.model.PipelineBuild
 import paol0b.azuredevops.model.TimelineRecord
 import paol0b.azuredevops.toolwindow.pipeline.editor.PipelineDiagramVirtualFile
-import paol0b.azuredevops.toolwindow.pipeline.editor.PipelineLogFileEditor
 import paol0b.azuredevops.toolwindow.pipeline.editor.PipelineLogVirtualFile
 import java.util.concurrent.ConcurrentHashMap
 
@@ -17,8 +16,9 @@ import java.util.concurrent.ConcurrentHashMap
  * mirroring the pattern of [PrReviewTabService].
  */
 @Service(Service.Level.PROJECT)
-class PipelineTabService(private val project: Project) {
-
+class PipelineTabService(
+    private val project: Project,
+) {
     /** Build data stored by VirtualFile. */
     private val buildByFile = ConcurrentHashMap<VirtualFile, PipelineBuild>()
 
@@ -38,16 +38,17 @@ class PipelineTabService(private val project: Project) {
     private val logLineCount = ConcurrentHashMap<String, Int>()
 
     companion object {
-        fun getInstance(project: Project): PipelineTabService {
-            return project.getService(PipelineTabService::class.java)
-        }
+        fun getInstance(project: Project): PipelineTabService = project.getService(PipelineTabService::class.java)
     }
 
     // ------------------------------------------------------------------
     // Log tabs
     // ------------------------------------------------------------------
 
-    fun openLogTab(build: PipelineBuild, record: TimelineRecord) {
+    fun openLogTab(
+        build: PipelineBuild,
+        record: TimelineRecord,
+    ) {
         val editorManager = FileEditorManager.getInstance(project)
         val logId = record.log?.id ?: return
         val logKey = "${build.id}-$logId"
@@ -69,7 +70,10 @@ class PipelineTabService(private val project: Project) {
     // Diagram tabs
     // ------------------------------------------------------------------
 
-    fun openDiagramTab(build: PipelineBuild, timeline: BuildTimeline) {
+    fun openDiagramTab(
+        build: PipelineBuild,
+        timeline: BuildTimeline,
+    ) {
         val editorManager = FileEditorManager.getInstance(project)
 
         val existing = diagramFiles[build.id]
@@ -90,18 +94,25 @@ class PipelineTabService(private val project: Project) {
     // ------------------------------------------------------------------
 
     fun getBuild(file: VirtualFile): PipelineBuild? = buildByFile[file]
+
     fun getTimeline(file: VirtualFile): BuildTimeline? = timelineByFile[file]
+
     fun getTimelineRecord(file: VirtualFile): TimelineRecord? = recordByFile[file]
 
     // ------------------------------------------------------------------
     // Log line tracking for delta fetch
     // ------------------------------------------------------------------
 
-    fun getLogLineCount(buildId: Int, logId: Int): Int {
-        return logLineCount["$buildId-$logId"] ?: 0
-    }
+    fun getLogLineCount(
+        buildId: Int,
+        logId: Int,
+    ): Int = logLineCount["$buildId-$logId"] ?: 0
 
-    fun setLogLineCount(buildId: Int, logId: Int, lineCount: Int) {
+    fun setLogLineCount(
+        buildId: Int,
+        logId: Int,
+        lineCount: Int,
+    ) {
         logLineCount["$buildId-$logId"] = lineCount
     }
 

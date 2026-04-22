@@ -13,20 +13,24 @@ import javax.swing.JPanel
  * Uses a flat JBList with GitHub-style cell rendering.
  * Actions are placed in the native tool window title bar by the factory.
  */
-class PullRequestToolWindow(private val project: Project) {
-
+class PullRequestToolWindow(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(PullRequestToolWindow::class.java)
     private val mainPanel: SimpleToolWindowPanel
     private val pullRequestListPanel: PullRequestListPanel
-    private val pollingService = paol0b.azuredevops.services.PullRequestsPollingService.getInstance(project)
+    private val pollingService =
+        paol0b.azuredevops.services.PullRequestsPollingService
+            .getInstance(project)
     private var isInitialLoadDone: Boolean = false
 
     init {
         pullRequestListPanel = PullRequestListPanel(project) { _ -> }
 
-        mainPanel = SimpleToolWindowPanel(true, true).apply {
-            setContent(pullRequestListPanel.getComponent())
-        }
+        mainPanel =
+            SimpleToolWindowPanel(true, true).apply {
+                setContent(pullRequestListPanel.getComponent())
+            }
 
         pollingService.startPolling {
             pullRequestListPanel.refreshPullRequests()
@@ -46,9 +50,7 @@ class PullRequestToolWindow(private val project: Project) {
         pullRequestListPanel.refreshPullRequests()
     }
 
-    fun getSelectedPullRequest(): PullRequest? {
-        return pullRequestListPanel.getSelectedPullRequest()
-    }
+    fun getSelectedPullRequest(): PullRequest? = pullRequestListPanel.getSelectedPullRequest()
 
     fun openSelectedPrInBrowser() {
         getSelectedPullRequest()?.let { pr ->
@@ -74,7 +76,9 @@ class PullRequestToolWindow(private val project: Project) {
     private fun openInBrowser(url: String) {
         try {
             if (java.awt.Desktop.isDesktopSupported()) {
-                java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+                java.awt.Desktop
+                    .getDesktop()
+                    .browse(java.net.URI(url))
             }
         } catch (e: Exception) {
             logger.warn("Failed to open URL in browser: $url", e)

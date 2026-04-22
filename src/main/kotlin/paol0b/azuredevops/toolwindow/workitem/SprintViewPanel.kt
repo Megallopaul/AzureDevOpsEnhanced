@@ -25,8 +25,9 @@ import javax.swing.tree.DefaultTreeModel
  * Sprint view showing work items grouped by state within the current iteration.
  * Header shows sprint name, date range, and progress bar.
  */
-class SprintViewPanel(private val project: Project) {
-
+class SprintViewPanel(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(SprintViewPanel::class.java)
     private val panel: JPanel
     private val tree: Tree
@@ -43,62 +44,71 @@ class SprintViewPanel(private val project: Project) {
     init {
         rootNode = DefaultMutableTreeNode("Sprint")
         treeModel = DefaultTreeModel(rootNode)
-        tree = Tree(treeModel).apply {
-            isRootVisible = false
-            showsRootHandles = true
-            cellRenderer = SprintCellRenderer()
-            border = JBUI.Borders.empty(6, 12)
-            rowHeight = 0
-        }
+        tree =
+            Tree(treeModel).apply {
+                isRootVisible = false
+                showsRootHandles = true
+                cellRenderer = SprintCellRenderer()
+                border = JBUI.Borders.empty(6, 12)
+                rowHeight = 0
+            }
 
         TreeUIHelper.getInstance().installTreeSpeedSearch(tree)
 
         // Double-click opens detail tab
-        tree.addMouseListener(object : java.awt.event.MouseAdapter() {
-            override fun mouseClicked(e: java.awt.event.MouseEvent) {
-                if (e.clickCount == 2) {
-                    val path = tree.getPathForLocation(e.x, e.y) ?: return
-                    val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return
-                    val workItem = node.userObject as? WorkItem ?: return
-                    WorkItemToolWindowFactory.openWorkItemDetailTab(project, workItem)
+        tree.addMouseListener(
+            object : java.awt.event.MouseAdapter() {
+                override fun mouseClicked(e: java.awt.event.MouseEvent) {
+                    if (e.clickCount == 2) {
+                        val path = tree.getPathForLocation(e.x, e.y) ?: return
+                        val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return
+                        val workItem = node.userObject as? WorkItem ?: return
+                        WorkItemToolWindowFactory.openWorkItemDetailTab(project, workItem)
+                    }
                 }
+            },
+        )
+
+        sprintHeaderLabel =
+            JBLabel("Loading sprint...").apply {
+                font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 14f)
+                border = JBUI.Borders.empty(8, 12, 4, 12)
             }
-        })
 
-        sprintHeaderLabel = JBLabel("Loading sprint...").apply {
-            font = UIUtil.getLabelFont().deriveFont(Font.BOLD, 14f)
-            border = JBUI.Borders.empty(8, 12, 4, 12)
-        }
-
-        progressBar = JProgressBar(0, 100).apply {
-            isStringPainted = true
-            string = "0%"
-            preferredSize = Dimension(0, JBUI.scale(18))
-            border = JBUI.Borders.empty(0, 12, 8, 12)
-        }
-
-        statusLabel = JLabel("Ready").apply {
-            border = JBUI.Borders.empty(8, 12)
-            font = font.deriveFont(Font.PLAIN, 11f)
-            foreground = JBColor.GRAY
-        }
-
-        panel = JPanel(BorderLayout()).apply {
-            val headerPanel = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                isOpaque = false
-                add(sprintHeaderLabel)
-                add(progressBar)
+        progressBar =
+            JProgressBar(0, 100).apply {
+                isStringPainted = true
+                string = "0%"
+                preferredSize = Dimension(0, JBUI.scale(18))
+                border = JBUI.Borders.empty(0, 12, 8, 12)
             }
-            add(headerPanel, BorderLayout.NORTH)
 
-            val scrollPane = JBScrollPane(tree).apply {
-                border = JBUI.Borders.empty()
-                verticalScrollBar.unitIncrement = 16
+        statusLabel =
+            JLabel("Ready").apply {
+                border = JBUI.Borders.empty(8, 12)
+                font = font.deriveFont(Font.PLAIN, 11f)
+                foreground = JBColor.GRAY
             }
-            add(scrollPane, BorderLayout.CENTER)
-            add(statusLabel, BorderLayout.SOUTH)
-        }
+
+        panel =
+            JPanel(BorderLayout()).apply {
+                val headerPanel =
+                    JPanel().apply {
+                        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                        isOpaque = false
+                        add(sprintHeaderLabel)
+                        add(progressBar)
+                    }
+                add(headerPanel, BorderLayout.NORTH)
+
+                val scrollPane =
+                    JBScrollPane(tree).apply {
+                        border = JBUI.Borders.empty()
+                        verticalScrollBar.unitIncrement = 16
+                    }
+                add(scrollPane, BorderLayout.CENTER)
+                add(statusLabel, BorderLayout.SOUTH)
+            }
     }
 
     fun getComponent(): JPanel = panel
@@ -130,13 +140,14 @@ class SprintViewPanel(private val project: Project) {
                 }
 
                 // Get work items for this iteration
-                val wiql = """
+                val wiql =
+                    """
                     SELECT [System.Id]
                     FROM WorkItems
                     WHERE [System.TeamProject] = @project
                     AND [System.IterationPath] UNDER '${iteration.path}'
                     ORDER BY [System.State] ASC, [System.ChangedDate] DESC
-                """.trimIndent()
+                    """.trimIndent()
 
                 val workItems = apiClient.getWorkItemsByWiql(wiql)
                 cachedWorkItems = workItems
@@ -157,16 +168,20 @@ class SprintViewPanel(private val project: Project) {
         }
     }
 
-    private fun updateSprintHeader(iteration: TeamIteration, workItems: List<WorkItem>) {
+    private fun updateSprintHeader(
+        iteration: TeamIteration,
+        workItems: List<WorkItem>,
+    ) {
         val dateRange = iteration.getDateRange()
         val suffix = if (dateRange.isNotBlank()) "  ($dateRange)" else ""
         sprintHeaderLabel.text = "${iteration.name}$suffix"
 
         val total = workItems.size
-        val completed = workItems.count {
-            val state = it.getState().lowercase()
-            state == "closed" || state == "done" || state == "resolved"
-        }
+        val completed =
+            workItems.count {
+                val state = it.getState().lowercase()
+                state == "closed" || state == "done" || state == "resolved"
+            }
         val pct = if (total > 0) (completed * 100 / total) else 0
         progressBar.value = pct
         progressBar.string = "$completed / $total ($pct%)"
@@ -186,7 +201,8 @@ class SprintViewPanel(private val project: Project) {
         val stateOrder = listOf("New", "Active", "Resolved", "Closed")
 
         // Add states in order, then any remaining
-        val orderedStates = stateOrder.filter { grouped.containsKey(it) } +
+        val orderedStates =
+            stateOrder.filter { grouped.containsKey(it) } +
                 grouped.keys.filter { it !in stateOrder }
 
         orderedStates.forEach { state ->
@@ -208,10 +224,11 @@ class SprintViewPanel(private val project: Project) {
 
     fun startAutoRefresh() {
         if (refreshTimer != null) return
-        refreshTimer = Timer(30_000) { refresh() }.apply {
-            isRepeats = true
-            start()
-        }
+        refreshTimer =
+            Timer(30_000) { refresh() }.apply {
+                isRepeats = true
+                start()
+            }
     }
 
     fun stopAutoRefresh() {
@@ -222,8 +239,13 @@ class SprintViewPanel(private val project: Project) {
     // Cell renderer for sprint view
     private inner class SprintCellRenderer : ColoredTreeCellRenderer() {
         override fun customizeCellRenderer(
-            tree: JTree, value: Any?, selected: Boolean,
-            expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean
+            tree: JTree,
+            value: Any?,
+            selected: Boolean,
+            expanded: Boolean,
+            leaf: Boolean,
+            row: Int,
+            hasFocus: Boolean,
         ) {
             val node = value as? DefaultMutableTreeNode ?: return
             val userObject = node.userObject
@@ -233,9 +255,13 @@ class SprintViewPanel(private val project: Project) {
                     icon = getTypeIcon(userObject.getWorkItemType())
                     append(userObject.getTitle(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
                     append("  ", SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                    append("#${userObject.id}", SimpleTextAttributes(
-                        SimpleTextAttributes.STYLE_PLAIN, userObject.getTypeColor()
-                    ))
+                    append(
+                        "#${userObject.id}",
+                        SimpleTextAttributes(
+                            SimpleTextAttributes.STYLE_PLAIN,
+                            userObject.getTypeColor(),
+                        ),
+                    )
                     userObject.getAssignedTo()?.let { name ->
                         append("  ·  ", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
                         append(name, SimpleTextAttributes(SimpleTextAttributes.STYLE_ITALIC, JBColor.GRAY))

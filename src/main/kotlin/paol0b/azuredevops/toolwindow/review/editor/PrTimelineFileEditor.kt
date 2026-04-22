@@ -18,23 +18,34 @@ import javax.swing.JComponent
 class PrTimelineFileEditor(
     private val project: Project,
     private val file: VirtualFile,
-    private val pullRequest: PullRequest
-) : UserDataHolderBase(), FileEditor {
-
+    private val pullRequest: PullRequest,
+) : UserDataHolderBase(),
+    FileEditor {
     private val timelinePanel = TimelinePanel(project, pullRequest)
     private var isDisposed = false
 
     override fun getComponent(): JComponent = timelinePanel
+
     override fun getPreferredFocusedComponent(): JComponent? = timelinePanel
+
     override fun getName(): String = "Timeline"
+
     override fun getFile(): VirtualFile = file
+
     override fun setState(state: FileEditorState) {}
+
     override fun isModified(): Boolean = false
+
     override fun isValid(): Boolean = !isDisposed
+
     override fun selectNotify() {}
+
     override fun deselectNotify() {}
+
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
     override fun getCurrentLocation(): FileEditorLocation? = null
 
     override fun dispose() {

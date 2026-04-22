@@ -8,29 +8,33 @@ import com.google.gson.annotations.SerializedName
 enum class MergeStrategy {
     @SerializedName("noFastForward")
     NO_FAST_FORWARD,
-    
+
     @SerializedName("squash")
     SQUASH,
-    
+
     @SerializedName("rebase")
     REBASE,
-    
+
     @SerializedName("rebaseMerge")
-    REBASE_MERGE;
-    
-    fun getDisplayName(): String = when(this) {
-        NO_FAST_FORWARD -> "Merge commit (no fast-forward)"
-        SQUASH -> "Squash commit"
-        REBASE -> "Rebase and fast-forward"
-        REBASE_MERGE -> "Rebase and merge"
-    }
-    
-    fun toApiValue(): String = when(this) {
-        NO_FAST_FORWARD -> "noFastForward"
-        SQUASH -> "squash"
-        REBASE -> "rebase"
-        REBASE_MERGE -> "rebaseMerge"
-    }
+    REBASE_MERGE,
+
+    ;
+
+    fun getDisplayName(): String =
+        when (this) {
+            NO_FAST_FORWARD -> "Merge commit (no fast-forward)"
+            SQUASH -> "Squash commit"
+            REBASE -> "Rebase and fast-forward"
+            REBASE_MERGE -> "Rebase and merge"
+        }
+
+    fun toApiValue(): String =
+        when (this) {
+            NO_FAST_FORWARD -> "noFastForward"
+            SQUASH -> "squash"
+            REBASE -> "rebase"
+            REBASE_MERGE -> "rebaseMerge"
+        }
 }
 
 /**
@@ -39,12 +43,10 @@ enum class MergeStrategy {
 data class CompletePullRequestRequest(
     @SerializedName("status")
     val status: String = "completed",
-    
     @SerializedName("lastMergeSourceCommit")
     val lastMergeSourceCommit: CommitRef,
-    
     @SerializedName("completionOptions")
-    val completionOptions: CompletionOptions
+    val completionOptions: CompletionOptions,
 )
 
 /**
@@ -53,21 +55,16 @@ data class CompletePullRequestRequest(
 data class CompletionOptions(
     @SerializedName("mergeStrategy")
     val mergeStrategy: String,
-    
     @SerializedName("deleteSourceBranch")
     val deleteSourceBranch: Boolean = false,
-    
     @SerializedName("mergeCommitMessage")
     val mergeCommitMessage: String? = null,
-    
     @SerializedName("bypassPolicy")
     val bypassPolicy: Boolean = false,
-    
     @SerializedName("bypassReason")
     val bypassReason: String? = null,
-    
     @SerializedName("transitionWorkItems")
-    val transitionWorkItems: Boolean = true
+    val transitionWorkItems: Boolean = true,
 )
 
 /**
@@ -76,9 +73,8 @@ data class CompletionOptions(
 data class SetAutoCompleteRequest(
     @SerializedName("autoCompleteSetBy")
     val autoCompleteSetBy: AutoCompleteSetBy,
-    
     @SerializedName("completionOptions")
-    val completionOptions: CompletionOptions
+    val completionOptions: CompletionOptions,
 )
 
 /**
@@ -86,7 +82,7 @@ data class SetAutoCompleteRequest(
  */
 data class AutoCompleteSetBy(
     @SerializedName("id")
-    val id: String
+    val id: String,
 )
 
 /**
@@ -96,5 +92,5 @@ data class CompletionResult(
     val success: Boolean,
     val message: String,
     val pullRequest: PullRequest? = null,
-    val error: String? = null
+    val error: String? = null,
 )

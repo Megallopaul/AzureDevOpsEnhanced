@@ -12,20 +12,17 @@ import paol0b.azuredevops.services.PullRequestReviewService
  * Opens the diff viewer with all changes and allows adding comments
  */
 class ReviewPullRequestAction(
-    private val pullRequest: PullRequest
+    private val pullRequest: PullRequest,
 ) : AnAction(
-    "Review PR",
-    "Review all changes in this Pull Request with integrated diff viewer and code analysis",
-    AllIcons.Actions.Diff
-) {
-
-    override fun getActionUpdateThread(): ActionUpdateThread {
-        return ActionUpdateThread.BGT
-    }
+        "Review PR",
+        "Review all changes in this Pull Request with integrated diff viewer and code analysis",
+        AllIcons.Actions.Diff,
+    ) {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        
+
         val reviewService = PullRequestReviewService.getInstance(project)
         reviewService.startReview(pullRequest)
     }

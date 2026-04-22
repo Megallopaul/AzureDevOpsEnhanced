@@ -4,8 +4,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
-import git4idea.GitLocalBranch
-import git4idea.GitRemoteBranch
 import git4idea.changes.GitChangeUtils
 import git4idea.history.GitHistoryUtils
 import git4idea.repo.GitRepository
@@ -16,14 +14,13 @@ import paol0b.azuredevops.model.GitBranch
  * Service to interact with the local Git repository
  */
 @Service(Service.Level.PROJECT)
-class GitRepositoryService(private val project: Project) {
-
+class GitRepositoryService(
+    private val project: Project,
+) {
     private val logger = Logger.getInstance(GitRepositoryService::class.java)
 
     companion object {
-        fun getInstance(project: Project): GitRepositoryService {
-            return project.getService(GitRepositoryService::class.java)
-        }
+        fun getInstance(project: Project): GitRepositoryService = project.getService(GitRepositoryService::class.java)
     }
 
     /**
@@ -32,12 +29,12 @@ class GitRepositoryService(private val project: Project) {
     fun getCurrentRepository(): GitRepository? {
         val manager = GitRepositoryManager.getInstance(project)
         val repositories = manager.repositories
-        
+
         if (repositories.isEmpty()) {
             logger.warn("No Git repositories found in project")
             return null
         }
-        
+
         // Returns the first repository (in multi-repo projects, this could be extended)
         return repositories.firstOrNull()
     }
@@ -48,10 +45,10 @@ class GitRepositoryService(private val project: Project) {
     fun getCurrentBranch(): GitBranch? {
         val repository = getCurrentRepository() ?: return null
         val currentBranch = repository.currentBranch ?: return null
-        
+
         return GitBranch(
             name = "refs/heads/${currentBranch.name}",
-            displayName = currentBranch.name
+            displayName = currentBranch.name,
         )
     }
 
@@ -60,11 +57,11 @@ class GitRepositoryService(private val project: Project) {
      */
     fun getLocalBranches(): List<GitBranch> {
         val repository = getCurrentRepository() ?: return emptyList()
-        
+
         return repository.branches.localBranches.map { branch ->
             GitBranch(
                 name = "refs/heads/${branch.name}",
-                displayName = branch.name
+                displayName = branch.name,
             )
         }
     }
@@ -74,11 +71,11 @@ class GitRepositoryService(private val project: Project) {
      */
     fun getRemoteBranches(): List<GitBranch> {
         val repository = getCurrentRepository() ?: return emptyList()
-        
+
         return repository.branches.remoteBranches.map { branch ->
             GitBranch(
                 name = "refs/heads/${branch.nameForRemoteOperations}",
-                displayName = branch.nameForRemoteOperations
+                displayName = branch.nameForRemoteOperations,
             )
         }
     }
@@ -89,31 +86,31 @@ class GitRepositoryService(private val project: Project) {
      */
     fun getDefaultTargetBranch(): GitBranch? {
         val repository = getCurrentRepository() ?: return null
-        
+
         // First, look in remote branches
         val remoteBranches = repository.branches.remoteBranches
         val mainBranch = remoteBranches.firstOrNull { it.nameForRemoteOperations == "main" }
         if (mainBranch != null) {
             return GitBranch("refs/heads/main", "main")
         }
-        
+
         val masterBranch = remoteBranches.firstOrNull { it.nameForRemoteOperations == "master" }
         if (masterBranch != null) {
             return GitBranch("refs/heads/master", "master")
         }
-        
+
         // Fallback: look in local branches
         val localBranches = repository.branches.localBranches
         val localMain = localBranches.firstOrNull { it.name == "main" }
         if (localMain != null) {
             return GitBranch("refs/heads/main", "main")
         }
-        
+
         val localMaster = localBranches.firstOrNull { it.name == "master" }
         if (localMaster != null) {
             return GitBranch("refs/heads/master", "master")
         }
-        
+
         logger.warn("No default branch (main/master) found")
         return null
     }
@@ -121,16 +118,14 @@ class GitRepositoryService(private val project: Project) {
     /**
      * Checks if the project has a Git repository
      */
-    fun hasGitRepository(): Boolean {
-        return getCurrentRepository() != null
-    }
+    fun hasGitRepository(): Boolean = getCurrentRepository() != null
 
     /**
      * Gets the name of the Git repository (from the remote URL if available)
      */
     fun getRepositoryName(): String? {
         val repository = getCurrentRepository() ?: return null
-        
+
         // Try to get the name from the remote
         val remotes = repository.remotes
         if (remotes.isNotEmpty()) {
@@ -140,7 +135,7 @@ class GitRepositoryService(private val project: Project) {
             // E.g., git@ssh.dev.azure.com:v3/org/project/repo -> repo
             return extractRepositoryNameFromUrl(firstRemoteUrl)
         }
-        
+
         return null
     }
 
@@ -150,7 +145,7 @@ class GitRepositoryService(private val project: Project) {
     private fun extractRepositoryNameFromUrl(url: String): String {
         // Remove .git at the end if present
         val cleanUrl = url.removeSuffix(".git")
-        
+
         // Take the last segment of the path
         val segments = cleanUrl.split('/', '\\')
         return segments.lastOrNull()?.takeIf { it.isNotBlank() } ?: cleanUrl
@@ -169,17 +164,17 @@ class GitRepositoryService(private val project: Project) {
      */
     fun getAllBranches(): List<GitBranch> {
         val repository = getCurrentRepository() ?: return emptyList()
-        
+
         val branchNames = mutableSetOf<String>()
         val branches = mutableListOf<GitBranch>()
-        
+
         // Add local branches
         repository.branches.localBranches.forEach { branch ->
             if (branchNames.add(branch.name)) {
                 branches.add(GitBranch("refs/heads/${branch.name}", branch.name))
             }
         }
-        
+
         // Add remote branches not already present
         repository.branches.remoteBranches.forEach { branch ->
             val name = branch.nameForRemoteOperations
@@ -187,22 +182,22 @@ class GitRepositoryService(private val project: Project) {
                 branches.add(GitBranch("refs/heads/$name", name))
             }
         }
-        
+
         return branches.sortedBy { it.displayName }
     }
-    
+
     /**
      * Gets the remote Git URL (origin)
      */
     fun getRemoteUrl(): String? {
         val repository = getCurrentRepository() ?: return null
-        
+
         // Look for the "origin" remote
         val originRemote = repository.remotes.firstOrNull { it.name == "origin" }
         if (originRemote != null) {
             return originRemote.firstUrl
         }
-        
+
         // If no origin, return the first available remote
         val firstRemote = repository.remotes.firstOrNull()
         return firstRemote?.firstUrl
@@ -230,16 +225,20 @@ class GitRepositoryService(private val project: Project) {
         }
 
         // Otherwise look for a remote branch and use its full name (e.g. origin/aa)
-        val remoteBranch = repository.branches.remoteBranches.firstOrNull {
-            it.nameForRemoteOperations == name
-        }
+        val remoteBranch =
+            repository.branches.remoteBranches.firstOrNull {
+                it.nameForRemoteOperations == name
+            }
         return remoteBranch?.name ?: name
     }
 
     /**
      * Gets the changes between two branches (blocking, for use from background threads)
      */
-    fun getChangesBetweenBranchesBlocking(sourceBranch: String, targetBranch: String): List<Change> {
+    fun getChangesBetweenBranchesBlocking(
+        sourceBranch: String,
+        targetBranch: String,
+    ): List<Change> {
         val repository = getCurrentRepository() ?: return emptyList()
 
         return try {
@@ -256,14 +255,21 @@ class GitRepositoryService(private val project: Project) {
     /**
      * Gets the changes between two branches (suspend function for coroutine contexts)
      */
-    suspend fun getChangesBetweenBranches(sourceBranch: String, targetBranch: String): List<Change> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        getChangesBetweenBranchesBlocking(sourceBranch, targetBranch)
-    }
+    suspend fun getChangesBetweenBranches(
+        sourceBranch: String,
+        targetBranch: String,
+    ): List<Change> =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            getChangesBetweenBranchesBlocking(sourceBranch, targetBranch)
+        }
 
     /**
      * Gets the commits between two branches (blocking, for use from background threads)
      */
-    fun getCommitsBetweenBranchesBlocking(sourceBranch: String, targetBranch: String): List<git4idea.GitCommit> {
+    fun getCommitsBetweenBranchesBlocking(
+        sourceBranch: String,
+        targetBranch: String,
+    ): List<git4idea.GitCommit> {
         val repository = getCurrentRepository() ?: return emptyList()
 
         return try {
@@ -280,7 +286,11 @@ class GitRepositoryService(private val project: Project) {
     /**
      * Gets the commits between two branches (suspend function for coroutine contexts)
      */
-    suspend fun getCommitsBetweenBranches(sourceBranch: String, targetBranch: String): List<git4idea.GitCommit> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        getCommitsBetweenBranchesBlocking(sourceBranch, targetBranch)
-    }
+    suspend fun getCommitsBetweenBranches(
+        sourceBranch: String,
+        targetBranch: String,
+    ): List<git4idea.GitCommit> =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            getCommitsBetweenBranchesBlocking(sourceBranch, targetBranch)
+        }
 }

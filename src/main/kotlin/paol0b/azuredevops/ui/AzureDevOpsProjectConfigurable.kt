@@ -9,7 +9,6 @@ import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import paol0b.azuredevops.checkout.AzureDevOpsAccount
 import paol0b.azuredevops.checkout.AzureDevOpsAccountManager
-import paol0b.azuredevops.model.AzureDevOpsConfig
 import paol0b.azuredevops.services.AzureDevOpsApiClient
 import paol0b.azuredevops.services.AzureDevOpsConfigService
 import paol0b.azuredevops.services.AzureDevOpsRepositoryDetector
@@ -25,8 +24,9 @@ import javax.swing.*
  * Project-level configuration for Azure DevOps.
  * Contains account selection and plugin settings (polling intervals, etc.)
  */
-class AzureDevOpsProjectConfigurable(private val project: Project) : Configurable {
-
+class AzureDevOpsProjectConfigurable(
+    private val project: Project,
+) : Configurable {
     private var mainPanel: JPanel? = null
     private val accountComboBox = ComboBox<AccountItem>()
     private val testConnectionButton = JButton("Test Connection")
@@ -43,7 +43,7 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
 
     data class AccountItem(
         val account: AzureDevOpsAccount?,
-        val displayText: String
+        val displayText: String,
     ) {
         override fun toString(): String = displayText
     }
@@ -85,18 +85,20 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
 
         manageAccountsButton.addActionListener {
             // Open global accounts settings
-            com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+            com.intellij.openapi.options.ShowSettingsUtil
+                .getInstance()
                 .showSettingsDialog(project, "Azure DevOps Accounts")
             // Reload accounts after returning
             loadAccounts()
         }
 
-        val buttonPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.X_AXIS)
-            add(testConnectionButton)
-            add(Box.createHorizontalStrut(5))
-            add(manageAccountsButton)
-        }
+        val buttonPanel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                add(testConnectionButton)
+                add(Box.createHorizontalStrut(5))
+                add(manageAccountsButton)
+            }
 
         // Load current polling settings
         val settings = AzureDevOpsSettingsService.getInstance(project).state
@@ -105,37 +107,49 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
         timelineIntervalSpinner.value = settings.timelineIntervalSeconds
         statusBarIntervalSpinner.value = settings.statusBarIntervalSeconds
 
-        val formBuilder = FormBuilder.createFormBuilder()
-            // --- Repository & Account ---
-            .addComponent(detectorInfoLabel)
-            .addSeparator()
-            .addLabeledComponent(JBLabel("Account:"), accountComboBox, 1, false)
-            .addComponentToRightColumn(accountStatusLabel, 1)
-            .addVerticalGap(10)
-            .addComponentToRightColumn(buttonPanel, 1)
-            .addSeparator()
-            .addComponent(JBLabel("<html><font size='-1' color='gray'>" +
-                "<b>Note:</b> Accounts are managed globally. Use 'Manage Global Accounts...' to add, remove, or refresh tokens." +
-                "</font></html>"), 1)
-            // --- Polling ---
-            .addVerticalGap(15)
-            .addComponent(JBLabel("<html><b>Polling Intervals</b></html>"))
-            .addComponent(JBLabel("<html><font size='-1' color='gray'>" +
-                "Configure how often the plugin checks for updates. Lower values mean faster updates but more network usage." +
-                "</font></html>"), 1)
-            .addVerticalGap(5)
-            .addLabeledComponent(JBLabel("Pull Requests (seconds):"), prIntervalSpinner, 1, false)
-            .addLabeledComponent(JBLabel("Comments (seconds):"), commentsIntervalSpinner, 1, false)
-            .addLabeledComponent(JBLabel("Timeline (seconds):"), timelineIntervalSpinner, 1, false)
-            .addLabeledComponent(JBLabel("Status Bar (seconds):"), statusBarIntervalSpinner, 1, false)
-            .addComponentFillVertically(JPanel(), 0)
+        val formBuilder =
+            FormBuilder
+                .createFormBuilder()
+                // --- Repository & Account ---
+                .addComponent(detectorInfoLabel)
+                .addSeparator()
+                .addLabeledComponent(JBLabel("Account:"), accountComboBox, 1, false)
+                .addComponentToRightColumn(accountStatusLabel, 1)
+                .addVerticalGap(10)
+                .addComponentToRightColumn(buttonPanel, 1)
+                .addSeparator()
+                .addComponent(
+                    JBLabel(
+                        "<html><font size='-1' color='gray'>" +
+                            "<b>Note:</b> Accounts are managed globally. Use 'Manage Global Accounts...' to add, remove, or refresh tokens." +
+                            "</font></html>",
+                    ),
+                    1,
+                )
+                // --- Polling ---
+                .addVerticalGap(15)
+                .addComponent(JBLabel("<html><b>Polling Intervals</b></html>"))
+                .addComponent(
+                    JBLabel(
+                        "<html><font size='-1' color='gray'>" +
+                            "Configure how often the plugin checks for updates. Lower values mean faster updates but more network usage." +
+                            "</font></html>",
+                    ),
+                    1,
+                ).addVerticalGap(5)
+                .addLabeledComponent(JBLabel("Pull Requests (seconds):"), prIntervalSpinner, 1, false)
+                .addLabeledComponent(JBLabel("Comments (seconds):"), commentsIntervalSpinner, 1, false)
+                .addLabeledComponent(JBLabel("Timeline (seconds):"), timelineIntervalSpinner, 1, false)
+                .addLabeledComponent(JBLabel("Status Bar (seconds):"), statusBarIntervalSpinner, 1, false)
+                .addComponentFillVertically(JPanel(), 0)
 
         val formPanel = formBuilder.panel
 
-        mainPanel = JPanel(BorderLayout()).apply {
-            add(formPanel, BorderLayout.NORTH)
-            border = JBUI.Borders.empty(10)
-        }
+        mainPanel =
+            JPanel(BorderLayout()).apply {
+                add(formPanel, BorderLayout.NORTH)
+                border = JBUI.Borders.empty(10)
+            }
 
         updateAccountStatus()
 
@@ -154,12 +168,13 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
         // Add all accounts
         accounts.forEach { account ->
             val state = accountManager.getAccountAuthState(account.id)
-            val statusIcon = when (state) {
-                AzureDevOpsAccountManager.AccountAuthState.VALID -> "✓"
-                AzureDevOpsAccountManager.AccountAuthState.EXPIRED -> "⚠"
-                AzureDevOpsAccountManager.AccountAuthState.REVOKED -> "✗"
-                else -> "?"
-            }
+            val statusIcon =
+                when (state) {
+                    AzureDevOpsAccountManager.AccountAuthState.VALID -> "✓"
+                    AzureDevOpsAccountManager.AccountAuthState.EXPIRED -> "⚠"
+                    AzureDevOpsAccountManager.AccountAuthState.REVOKED -> "✗"
+                    else -> "?"
+                }
             accountComboBox.addItem(AccountItem(account, "$statusIcon ${account.displayName}"))
         }
 
@@ -167,9 +182,10 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
         val detector = AzureDevOpsRepositoryDetector.getInstance(project)
         val detectedInfo = detector.detectAzureDevOpsInfo()
         if (detectedInfo != null) {
-            val matchingAccount = accounts.find {
-                it.serverUrl.contains(detectedInfo.organization, ignoreCase = true)
-            }
+            val matchingAccount =
+                accounts.find {
+                    it.serverUrl.contains(detectedInfo.organization, ignoreCase = true)
+                }
             if (matchingAccount != null) {
                 for (i in 0 until accountComboBox.itemCount) {
                     val item = accountComboBox.getItemAt(i)
@@ -188,16 +204,17 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
             val accountManager = AzureDevOpsAccountManager.getInstance()
             val state = accountManager.getAccountAuthState(selectedItem.account.id)
 
-            accountStatusLabel.text = when (state) {
-                AzureDevOpsAccountManager.AccountAuthState.VALID ->
-                    "<html><font color='green'>✓ Token is valid</font></html>"
-                AzureDevOpsAccountManager.AccountAuthState.EXPIRED ->
-                    "<html><font color='orange'>⚠ Token expired - use 'Manage Accounts' to refresh</font></html>"
-                AzureDevOpsAccountManager.AccountAuthState.REVOKED ->
-                    "<html><font color='red'>✗ Token revoked - use 'Manage Accounts' to re-authenticate</font></html>"
-                else ->
-                    "<html><font color='gray'>? Token status unknown</font></html>"
-            }
+            accountStatusLabel.text =
+                when (state) {
+                    AzureDevOpsAccountManager.AccountAuthState.VALID ->
+                        "<html><font color='green'>✓ Token is valid</font></html>"
+                    AzureDevOpsAccountManager.AccountAuthState.EXPIRED ->
+                        "<html><font color='orange'>⚠ Token expired - use 'Manage Accounts' to refresh</font></html>"
+                    AzureDevOpsAccountManager.AccountAuthState.REVOKED ->
+                        "<html><font color='red'>✗ Token revoked - use 'Manage Accounts' to re-authenticate</font></html>"
+                    else ->
+                        "<html><font color='gray'>? Token status unknown</font></html>"
+                }
         } else {
             accountStatusLabel.text = "<html><font color='gray'>Using project-level PAT (legacy mode)</font></html>"
         }
@@ -211,25 +228,26 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
             Messages.showErrorDialog(
                 project,
                 "Unable to detect Azure DevOps repository.\nMake sure the project is cloned from Azure DevOps.",
-                "Repository Not Detected"
+                "Repository Not Detected",
             )
             return
         }
 
         val selectedItem = accountComboBox.selectedItem as? AccountItem
-        val token = if (selectedItem?.account != null) {
-            val accountManager = AzureDevOpsAccountManager.getInstance()
-            accountManager.getToken(selectedItem.account.id)
-        } else {
-            // Fallback to project-level PAT
-            AzureDevOpsConfigService.getInstance(project).getConfig().personalAccessToken
-        }
+        val token =
+            if (selectedItem?.account != null) {
+                val accountManager = AzureDevOpsAccountManager.getInstance()
+                accountManager.getToken(selectedItem.account.id)
+            } else {
+                // Fallback to project-level PAT
+                AzureDevOpsConfigService.getInstance(project).getConfig().personalAccessToken
+            }
 
         if (token.isNullOrBlank()) {
             Messages.showErrorDialog(
                 project,
                 "No authentication token available.\nPlease select an account or configure a PAT.",
-                "No Token"
+                "No Token",
             )
             return
         }
@@ -243,29 +261,37 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
             Messages.showInfoMessage(
                 project,
                 "Successfully connected to Azure DevOps!\n\n" +
-                        "Organization: ${repoInfo.organization}\n" +
-                        "Project: ${repoInfo.project}\n" +
-                        "Repository: ${repoInfo.repository}",
-                "Connection Test Successful"
+                    "Organization: ${repoInfo.organization}\n" +
+                    "Project: ${repoInfo.project}\n" +
+                    "Repository: ${repoInfo.repository}",
+                "Connection Test Successful",
             )
         } catch (e: Exception) {
             Messages.showErrorDialog(
                 project,
                 "Connection test failed:\n\n${e.message}",
-                "Connection Error"
+                "Connection Error",
             )
         }
     }
 
-    private fun testConnectionDirectly(url: String, token: String) {
-        val connection = java.net.URI(url).toURL().openConnection() as java.net.HttpURLConnection
+    private fun testConnectionDirectly(
+        url: String,
+        token: String,
+    ) {
+        val connection =
+            java.net
+                .URI(url)
+                .toURL()
+                .openConnection() as java.net.HttpURLConnection
 
         try {
             connection.requestMethod = "GET"
             val credentials = ":$token"
-            val encodedCredentials = java.util.Base64.getEncoder().encodeToString(
-                credentials.toByteArray(java.nio.charset.StandardCharsets.UTF_8)
-            )
+            val encodedCredentials =
+                java.util.Base64.getEncoder().encodeToString(
+                    credentials.toByteArray(java.nio.charset.StandardCharsets.UTF_8),
+                )
             connection.setRequestProperty("Authorization", "Basic $encodedCredentials")
             connection.setRequestProperty("Accept", "application/json")
             connection.connectTimeout = 10000
@@ -275,12 +301,14 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
 
             if (responseCode != java.net.HttpURLConnection.HTTP_OK) {
                 val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                throw Exception(when (responseCode) {
-                    401 -> "Authentication failed. Check the token (401)"
-                    403 -> "Insufficient permissions (403)"
-                    404 -> "Repository not found (404)"
-                    else -> "HTTP Error $responseCode: $errorBody"
-                })
+                throw Exception(
+                    when (responseCode) {
+                        401 -> "Authentication failed. Check the token (401)"
+                        403 -> "Insufficient permissions (403)"
+                        404 -> "Repository not found (404)"
+                        else -> "HTTP Error $responseCode: $errorBody"
+                    },
+                )
             }
         } finally {
             connection.disconnect()
@@ -290,9 +318,9 @@ class AzureDevOpsProjectConfigurable(private val project: Project) : Configurabl
     override fun isModified(): Boolean {
         val settings = AzureDevOpsSettingsService.getInstance(project).state
         return prIntervalSpinner.value as Long != settings.pullRequestIntervalSeconds ||
-                commentsIntervalSpinner.value as Long != settings.commentsIntervalSeconds ||
-                timelineIntervalSpinner.value as Long != settings.timelineIntervalSeconds ||
-                statusBarIntervalSpinner.value as Long != settings.statusBarIntervalSeconds
+            commentsIntervalSpinner.value as Long != settings.commentsIntervalSeconds ||
+            timelineIntervalSpinner.value as Long != settings.timelineIntervalSeconds ||
+            statusBarIntervalSpinner.value as Long != settings.statusBarIntervalSeconds
     }
 
     override fun apply() {

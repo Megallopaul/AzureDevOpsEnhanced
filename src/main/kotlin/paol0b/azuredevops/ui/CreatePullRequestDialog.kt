@@ -12,27 +12,18 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.vcs.changes.Change
-import com.intellij.openapi.vcs.changes.ui.ChangesBrowserNode
-import com.intellij.openapi.vcs.changes.ui.ChangesTree
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.*
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
 import git4idea.GitCommit
-import git4idea.history.GitHistoryUtils
-import git4idea.repo.GitRepository
 import paol0b.azuredevops.model.GitBranch
 import paol0b.azuredevops.model.Identity
 import paol0b.azuredevops.services.AzureDevOpsApiClient
 import paol0b.azuredevops.services.GitRepositoryService
 import java.awt.*
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import javax.imageio.ImageIO
 import javax.swing.*
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
@@ -45,7 +36,7 @@ data class DialogData(
     val defaultTarget: GitBranch?,
     val availableReviewers: List<Identity>,
     val initialChanges: List<Change>,
-    val initialCommits: List<GitCommit>
+    val initialCommits: List<GitCommit>,
 )
 
 /**
@@ -54,9 +45,8 @@ data class DialogData(
 class CreatePullRequestDialog private constructor(
     private val project: Project,
     private val gitService: GitRepositoryService,
-    private val dialogData: DialogData
+    private val dialogData: DialogData,
 ) : DialogWrapper(project) {
-
     private val logger = Logger.getInstance(CreatePullRequestDialog::class.java)
     private val sourceBranchCombo: ComboBox<GitBranch>
     private val targetBranchCombo: ComboBox<GitBranch>
@@ -65,7 +55,7 @@ class CreatePullRequestDialog private constructor(
     private val changesTree: JTree
     private val commitsListModel = DefaultListModel<String>()
     private val commitsList = JList(commitsListModel)
-    
+
     // Reviewer fields
     private val reviewerComboModel = DefaultComboBoxModel<Identity>()
     private val reviewerCombo: ComboBox<Identity>
@@ -78,93 +68,105 @@ class CreatePullRequestDialog private constructor(
         /**
          * Factory method to create the dialog with pre-loaded data
          */
-        fun create(project: Project, gitService: GitRepositoryService): CreatePullRequestDialog? {
+        fun create(
+            project: Project,
+            gitService: GitRepositoryService,
+        ): CreatePullRequestDialog? {
             var dialogData: DialogData? = null
             var error: String? = null
-            
-            // Load all data with progress indicator
-            ProgressManager.getInstance().run(object : Task.Modal(project, "Loading Pull Request Data...", true) {
-                override fun run(indicator: ProgressIndicator) {
-                    try {
-                        indicator.text = "Loading branches..."
-                        indicator.fraction = 0.1
-                        val branches = gitService.getAllBranches()
-                        val currentBranch = gitService.getCurrentBranch()
-                        val defaultTarget = gitService.getDefaultTargetBranch()
-                        
-                        if (branches.isEmpty()) {
-                            error = "No Git branches found in the repository."
-                            return
-                        }
-                        
-                        indicator.text = "Loading reviewers..."
-                        indicator.fraction = 0.3
-                        val apiClient = AzureDevOpsApiClient.getInstance(project)
-                        val reviewers = try {
-                            apiClient.searchIdentities("")
-                        } catch (e: Exception) {
-                            Logger.getInstance(CreatePullRequestDialog::class.java)
-                                .warn("Failed to load reviewers, continuing without them", e)
-                            emptyList()
-                        }
-                        
-                        indicator.text = "Loading changes..."
-                        indicator.fraction = 0.6
-                        val changes = if (currentBranch != null && defaultTarget != null) {
-                            try {
-                                gitService.getChangesBetweenBranchesBlocking(currentBranch.name, defaultTarget.name)
-                            } catch (e: Exception) {
-                                Logger.getInstance(CreatePullRequestDialog::class.java)
-                                    .warn("Failed to load initial changes", e)
-                                emptyList()
-                            }
-                        } else {
-                            emptyList()
-                        }
 
-                        indicator.text = "Loading commits..."
-                        indicator.fraction = 0.8
-                        val commits = if (currentBranch != null && defaultTarget != null) {
-                            try {
-                                gitService.getCommitsBetweenBranchesBlocking(currentBranch.name, defaultTarget.name)
-                            } catch (e: Exception) {
-                                Logger.getInstance(CreatePullRequestDialog::class.java)
-                                    .warn("Failed to load initial commits", e)
-                                emptyList()
+            // Load all data with progress indicator
+            ProgressManager.getInstance().run(
+                object : Task.Modal(project, "Loading Pull Request Data...", true) {
+                    override fun run(indicator: ProgressIndicator) {
+                        try {
+                            indicator.text = "Loading branches..."
+                            indicator.fraction = 0.1
+                            val branches = gitService.getAllBranches()
+                            val currentBranch = gitService.getCurrentBranch()
+                            val defaultTarget = gitService.getDefaultTargetBranch()
+
+                            if (branches.isEmpty()) {
+                                error = "No Git branches found in the repository."
+                                return
                             }
-                        } else {
-                            emptyList()
+
+                            indicator.text = "Loading reviewers..."
+                            indicator.fraction = 0.3
+                            val apiClient = AzureDevOpsApiClient.getInstance(project)
+                            val reviewers =
+                                try {
+                                    apiClient.searchIdentities("")
+                                } catch (e: Exception) {
+                                    Logger
+                                        .getInstance(CreatePullRequestDialog::class.java)
+                                        .warn("Failed to load reviewers, continuing without them", e)
+                                    emptyList()
+                                }
+
+                            indicator.text = "Loading changes..."
+                            indicator.fraction = 0.6
+                            val changes =
+                                if (currentBranch != null && defaultTarget != null) {
+                                    try {
+                                        gitService.getChangesBetweenBranchesBlocking(currentBranch.name, defaultTarget.name)
+                                    } catch (e: Exception) {
+                                        Logger
+                                            .getInstance(CreatePullRequestDialog::class.java)
+                                            .warn("Failed to load initial changes", e)
+                                        emptyList()
+                                    }
+                                } else {
+                                    emptyList()
+                                }
+
+                            indicator.text = "Loading commits..."
+                            indicator.fraction = 0.8
+                            val commits =
+                                if (currentBranch != null && defaultTarget != null) {
+                                    try {
+                                        gitService.getCommitsBetweenBranchesBlocking(currentBranch.name, defaultTarget.name)
+                                    } catch (e: Exception) {
+                                        Logger
+                                            .getInstance(CreatePullRequestDialog::class.java)
+                                            .warn("Failed to load initial commits", e)
+                                        emptyList()
+                                    }
+                                } else {
+                                    emptyList()
+                                }
+
+                            indicator.fraction = 1.0
+
+                            dialogData =
+                                DialogData(
+                                    branches = branches,
+                                    currentBranch = currentBranch,
+                                    defaultTarget = defaultTarget,
+                                    availableReviewers = reviewers,
+                                    initialChanges = changes,
+                                    initialCommits = commits,
+                                )
+                        } catch (e: Exception) {
+                            error = "Error loading data: ${e.message}"
+                            Logger.getInstance(CreatePullRequestDialog::class.java).error("Failed to load dialog data", e)
                         }
-                        
-                        indicator.fraction = 1.0
-                        
-                        dialogData = DialogData(
-                            branches = branches,
-                            currentBranch = currentBranch,
-                            defaultTarget = defaultTarget,
-                            availableReviewers = reviewers,
-                            initialChanges = changes,
-                            initialCommits = commits
-                        )
-                    } catch (e: Exception) {
-                        error = "Error loading data: ${e.message}"
-                        Logger.getInstance(CreatePullRequestDialog::class.java).error("Failed to load dialog data", e)
                     }
-                }
-            })
-            
+                },
+            )
+
             if (error != null) {
                 Messages.showErrorDialog(project, error, "Error")
                 return null
             }
-            
+
             return dialogData?.let { CreatePullRequestDialog(project, gitService, it) }
         }
     }
 
     init {
         title = "Create Azure DevOps Pull Request"
-        
+
         // Setup combo boxes with pre-loaded data
         sourceBranchCombo = ComboBox(dialogData.branches.toTypedArray())
         targetBranchCombo = ComboBox(dialogData.branches.toTypedArray())
@@ -192,46 +194,48 @@ class CreatePullRequestDialog private constructor(
         changesTree = JTree(DefaultTreeModel(rootNode))
         changesTree.isRootVisible = false
         changesTree.showsRootHandles = true
-        
+
         // Populate initial changes
         populateChangesTree(rootNode, dialogData.initialChanges)
 
         // Setup commits list with initial data
         commitsList.selectionMode = ListSelectionModel.SINGLE_SELECTION
         populateCommitsList(dialogData.initialCommits)
-        
+
         // Setup reviewer panels
         reviewerListPanel.layout = BoxLayout(reviewerListPanel, BoxLayout.Y_AXIS)
         reviewerListPanel.border = JBUI.Borders.empty(5)
-        
+
         // Setup reviewer combo with pre-loaded reviewers
-        val comboRenderer = object : DefaultListCellRenderer() {
-            override fun getListCellRendererComponent(
-                list: JList<*>?,
-                value: Any?,
-                index: Int,
-                isSelected: Boolean,
-                cellHasFocus: Boolean
-            ): Component {
-                val label = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JLabel
-                when (value) {
-                    is Identity -> {
-                        label.text = value.displayName ?: value.uniqueName ?: "Unknown User"
+        val comboRenderer =
+            object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean,
+                ): Component {
+                    val label = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JLabel
+                    when (value) {
+                        is Identity -> {
+                            label.text = value.displayName ?: value.uniqueName ?: "Unknown User"
+                        }
+                        null -> {
+                            label.text = "Select a user to add as reviewer..."
+                        }
                     }
-                    null -> {
-                        label.text = "Select a user to add as reviewer..."
-                    }
+                    return label
                 }
-                return label
             }
-        }
-        
+
         // Initialize combo with reviewers already loaded
-        reviewerCombo = ComboBox(reviewerComboModel).apply {
-            renderer = comboRenderer
-            isEditable = false
-        }
-        
+        reviewerCombo =
+            ComboBox(reviewerComboModel).apply {
+                renderer = comboRenderer
+                isEditable = false
+            }
+
         // Populate reviewers
         if (dialogData.availableReviewers.isEmpty()) {
             logger.warn("No reviewers available")
@@ -254,27 +258,32 @@ class CreatePullRequestDialog private constructor(
         init()
     }
 
-    private fun populateChangesTree(rootNode: DefaultMutableTreeNode, changes: List<Change>) {
+    private fun populateChangesTree(
+        rootNode: DefaultMutableTreeNode,
+        changes: List<Change>,
+    ) {
         rootNode.removeAllChildren()
 
         if (changes.isEmpty()) {
             rootNode.add(DefaultMutableTreeNode("No changes"))
         } else {
             // Group changes by directory
-            val changesByDir = changes.groupBy { change ->
-                val path = change.afterRevision?.file?.path ?: change.beforeRevision?.file?.path ?: "Unknown"
-                path.substringBeforeLast('/', "")
-            }
+            val changesByDir =
+                changes.groupBy { change ->
+                    val path = change.afterRevision?.file?.path ?: change.beforeRevision?.file?.path ?: "Unknown"
+                    path.substringBeforeLast('/', "")
+                }
 
             changesByDir.forEach { (dir, dirChanges) ->
                 val dirNode = DefaultMutableTreeNode(if (dir.isEmpty()) "/" else dir)
                 dirChanges.forEach { change ->
                     val fileName = change.afterRevision?.file?.name ?: change.beforeRevision?.file?.name ?: "Unknown"
-                    val changeType = when {
-                        change.beforeRevision == null -> "[A] " // Added
-                        change.afterRevision == null -> "[D] " // Deleted
-                        else -> "[M] " // Modified
-                    }
+                    val changeType =
+                        when {
+                            change.beforeRevision == null -> "[A] " // Added
+                            change.afterRevision == null -> "[D] " // Deleted
+                            else -> "[M] " // Modified
+                        }
                     dirNode.add(DefaultMutableTreeNode("$changeType$fileName"))
                 }
                 rootNode.add(dirNode)
@@ -288,7 +297,7 @@ class CreatePullRequestDialog private constructor(
             changesTree.expandRow(i)
         }
     }
-    
+
     private fun populateCommitsList(commits: List<GitCommit>) {
         commitsListModel.clear()
 
@@ -330,131 +339,152 @@ class CreatePullRequestDialog private constructor(
                     rootNode.removeAllChildren()
                     rootNode.add(DefaultMutableTreeNode("Error: ${e.message}"))
                     (changesTree.model as DefaultTreeModel).reload()
-                    
+
                     commitsListModel.clear()
                     commitsListModel.addElement("Error: ${e.message}")
                 }
             }
         }
     }
-    
+
     /**
      * Adds a reviewer to the list
      */
-    private fun addReviewer(identity: Identity, required: Boolean) {
+    private fun addReviewer(
+        identity: Identity,
+        required: Boolean,
+    ) {
         // Check if already added
         val alreadyAdded = (requiredReviewers + optionalReviewers).any { it.id == identity.id }
         if (alreadyAdded) {
             Messages.showWarningDialog(
                 project,
                 "${identity.displayName} is already added as a reviewer.",
-                "Reviewer Already Added"
+                "Reviewer Already Added",
             )
             return
         }
-        
+
         if (required) {
             requiredReviewers.add(identity)
         } else {
             optionalReviewers.add(identity)
         }
-        
+
         // Add the reviewer to the list
         val reviewerPanel = createReviewerPanel(identity, required)
         reviewerListPanel.add(reviewerPanel)
-        
+
         reviewerListPanel.revalidate()
         reviewerListPanel.repaint()
-        
+
         // Reset combo selection
         reviewerCombo.selectedIndex = -1
     }
-    
+
     /**
      * Creates a panel for an added reviewer
      */
-    private fun createReviewerPanel(identity: Identity, required: Boolean): JPanel {
-        val panel = JPanel(BorderLayout(5, 0)).apply {
-            name = "added_reviewer_${identity.id}"
-            border = JBUI.Borders.compound(
-                JBUI.Borders.customLine(JBColor.border(), 0, 0, 1, 0),
-                JBUI.Borders.empty(5)
-            )
-            maximumSize = Dimension(Int.MAX_VALUE, 45)
-        }
-        
+    private fun createReviewerPanel(
+        identity: Identity,
+        required: Boolean,
+    ): JPanel {
+        val panel =
+            JPanel(BorderLayout(5, 0)).apply {
+                name = "added_reviewer_${identity.id}"
+                border =
+                    JBUI.Borders.compound(
+                        JBUI.Borders.customLine(JBColor.border(), 0, 0, 1, 0),
+                        JBUI.Borders.empty(5),
+                    )
+                maximumSize = Dimension(Int.MAX_VALUE, 45)
+            }
+
         // Avatar + Name + Badge
         val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
-        
+
         val avatarLabel = JLabel()
         avatarLabel.preferredSize = Dimension(28, 28)
         loadAvatar(identity.imageUrl, avatarLabel)
         leftPanel.add(avatarLabel)
-        
+
         val nameLabel = JLabel(identity.displayName ?: "Unknown")
         leftPanel.add(nameLabel)
-        
-        val badge = JLabel(if (required) "REQUIRED" else "OPTIONAL").apply {
-            isOpaque = true
-            background = if (required) JBColor(Color(220, 53, 69), Color(200, 35, 51)) 
-                         else JBColor(Color(108, 117, 125), Color(90, 98, 104))
-            foreground = Color.WHITE
-            border = JBUI.Borders.empty(2, 8)
-            font = font.deriveFont(Font.BOLD, 10f)
-        }
-        leftPanel.add(badge)
-        
-        panel.add(leftPanel, BorderLayout.CENTER)
-        
-        // Remove button
-        val removeBtn = JButton(AllIcons.Actions.Close).apply {
-            toolTipText = "Remove reviewer"
-            preferredSize = Dimension(24, 24)
-            isContentAreaFilled = false
-            isBorderPainted = false
-            addActionListener {
-                removeReviewer(identity, required)
-                reviewerListPanel.remove(panel)
-                reviewerListPanel.revalidate()
-                reviewerListPanel.repaint()
+
+        val badge =
+            JLabel(if (required) "REQUIRED" else "OPTIONAL").apply {
+                isOpaque = true
+                background =
+                    if (required) {
+                        JBColor(Color(220, 53, 69), Color(200, 35, 51))
+                    } else {
+                        JBColor(Color(108, 117, 125), Color(90, 98, 104))
+                    }
+                foreground = Color.WHITE
+                border = JBUI.Borders.empty(2, 8)
+                font = font.deriveFont(Font.BOLD, 10f)
             }
-        }
+        leftPanel.add(badge)
+
+        panel.add(leftPanel, BorderLayout.CENTER)
+
+        // Remove button
+        val removeBtn =
+            JButton(AllIcons.Actions.Close).apply {
+                toolTipText = "Remove reviewer"
+                preferredSize = Dimension(24, 24)
+                isContentAreaFilled = false
+                isBorderPainted = false
+                addActionListener {
+                    removeReviewer(identity, required)
+                    reviewerListPanel.remove(panel)
+                    reviewerListPanel.revalidate()
+                    reviewerListPanel.repaint()
+                }
+            }
         panel.add(removeBtn, BorderLayout.EAST)
-        
+
         return panel
     }
-    
+
     /**
      * Removes a reviewer from the list
      */
-    private fun removeReviewer(identity: Identity, required: Boolean) {
+    private fun removeReviewer(
+        identity: Identity,
+        required: Boolean,
+    ) {
         if (required) {
             requiredReviewers.remove(identity)
         } else {
             optionalReviewers.remove(identity)
         }
     }
-    
+
     /**
      * Loads a user's avatar asynchronously
      */
-    private fun loadAvatar(imageUrl: String?, targetLabel: JLabel) {
+    private fun loadAvatar(
+        imageUrl: String?,
+        targetLabel: JLabel,
+    ) {
         if (imageUrl.isNullOrBlank()) {
             targetLabel.icon = AllIcons.General.User
             return
         }
-        
+
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val uri = java.net.URI(imageUrl)
                 val url = uri.toURL()
                 val image = ImageIO.read(url)
-                val scaledImage = image.getScaledInstance(
-                    targetLabel.preferredSize.width,
-                    targetLabel.preferredSize.height,
-                    Image.SCALE_SMOOTH
-                )
-                
+                val scaledImage =
+                    image.getScaledInstance(
+                        targetLabel.preferredSize.width,
+                        targetLabel.preferredSize.height,
+                        Image.SCALE_SMOOTH,
+                    )
+
                 ApplicationManager.getApplication().invokeLater {
                     targetLabel.icon = ImageIcon(scaledImage)
                 }
@@ -470,128 +500,149 @@ class CreatePullRequestDialog private constructor(
     override fun createCenterPanel(): JComponent {
         val descriptionScroll = JScrollPane(descriptionArea)
 
-        val insertCommitsBtn = JButton("Insert Commits", AllIcons.Actions.Commit).apply {
-            toolTipText = "Insert commit messages into description"
-            addActionListener { insertCommitsIntoDescription() }
-        }
-
-        val descriptionItemPanel = JPanel(BorderLayout(0, 5)).apply {
-            border = JBUI.Borders.empty(0, 0, 5, 0)
-            val topBar = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 0)).apply {
-                add(insertCommitsBtn)
+        val insertCommitsBtn =
+            JButton("Insert Commits", AllIcons.Actions.Commit).apply {
+                toolTipText = "Insert commit messages into description"
+                addActionListener { insertCommitsIntoDescription() }
             }
-            add(topBar, BorderLayout.NORTH)
-            add(descriptionScroll, BorderLayout.CENTER)
-        }
+
+        val descriptionItemPanel =
+            JPanel(BorderLayout(0, 5)).apply {
+                border = JBUI.Borders.empty(0, 0, 5, 0)
+                val topBar =
+                    JPanel(FlowLayout(FlowLayout.RIGHT, 0, 0)).apply {
+                        add(insertCommitsBtn)
+                    }
+                add(topBar, BorderLayout.NORTH)
+                add(descriptionScroll, BorderLayout.CENTER)
+            }
 
         // Details Panel - using BorderLayout for better layout control
-        val detailsPanel = JPanel(BorderLayout(0, 10)).apply {
-            border = JBUI.Borders.empty(10)
-            
-            // Top section: source, target, title
-            val topSection = FormBuilder.createFormBuilder()
-                .addLabeledComponent(JBLabel("Source Branch:"), sourceBranchCombo, 1, false)
-                .addTooltip("The branch to start the Pull Request from")
-                .addLabeledComponent(JBLabel("Target Branch:"), targetBranchCombo, 1, false)
-                .addTooltip("The destination branch (usually main or master)")
-                .addSeparator()
-                .addLabeledComponent(JBLabel("Title:"), titleField, 1, false)
-                .addTooltip("Pull Request title (required)")
-                .panel
-            
-            add(topSection, BorderLayout.NORTH)
-            
-            // Bottom section: description (fills remaining space)
-            val descriptionContainer = JPanel(BorderLayout()).apply {
-                add(JBLabel("Description:"), BorderLayout.NORTH)
-                add(descriptionItemPanel, BorderLayout.CENTER)
+        val detailsPanel =
+            JPanel(BorderLayout(0, 10)).apply {
+                border = JBUI.Borders.empty(10)
+
+                // Top section: source, target, title
+                val topSection =
+                    FormBuilder
+                        .createFormBuilder()
+                        .addLabeledComponent(JBLabel("Source Branch:"), sourceBranchCombo, 1, false)
+                        .addTooltip("The branch to start the Pull Request from")
+                        .addLabeledComponent(JBLabel("Target Branch:"), targetBranchCombo, 1, false)
+                        .addTooltip("The destination branch (usually main or master)")
+                        .addSeparator()
+                        .addLabeledComponent(JBLabel("Title:"), titleField, 1, false)
+                        .addTooltip("Pull Request title (required)")
+                        .panel
+
+                add(topSection, BorderLayout.NORTH)
+
+                // Bottom section: description (fills remaining space)
+                val descriptionContainer =
+                    JPanel(BorderLayout()).apply {
+                        add(JBLabel("Description:"), BorderLayout.NORTH)
+                        add(descriptionItemPanel, BorderLayout.CENTER)
+                    }
+                add(descriptionContainer, BorderLayout.CENTER)
             }
-            add(descriptionContainer, BorderLayout.CENTER)
-        }
 
         // Changes Panel
-        val changesPanel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(10)
-            add(JBLabel("Files changed between branches:"), BorderLayout.NORTH)
-            add(JScrollPane(changesTree), BorderLayout.CENTER)
-        }
+        val changesPanel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.empty(10)
+                add(JBLabel("Files changed between branches:"), BorderLayout.NORTH)
+                add(JScrollPane(changesTree), BorderLayout.CENTER)
+            }
 
         // Commits Panel
-        val commitsPanel = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(10)
-            add(JBLabel("Commits to be included:"), BorderLayout.NORTH)
-            add(JScrollPane(commitsList), BorderLayout.CENTER)
-        }
-        
+        val commitsPanel =
+            JPanel(BorderLayout()).apply {
+                border = JBUI.Borders.empty(10)
+                add(JBLabel("Commits to be included:"), BorderLayout.NORTH)
+                add(JScrollPane(commitsList), BorderLayout.CENTER)
+            }
+
         // Reviewers Panel
-        val reviewersPanel = JPanel(BorderLayout(0, 10)).apply {
-            border = JBUI.Borders.empty(10)
-        }
-        
-        val reviewersTopPanel = JPanel(BorderLayout()).apply {
-            val infoLabel = JBLabel("<html><b>Add Reviewers</b><br>" +
-                    "<small>Select users and add them as required or optional reviewers</small></html>")
-            add(infoLabel, BorderLayout.NORTH)
-        }
-        
-        val selectionPanel = JPanel(BorderLayout(0, 5)).apply {
-            border = JBUI.Borders.empty(5, 0)
-        }
-        
+        val reviewersPanel =
+            JPanel(BorderLayout(0, 10)).apply {
+                border = JBUI.Borders.empty(10)
+            }
+
+        val reviewersTopPanel =
+            JPanel(BorderLayout()).apply {
+                val infoLabel =
+                    JBLabel(
+                        "<html><b>Add Reviewers</b><br>" +
+                            "<small>Select users and add them as required or optional reviewers</small></html>",
+                    )
+                add(infoLabel, BorderLayout.NORTH)
+            }
+
+        val selectionPanel =
+            JPanel(BorderLayout(0, 5)).apply {
+                border = JBUI.Borders.empty(5, 0)
+            }
+
         val comboPanel = JPanel(BorderLayout(5, 0))
         comboPanel.add(JBLabel("Select User:"), BorderLayout.WEST)
         comboPanel.add(reviewerCombo, BorderLayout.CENTER)
-        
+
         val buttonsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
-        val addRequiredButton = JButton("Add as Required").apply {
-            addActionListener {
-                val selected = reviewerCombo.selectedItem as? Identity
-                if (selected != null) {
-                    addReviewer(selected, required = true)
+        val addRequiredButton =
+            JButton("Add as Required").apply {
+                addActionListener {
+                    val selected = reviewerCombo.selectedItem as? Identity
+                    if (selected != null) {
+                        addReviewer(selected, required = true)
+                    }
                 }
             }
-        }
-        val addOptionalButton = JButton("Add as Optional").apply {
-            addActionListener {
-                val selected = reviewerCombo.selectedItem as? Identity
-                if (selected != null) {
-                    addReviewer(selected, required = false)
+        val addOptionalButton =
+            JButton("Add as Optional").apply {
+                addActionListener {
+                    val selected = reviewerCombo.selectedItem as? Identity
+                    if (selected != null) {
+                        addReviewer(selected, required = false)
+                    }
                 }
             }
-        }
         buttonsPanel.add(addRequiredButton)
         buttonsPanel.add(addOptionalButton)
-        
+
         selectionPanel.add(comboPanel, BorderLayout.NORTH)
         selectionPanel.add(buttonsPanel, BorderLayout.CENTER)
-        
+
         // Added reviewers section
-        val addedReviewersContainer = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.compound(
-                JBUI.Borders.customLine(JBColor.border(), 1),
-                JBUI.Borders.empty(5)
-            )
-            add(JBLabel("<html><b>Added Reviewers:</b></html>"), BorderLayout.NORTH)
-            add(reviewerListPanel, BorderLayout.CENTER)
-        }
-        
-        val reviewersScrollPane = JBScrollPane(addedReviewersContainer).apply {
-            preferredSize = Dimension(500, 200)
-            border = null
-        }
-        
+        val addedReviewersContainer =
+            JPanel(BorderLayout()).apply {
+                border =
+                    JBUI.Borders.compound(
+                        JBUI.Borders.customLine(JBColor.border(), 1),
+                        JBUI.Borders.empty(5),
+                    )
+                add(JBLabel("<html><b>Added Reviewers:</b></html>"), BorderLayout.NORTH)
+                add(reviewerListPanel, BorderLayout.CENTER)
+            }
+
+        val reviewersScrollPane =
+            JBScrollPane(addedReviewersContainer).apply {
+                preferredSize = Dimension(500, 200)
+                border = null
+            }
+
         reviewersPanel.add(reviewersTopPanel, BorderLayout.NORTH)
         reviewersPanel.add(selectionPanel, BorderLayout.CENTER)
         reviewersPanel.add(reviewersScrollPane, BorderLayout.SOUTH)
 
         // Tabbed Pane
-        val tabbedPane = JBTabbedPane().apply {
-            addTab("Details", detailsPanel)
-            addTab("Changes", changesPanel)
-            addTab("Commits", commitsPanel)
-            addTab("Reviewers", reviewersPanel)
-            preferredSize = Dimension(600, 550)
-        }
+        val tabbedPane =
+            JBTabbedPane().apply {
+                addTab("Details", detailsPanel)
+                addTab("Changes", changesPanel)
+                addTab("Commits", commitsPanel)
+                addTab("Reviewers", reviewersPanel)
+                preferredSize = Dimension(600, 550)
+            }
 
         return tabbedPane
     }
@@ -623,9 +674,10 @@ class CreatePullRequestDialog private constructor(
      * Inserts the current commits list into the description area in a formatted way
      */
     private fun insertCommitsIntoDescription() {
-        if (commitsListModel.isEmpty
-            || commitsListModel.getElementAt(0) == "No commits"
-            || commitsListModel.getElementAt(0).startsWith("Error:")) {
+        if (commitsListModel.isEmpty ||
+            commitsListModel.getElementAt(0) == "No commits" ||
+            commitsListModel.getElementAt(0).startsWith("Error:")
+        ) {
             return
         }
 
@@ -636,11 +688,12 @@ class CreatePullRequestDialog private constructor(
         }
 
         val existing = descriptionArea.text.trim()
-        descriptionArea.text = if (existing.isNotBlank()) {
-            "$existing\n\n${sb.toString().trimEnd()}"
-        } else {
-            sb.toString().trimEnd()
-        }
+        descriptionArea.text =
+            if (existing.isNotBlank()) {
+                "$existing\n\n${sb.toString().trimEnd()}"
+            } else {
+                sb.toString().trimEnd()
+            }
     }
 
     /**
@@ -662,12 +715,12 @@ class CreatePullRequestDialog private constructor(
      * Gets the PR description
      */
     fun getDescription(): String = descriptionArea.text.trim()
-    
+
     /**
      * Gets the list of required reviewers
      */
     fun getRequiredReviewers(): List<Identity> = requiredReviewers.toList()
-    
+
     /**
      * Gets the list of optional reviewers
      */
@@ -682,7 +735,7 @@ class CreatePullRequestDialog private constructor(
             value: GitBranch?,
             index: Int,
             selected: Boolean,
-            hasFocus: Boolean
+            hasFocus: Boolean,
         ) {
             text = value?.displayName ?: ""
         }

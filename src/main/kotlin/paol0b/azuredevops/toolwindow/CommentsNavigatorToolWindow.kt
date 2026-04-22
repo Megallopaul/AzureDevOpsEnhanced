@@ -1,9 +1,6 @@
 package paol0b.azuredevops.toolwindow
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -49,34 +46,41 @@ import javax.swing.*
  * - Enhanced visual feedback
  */
 class CommentsNavigatorToolWindow : ToolWindowFactory {
-
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         val panel = CommentsNavigatorPanel(project)
-        val content = toolWindow.contentManager.factory.createContent(
-            panel,
-            "",
-            false
-        )
+        val content =
+            toolWindow.contentManager.factory.createContent(
+                panel,
+                "",
+                false,
+            )
         toolWindow.contentManager.addContent(content)
-        
+
         // Add listener to load comments when tab becomes visible
-        toolWindow.addContentManagerListener(object : com.intellij.ui.content.ContentManagerListener {
-            override fun selectionChanged(event: com.intellij.ui.content.ContentManagerEvent) {
-                if (event.content == content && event.operation == com.intellij.ui.content.ContentManagerEvent.ContentOperation.add) {
-                    // Tab just opened/became visible - load comments
-                    panel.loadCommentsIfNeeded()
+        toolWindow.addContentManagerListener(
+            object : com.intellij.ui.content.ContentManagerListener {
+                override fun selectionChanged(event: com.intellij.ui.content.ContentManagerEvent) {
+                    if (event.content == content && event.operation == com.intellij.ui.content.ContentManagerEvent.ContentOperation.add) {
+                        // Tab just opened/became visible - load comments
+                        panel.loadCommentsIfNeeded()
+                    }
                 }
-            }
-        })
-        
+            },
+        )
+
         // Also add cleanup listener
-        toolWindow.contentManager.addContentManagerListener(object : com.intellij.ui.content.ContentManagerListener {
-            override fun contentRemoved(event: com.intellij.ui.content.ContentManagerEvent) {
-                if (event.content == content) {
-                    panel.dispose()
+        toolWindow.contentManager.addContentManagerListener(
+            object : com.intellij.ui.content.ContentManagerListener {
+                override fun contentRemoved(event: com.intellij.ui.content.ContentManagerEvent) {
+                    if (event.content == content) {
+                        panel.dispose()
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     override fun shouldBeAvailable(project: Project): Boolean = true
@@ -85,8 +89,9 @@ class CommentsNavigatorToolWindow : ToolWindowFactory {
 /**
  * Main panel with modern UI
  */
-class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout()) {
-
+class CommentsNavigatorPanel(
+    private val project: Project,
+) : JPanel(BorderLayout()) {
     private val logger = Logger.getInstance(CommentsNavigatorPanel::class.java)
     private val commentsList: JBList<CommentItem>
     private val statusLabel: JLabel
@@ -101,81 +106,92 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
     private var messageConnection: com.intellij.util.messages.MessageBusConnection? = null
     private var isInitialLoadDone: Boolean = false
     private val commentsChangeListener: () -> Unit = { onCommentsChanged() }
-    
+
     private enum class CommentFilter {
-        ALL, ACTIVE, RESOLVED, GENERAL
+        ALL,
+        ACTIVE,
+        RESOLVED,
+        GENERAL,
     }
 
     init {
         border = JBUI.Borders.empty()
-        
+
         // Load saved state from global service
-        val visibilityService = paol0b.azuredevops.services.CommentsVisibilityService.getInstance(project)
+        val visibilityService =
+            paol0b.azuredevops.services.CommentsVisibilityService
+                .getInstance(project)
         val isCommentsVisible = visibilityService.isCommentsVisible()
-        
+
         // Initialize toggle button
-        showCommentsToggle = JToggleButton(
-            if (isCommentsVisible) "Hide Comments from Files" else "Show Comments in Files",
-            if (isCommentsVisible) AllIcons.Actions.Suspend else AllIcons.Actions.Execute,
-            isCommentsVisible
-        ).apply {
-            toolTipText = if (isCommentsVisible) "Hide PR comments from all open files" else "Show PR comments in all open files"
-            isFocusable = false
-            addActionListener {
-                handleCommentsToggle()
+        showCommentsToggle =
+            JToggleButton(
+                if (isCommentsVisible) "Hide Comments from Files" else "Show Comments in Files",
+                if (isCommentsVisible) AllIcons.Actions.Suspend else AllIcons.Actions.Execute,
+                isCommentsVisible,
+            ).apply {
+                toolTipText = if (isCommentsVisible) "Hide PR comments from all open files" else "Show PR comments in all open files"
+                isFocusable = false
+                addActionListener {
+                    handleCommentsToggle()
+                }
             }
-        }
-        
+
         // Header with search and filters
         val headerPanel = createHeaderPanel()
         add(headerPanel, BorderLayout.NORTH)
-        
+
         // Initialize filter button styles
         updateFilterButtonStyles()
 
         // Comments list with modern card design
-        commentsList = JBList<CommentItem>().apply {
-            cellRenderer = ModernCommentItemRenderer()
-            selectionMode = ListSelectionModel.SINGLE_SELECTION
-            background = UIUtil.getPanelBackground()
-            
-            addListSelectionListener { e ->
-                if (!e.valueIsAdjusting) {
-                    selectedValue?.let { navigateToComment(it) }
-                }
-            }
-            
-            // Add keyboard shortcuts
-            addKeyListener(object : KeyAdapter() {
-                override fun keyPressed(e: KeyEvent) {
-                    when (e.keyCode) {
-                        KeyEvent.VK_ENTER -> selectedValue?.let { openCommentDialog(it) }
+        commentsList =
+            JBList<CommentItem>().apply {
+                cellRenderer = ModernCommentItemRenderer()
+                selectionMode = ListSelectionModel.SINGLE_SELECTION
+                background = UIUtil.getPanelBackground()
+
+                addListSelectionListener { e ->
+                    if (!e.valueIsAdjusting) {
+                        selectedValue?.let { navigateToComment(it) }
                     }
                 }
-            })
-        }
 
-        val scrollPane = JBScrollPane(commentsList).apply {
-            border = JBUI.Borders.empty()
-        }
+                // Add keyboard shortcuts
+                addKeyListener(
+                    object : KeyAdapter() {
+                        override fun keyPressed(e: KeyEvent) {
+                            when (e.keyCode) {
+                                KeyEvent.VK_ENTER -> selectedValue?.let { openCommentDialog(it) }
+                            }
+                        }
+                    },
+                )
+            }
+
+        val scrollPane =
+            JBScrollPane(commentsList).apply {
+                border = JBUI.Borders.empty()
+            }
         add(scrollPane, BorderLayout.CENTER)
 
         // Status bar
-        statusLabel = JLabel("Loading...").apply {
-            border = JBUI.Borders.empty(8, 12)
-            foreground = UIUtil.getLabelDisabledForeground()
-            font = font.deriveFont(Font.PLAIN, 11f)
-        }
+        statusLabel =
+            JLabel("Loading...").apply {
+                border = JBUI.Borders.empty(8, 12)
+                foreground = UIUtil.getLabelDisabledForeground()
+                font = font.deriveFont(Font.PLAIN, 11f)
+            }
         add(statusLabel, BorderLayout.SOUTH)
 
         // Don't load comments immediately - wait for tab to be visible
         updateStatus("Ready - open tab to load comments")
-        
+
         // If toggle was enabled, restore state after loading
         if (isCommentsVisible && currentPullRequest != null) {
             registerFileChangeListener()
         }
-        
+
         // Listen to CommentsPollingService for real-time updates
         CommentsPollingService.getInstance(project).addChangeListener(commentsChangeListener)
     }
@@ -184,7 +200,7 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
         logger.info("Comments changed notification from polling service")
         loadComments()
     }
-    
+
     fun loadCommentsIfNeeded() {
         if (!isInitialLoadDone) {
             logger.info("Tab became visible - loading comments for first time")
@@ -192,104 +208,114 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
             loadComments()
         }
     }
-    
+
     fun forceRefresh() {
         logger.info("Force refresh triggered from external source")
         loadComments()
     }
-    
+
     private fun createHeaderPanel(): JPanel {
-        val panel = JPanel(BorderLayout(0, 10)).apply {
-            border = JBUI.Borders.empty(8, 12, 8, 12)
-            background = UIUtil.getPanelBackground()
-        }
+        val panel =
+            JPanel(BorderLayout(0, 10)).apply {
+                border = JBUI.Borders.empty(8, 12, 8, 12)
+                background = UIUtil.getPanelBackground()
+            }
 
         // Top row: toggle button and refresh
-        val topRow = JPanel(BorderLayout(8, 0)).apply {
-            background = UIUtil.getPanelBackground()
-        }
-        
+        val topRow =
+            JPanel(BorderLayout(8, 0)).apply {
+                background = UIUtil.getPanelBackground()
+            }
+
         // Left: Show/Hide comments toggle
         topRow.add(showCommentsToggle, BorderLayout.WEST)
-        
+
         // Right: Refresh button
-        val refreshButton = JButton(AllIcons.Actions.Refresh).apply {
-            toolTipText = "Refresh comments"
-            isFocusable = false
-            isContentAreaFilled = false
-            addActionListener {
-                refreshComments()
+        val refreshButton =
+            JButton(AllIcons.Actions.Refresh).apply {
+                toolTipText = "Refresh comments"
+                isFocusable = false
+                isContentAreaFilled = false
+                addActionListener {
+                    refreshComments()
+                }
             }
-        }
         topRow.add(refreshButton, BorderLayout.EAST)
-        
+
         panel.add(topRow, BorderLayout.NORTH)
 
         // Search field
         searchField.apply {
             emptyText.text = "Search comments..."
             toolTipText = "Search by file name, author, or content"
-            
-            addKeyListener(object : KeyAdapter() {
-                override fun keyReleased(e: KeyEvent) {
-                    filterComments()
-                }
-            })
+
+            addKeyListener(
+                object : KeyAdapter() {
+                    override fun keyReleased(e: KeyEvent) {
+                        filterComments()
+                    }
+                },
+            )
         }
-        
+
         // Filter buttons panel with improved spacing
-        val filterPanel = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
-            background = UIUtil.getPanelBackground()
-        }
-        
+        val filterPanel =
+            JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+                background = UIUtil.getPanelBackground()
+            }
+
         val allButton = createFilterButton("All", CommentFilter.ALL, true)
         val activeButton = createFilterButton("Active", CommentFilter.ACTIVE, false)
         val resolvedButton = createFilterButton("Resolved", CommentFilter.RESOLVED, false)
         val generalButton = createFilterButton("General", CommentFilter.GENERAL, false)
-        
+
         filterButtonGroup.add(allButton)
         filterButtonGroup.add(activeButton)
         filterButtonGroup.add(resolvedButton)
         filterButtonGroup.add(generalButton)
-        
+
         filterPanel.add(allButton)
         filterPanel.add(activeButton)
         filterPanel.add(resolvedButton)
         filterPanel.add(generalButton)
-        
+
         // Container with proper spacing
-        val container = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = UIUtil.getPanelBackground()
-            
-            add(searchField)
-            add(Box.createVerticalStrut(8))
-            add(filterPanel)
-        }
-        
+        val container =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                background = UIUtil.getPanelBackground()
+
+                add(searchField)
+                add(Box.createVerticalStrut(8))
+                add(filterPanel)
+            }
+
         panel.add(container, BorderLayout.CENTER)
 
         return panel
     }
 
-    private fun createFilterButton(text: String, filter: CommentFilter, selected: Boolean): JToggleButton {
-        return JToggleButton(text, selected).apply {
+    private fun createFilterButton(
+        text: String,
+        filter: CommentFilter,
+        selected: Boolean,
+    ): JToggleButton =
+        JToggleButton(text, selected).apply {
             isFocusable = false
             font = font.deriveFont(Font.PLAIN, 11f)
             border = JBUI.Borders.empty(4, 12)
-            
+
             // Use theme-aware colors
             background = UIUtil.getPanelBackground()
             foreground = UIUtil.getLabelForeground()
-            
+
             addActionListener {
                 currentFilter = filter
                 filterComments()
                 updateFilterButtonStyles()
             }
         }
-    }
-    
+
     private fun updateFilterButtonStyles() {
         // Update all filter buttons to reflect selected state with proper colors
         for (button in filterButtonGroup.elements.toList()) {
@@ -308,7 +334,9 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
     private fun refreshComments() {
         updateStatus("Refreshing...")
         ApplicationManager.getApplication().executeOnPooledThread {
-            val pollingService = paol0b.azuredevops.services.CommentsPollingService.getInstance(project)
+            val pollingService =
+                paol0b.azuredevops.services.CommentsPollingService
+                    .getInstance(project)
             pollingService.refreshNow()
             ApplicationManager.getApplication().invokeLater {
                 loadComments()
@@ -318,12 +346,12 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
 
     private fun loadComments() {
         updateStatus("Loading comments...")
-        
+
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val gitService = GitRepositoryService.getInstance(project)
                 val currentBranch = gitService.getCurrentBranch()
-                
+
                 if (currentBranch == null) {
                     updateStatus("No active branch")
                     ApplicationManager.getApplication().invokeLater {
@@ -348,22 +376,24 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
 
                 // Build comment items with proper escaping
                 // Exclude only system-generated comments (auto-generated by Azure DevOps)
-                allComments = threads
-                    .filter { !it.isDeleted!! && it.comments?.isNotEmpty() == true && !it.isSystemGenerated() }
-                    .sortedWith(compareBy(
-                        { it.isResolved() },
-                        { it.getFilePath() ?: "zzz_general" },
-                        { it.getRightFileStart() ?: 0 }
-                    ))
-                    .map { thread ->
-                        CommentItem(
-                            thread = thread,
-                            filePath = thread.getFilePath() ?: "General PR Comment",
-                            line = thread.getRightFileStart() ?: 0,
-                            pullRequest = pullRequest,
-                            isGeneralComment = thread.getFilePath() == null
-                        )
-                    }.toMutableList()
+                allComments =
+                    threads
+                        .filter { !it.isDeleted!! && it.comments?.isNotEmpty() == true && !it.isSystemGenerated() }
+                        .sortedWith(
+                            compareBy(
+                                { it.isResolved() },
+                                { it.getFilePath() ?: "zzz_general" },
+                                { it.getRightFileStart() ?: 0 },
+                            ),
+                        ).map { thread ->
+                            CommentItem(
+                                thread = thread,
+                                filePath = thread.getFilePath() ?: "General PR Comment",
+                                line = thread.getRightFileStart() ?: 0,
+                                pullRequest = pullRequest,
+                                isGeneralComment = thread.getFilePath() == null,
+                            )
+                        }.toMutableList()
 
                 ApplicationManager.getApplication().invokeLater {
                     filterComments()
@@ -379,7 +409,9 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                     }
 
                     // Refresh ProjectView to trigger decorator re-evaluation
-                    com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+                    com.intellij.ide.projectView.ProjectView
+                        .getInstance(project)
+                        ?.refresh()
                 }
             } catch (e: Exception) {
                 logger.error("Failed to load comments", e)
@@ -390,28 +422,32 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
 
     private fun filterComments() {
         val searchText = searchField.text.lowercase()
-        
-        filteredComments = allComments.filter { item ->
-            // Apply filter
-            val matchesFilter = when (currentFilter) {
-                CommentFilter.ALL -> true
-                CommentFilter.ACTIVE -> !item.isResolved
-                CommentFilter.RESOLVED -> item.isResolved
-                CommentFilter.GENERAL -> item.isGeneralComment
-            }
-            
-            // Apply search
-            val matchesSearch = if (searchText.isBlank()) {
-                true
-            } else {
-                item.fileName.lowercase().contains(searchText) ||
-                item.author.lowercase().contains(searchText) ||
-                item.contentPlain.lowercase().contains(searchText)
-            }
-            
-            matchesFilter && matchesSearch
-        }.toMutableList()
-        
+
+        filteredComments =
+            allComments
+                .filter { item ->
+                    // Apply filter
+                    val matchesFilter =
+                        when (currentFilter) {
+                            CommentFilter.ALL -> true
+                            CommentFilter.ACTIVE -> !item.isResolved
+                            CommentFilter.RESOLVED -> item.isResolved
+                            CommentFilter.GENERAL -> item.isGeneralComment
+                        }
+
+                    // Apply search
+                    val matchesSearch =
+                        if (searchText.isBlank()) {
+                            true
+                        } else {
+                            item.fileName.lowercase().contains(searchText) ||
+                                item.author.lowercase().contains(searchText) ||
+                                item.contentPlain.lowercase().contains(searchText)
+                        }
+
+                    matchesFilter && matchesSearch
+                }.toMutableList()
+
         ApplicationManager.getApplication().invokeLater {
             commentsList.setListData(filteredComments.toTypedArray())
             if (filteredComments.isEmpty() && allComments.isNotEmpty()) {
@@ -427,47 +463,51 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                 this,
                 "Enable \"Show Comments in Files\" to view comments",
                 "Comments Disabled",
-                JOptionPane.INFORMATION_MESSAGE
+                JOptionPane.INFORMATION_MESSAGE,
             )
             return
         }
-        
+
         if (item.isGeneralComment) {
             openCommentDialog(item)
             return
         }
-        
+
         val projectBasePath = project.basePath ?: return
         val fullPath = "$projectBasePath/${item.filePath.trimStart('/')}"
-        
+
         // First try: Direct path lookup (fast, no EDT restriction)
-        var virtualFile = com.intellij.openapi.vfs.LocalFileSystem.getInstance()
-            .findFileByPath(fullPath)
-        
+        var virtualFile =
+            com.intellij.openapi.vfs.LocalFileSystem
+                .getInstance()
+                .findFileByPath(fullPath)
+
         if (virtualFile != null) {
             // Fast path: file found directly
             openFileInEditor(virtualFile, item.line)
             return
         }
-        
+
         // Slow path: Need to search by filename - must run on background thread
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 logger.warn("File not found by path: $fullPath, searching by filename...")
                 val fileName = item.filePath.substringAfterLast('/')
-                val matchingFiles = FilenameIndex.getVirtualFilesByName(
-                    fileName, 
-                    GlobalSearchScope.projectScope(project)
-                )
-                
-                val foundFile = if (matchingFiles.isNotEmpty()) {
-                    matchingFiles.firstOrNull { file ->
-                        file.path.endsWith(item.filePath.replace('\\', '/'))
-                    } ?: matchingFiles.firstOrNull()
-                } else {
-                    null
-                }
-                
+                val matchingFiles =
+                    FilenameIndex.getVirtualFilesByName(
+                        fileName,
+                        GlobalSearchScope.projectScope(project),
+                    )
+
+                val foundFile =
+                    if (matchingFiles.isNotEmpty()) {
+                        matchingFiles.firstOrNull { file ->
+                            file.path.endsWith(item.filePath.replace('\\', '/'))
+                        } ?: matchingFiles.firstOrNull()
+                    } else {
+                        null
+                    }
+
                 // Back to EDT for UI operations
                 ApplicationManager.getApplication().invokeLater {
                     if (foundFile != null) {
@@ -478,7 +518,7 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                             this,
                             "File not found: ${item.filePath}",
                             "Navigation Error",
-                            JOptionPane.WARNING_MESSAGE
+                            JOptionPane.WARNING_MESSAGE,
                         )
                     }
                 }
@@ -489,52 +529,57 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
                         this,
                         "Error navigating to file: ${e.message}",
                         "Navigation Error",
-                        JOptionPane.ERROR_MESSAGE
+                        JOptionPane.ERROR_MESSAGE,
                     )
                 }
             }
         }
     }
-    
-    private fun openFileInEditor(virtualFile: com.intellij.openapi.vfs.VirtualFile, line: Int) {
+
+    private fun openFileInEditor(
+        virtualFile: com.intellij.openapi.vfs.VirtualFile,
+        line: Int,
+    ) {
         ApplicationManager.getApplication().invokeLater {
             val descriptor = OpenFileDescriptor(project, virtualFile, line - 1, 0)
             val editor = FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
-            
+
             if (editor != null) {
                 editor.scrollingModel.scrollToCaret(com.intellij.openapi.editor.ScrollType.CENTER)
             }
         }
     }
-    
+
     private fun handleCommentsToggle() {
         val isEnabled = showCommentsToggle.isSelected
         logger.info("Comments visibility ${if (isEnabled) "enabled" else "disabled"}")
-        
+
         // Save state to global service
-        val visibilityService = paol0b.azuredevops.services.CommentsVisibilityService.getInstance(project)
+        val visibilityService =
+            paol0b.azuredevops.services.CommentsVisibilityService
+                .getInstance(project)
         visibilityService.setCommentsVisible(isEnabled)
-        
+
         // Update button appearance
         showCommentsToggle.text = if (isEnabled) "Hide Comments from Files" else "Show Comments in Files"
         showCommentsToggle.icon = if (isEnabled) AllIcons.Actions.Suspend else AllIcons.Actions.Execute
         showCommentsToggle.toolTipText = if (isEnabled) "Hide PR comments from all open files" else "Show PR comments in all open files"
-        
+
         if (isEnabled) {
             // Show comments in all open files
             showCommentsInAllOpenFiles()
-            
+
             // Register listener for file changes
             registerFileChangeListener()
         } else {
             // Hide comments from all files
             hideCommentsFromAllFiles()
-            
+
             // Unregister listener
             unregisterFileChangeListener()
         }
     }
-    
+
     private fun showCommentsInAllOpenFiles() {
         if (currentPullRequest == null) return
 
@@ -556,7 +601,9 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
 
         // Refresh ProjectView after a short delay to let async loading populate the tracker
         ApplicationManager.getApplication().invokeLater {
-            com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+            com.intellij.ide.projectView.ProjectView
+                .getInstance(project)
+                ?.refresh()
             logger.info("ProjectView refreshed after showing comments")
         }
     }
@@ -568,48 +615,57 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
 
         // Refresh ProjectView to remove badges
         ApplicationManager.getApplication().invokeLater {
-            com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+            com.intellij.ide.projectView.ProjectView
+                .getInstance(project)
+                ?.refresh()
             logger.info("ProjectView refreshed after hiding comments")
         }
     }
-    
+
     private fun registerFileChangeListener() {
         if (fileEditorListener != null) {
             logger.warn("File editor listener already registered")
             return
         }
-        
-        fileEditorListener = object : FileEditorManagerListener {
-            override fun fileOpened(source: FileEditorManager, file: com.intellij.openapi.vfs.VirtualFile) {
-                if (showCommentsToggle.isSelected && currentPullRequest != null) {
-                    logger.info("Auto-showing comments for newly opened file: ${file.name}")
-                    val editor = source.selectedTextEditor
-                    if (editor != null) {
-                        val commentsService = PullRequestCommentsService.getInstance(project)
-                        commentsService.loadCommentsInEditor(editor, file, currentPullRequest!!)
-                        // Refresh ProjectView after a delay to let async loading complete
-                        ApplicationManager.getApplication().invokeLater {
-                            com.intellij.ide.projectView.ProjectView.getInstance(project)?.refresh()
+
+        fileEditorListener =
+            object : FileEditorManagerListener {
+                override fun fileOpened(
+                    source: FileEditorManager,
+                    file: com.intellij.openapi.vfs.VirtualFile,
+                ) {
+                    if (showCommentsToggle.isSelected && currentPullRequest != null) {
+                        logger.info("Auto-showing comments for newly opened file: ${file.name}")
+                        val editor = source.selectedTextEditor
+                        if (editor != null) {
+                            val commentsService = PullRequestCommentsService.getInstance(project)
+                            commentsService.loadCommentsInEditor(editor, file, currentPullRequest!!)
+                            // Refresh ProjectView after a delay to let async loading complete
+                            ApplicationManager.getApplication().invokeLater {
+                                com.intellij.ide.projectView.ProjectView
+                                    .getInstance(project)
+                                    ?.refresh()
+                            }
                         }
                     }
                 }
             }
-        }
-        
+
         // Subscribe to file editor events and save the connection to disconnect later
         messageConnection = project.messageBus.connect()
-        val listener = fileEditorListener ?: run {
-            logger.warn("File editor listener is null, cannot subscribe")
-            return
-        }
+        val listener =
+            fileEditorListener ?: run {
+                logger.warn("File editor listener is null, cannot subscribe")
+                return
+            }
         messageConnection?.subscribe(
             FileEditorManagerListener.FILE_EDITOR_MANAGER,
-            listener
+            listener,
         )
-        
+
         logger.info("File change listener registered for auto-show comments")
     }
-    
+
     private fun unregisterFileChangeListener() {
         // Disconnect the message bus subscription to properly disconnect the listener
         messageConnection?.disconnect()
@@ -619,7 +675,9 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
     }
 
     private fun openCommentDialog(item: CommentItem) {
-        val commentsService = paol0b.azuredevops.services.PullRequestCommentsService.getInstance(project)
+        val commentsService =
+            paol0b.azuredevops.services.PullRequestCommentsService
+                .getInstance(project)
         val dialog = CommentThreadDialog(project, item.thread, item.pullRequest, commentsService)
         dialog.show()
     }
@@ -629,7 +687,7 @@ class CommentsNavigatorPanel(private val project: Project) : JPanel(BorderLayout
             statusLabel.text = message
         }
     }
-    
+
     // Cleanup when panel is disposed
     fun dispose() {
         // Remove polling service listener
@@ -653,31 +711,36 @@ data class CommentItem(
     val filePath: String,
     val line: Int,
     val pullRequest: PullRequest,
-    val isGeneralComment: Boolean = false
+    val isGeneralComment: Boolean = false,
 ) {
     val fileName: String = if (isGeneralComment) filePath else filePath.substringAfterLast('/')
-    val author: String = thread.comments?.firstOrNull()?.author?.displayName ?: "Unknown"
-    
+    val author: String =
+        thread.comments
+            ?.firstOrNull()
+            ?.author
+            ?.displayName ?: "Unknown"
+
     // Escape HTML to prevent rendering issues
     private val rawContent: String = thread.comments?.firstOrNull()?.content ?: ""
     val contentPlain: String = escapeHtml(rawContent)
     val contentPreview: String = contentPlain.take(80).let { if (it.length < contentPlain.length) "$it..." else it }
-    
+
     val isResolved: Boolean = thread.isResolved()
     val commentCount: Int = thread.comments?.size ?: 0
-    
-    val timestamp: String? = thread.comments?.firstOrNull()?.publishedDate?.let { dateStr ->
-        try {
-            val zonedDateTime = ZonedDateTime.parse(dateStr)
-            val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
-            zonedDateTime.format(formatter)
-        } catch (e: Exception) {
-            null
+
+    val timestamp: String? =
+        thread.comments?.firstOrNull()?.publishedDate?.let { dateStr ->
+            try {
+                val zonedDateTime = ZonedDateTime.parse(dateStr)
+                val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
+                zonedDateTime.format(formatter)
+            } catch (e: Exception) {
+                null
+            }
         }
-    }
-    
-    private fun escapeHtml(text: String): String {
-        return text
+
+    private fun escapeHtml(text: String): String =
+        text
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
@@ -686,149 +749,160 @@ data class CommentItem(
             .replace("\n", " ")
             .replace("\r", "")
             .trim()
-    }
 }
 
 /**
  * Modern card-based renderer
  */
 class ModernCommentItemRenderer : DefaultListCellRenderer() {
-    
     override fun getListCellRendererComponent(
         list: JList<*>?,
         value: Any?,
         index: Int,
         isSelected: Boolean,
-        cellHasFocus: Boolean
+        cellHasFocus: Boolean,
     ): Component {
         super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-        
+
         if (value is CommentItem) {
-            val panel = JPanel(BorderLayout(8, 4)).apply {
-                border = JBUI.Borders.empty(8, 12)
-                background = if (isSelected) {
-                    UIUtil.getListSelectionBackground(true)
+            val panel =
+                JPanel(BorderLayout(8, 4)).apply {
+                    border = JBUI.Borders.empty(8, 12)
+                    background =
+                        if (isSelected) {
+                            UIUtil.getListSelectionBackground(true)
+                        } else {
+                            when {
+                                value.isResolved -> UIUtil.getPanelBackground()
+                                value.isGeneralComment -> UIUtil.getPanelBackground()
+                                value.thread.status == paol0b.azuredevops.model.ThreadStatus.Pending -> {
+                                    // Pending comments - subtle blue tint
+                                    val baseColor = UIUtil.getPanelBackground()
+                                    JBColor(
+                                        // Light theme: slight blue tint
+                                        Color(
+                                            (baseColor.red + 220) / 2,
+                                            (baseColor.green + 235) / 2,
+                                            (baseColor.blue + 255) / 2,
+                                        ),
+                                        // Dark theme: slight cool tint
+                                        Color(
+                                            (baseColor.red * 1.05f).coerceAtMost(255f).toInt(),
+                                            (baseColor.green * 1.08f).coerceAtMost(255f).toInt(),
+                                            (baseColor.blue * 1.15f).coerceAtMost(255f).toInt(),
+                                        ),
+                                    )
+                                }
+                                else -> {
+                                    // Active comments - subtle yellow tint
+                                    val baseColor = UIUtil.getPanelBackground()
+                                    JBColor(
+                                        // Light theme: slight yellow tint
+                                        Color(
+                                            (baseColor.red + 255) / 2,
+                                            (baseColor.green + 250) / 2,
+                                            (baseColor.blue + 230) / 2,
+                                        ),
+                                        // Dark theme: slight warm tint
+                                        Color(
+                                            (baseColor.red * 1.1f).coerceAtMost(255f).toInt(),
+                                            (baseColor.green * 1.05f).coerceAtMost(255f).toInt(),
+                                            baseColor.blue,
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                }
+
+            // Left: Icon and status
+            val iconLabel =
+                JLabel().apply {
+                    icon =
+                        when {
+                            value.isGeneralComment -> AllIcons.Toolwindows.ToolWindowMessages
+                            value.isResolved -> AllIcons.RunConfigurations.TestPassed
+                            value.thread.status == paol0b.azuredevops.model.ThreadStatus.Pending -> AllIcons.RunConfigurations.TestState.Run
+                            else -> AllIcons.General.BalloonWarning
+                        }
+                    // Icons already have proper theme colors, no need to override
+                }
+            panel.add(iconLabel, BorderLayout.WEST)
+
+            // Center: Content
+            val contentPanel =
+                JPanel().apply {
+                    layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                    background = panel.background
+                }
+
+            // File and line
+            val locationText =
+                if (value.isGeneralComment) {
+                    value.fileName
                 } else {
-                    when {
-                        value.isResolved -> UIUtil.getPanelBackground()
-                        value.isGeneralComment -> UIUtil.getPanelBackground()
-                        value.thread.status == paol0b.azuredevops.model.ThreadStatus.Pending -> {
-                            // Pending comments - subtle blue tint
-                            val baseColor = UIUtil.getPanelBackground()
-                            JBColor(
-                                // Light theme: slight blue tint
-                                Color(
-                                    (baseColor.red + 220) / 2,
-                                    (baseColor.green + 235) / 2,
-                                    (baseColor.blue + 255) / 2
-                                ),
-                                // Dark theme: slight cool tint
-                                Color(
-                                    (baseColor.red * 1.05f).coerceAtMost(255f).toInt(),
-                                    (baseColor.green * 1.08f).coerceAtMost(255f).toInt(),
-                                    (baseColor.blue * 1.15f).coerceAtMost(255f).toInt()
-                                )
-                            )
+                    "${value.fileName}:${value.line}"
+                }
+
+            val locationLabel =
+                JLabel(locationText).apply {
+                    font = font.deriveFont(Font.BOLD, 12f)
+                    foreground =
+                        if (isSelected) {
+                            UIUtil.getListSelectionForeground(true)
+                        } else {
+                            UIUtil.getLabelForeground()
                         }
-                        else -> {
-                            // Active comments - subtle yellow tint
-                            val baseColor = UIUtil.getPanelBackground()
-                            JBColor(
-                                // Light theme: slight yellow tint
-                                Color(
-                                    (baseColor.red + 255) / 2,
-                                    (baseColor.green + 250) / 2,
-                                    (baseColor.blue + 230) / 2
-                                ),
-                                // Dark theme: slight warm tint
-                                Color(
-                                    (baseColor.red * 1.1f).coerceAtMost(255f).toInt(),
-                                    (baseColor.green * 1.05f).coerceAtMost(255f).toInt(),
-                                    baseColor.blue
-                                )
-                            )
-                        }
+                }
+            contentPanel.add(locationLabel)
+
+            // Author and time
+            val metaText =
+                buildString {
+                    append(value.author)
+                    value.timestamp?.let { append(" · $it") }
+                    if (value.commentCount > 1) {
+                        append(" · ${value.commentCount} comments")
                     }
                 }
-            }
-            
-            // Left: Icon and status
-            val iconLabel = JLabel().apply {
-                icon = when {
-                    value.isGeneralComment -> AllIcons.Toolwindows.ToolWindowMessages
-                    value.isResolved -> AllIcons.RunConfigurations.TestPassed
-                    value.thread.status == paol0b.azuredevops.model.ThreadStatus.Pending -> AllIcons.RunConfigurations.TestState.Run
-                    else -> AllIcons.General.BalloonWarning
+
+            val metaLabel =
+                JLabel(metaText).apply {
+                    font = font.deriveFont(Font.PLAIN, 10f)
+                    foreground =
+                        if (isSelected) {
+                            UIUtil.getListSelectionForeground(true)
+                        } else {
+                            UIUtil.getLabelDisabledForeground()
+                        }
                 }
-                // Icons already have proper theme colors, no need to override
-            }
-            panel.add(iconLabel, BorderLayout.WEST)
-            
-            // Center: Content
-            val contentPanel = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                background = panel.background
-            }
-            
-            // File and line
-            val locationText = if (value.isGeneralComment) {
-                value.fileName
-            } else {
-                "${value.fileName}:${value.line}"
-            }
-            
-            val locationLabel = JLabel(locationText).apply {
-                font = font.deriveFont(Font.BOLD, 12f)
-                foreground = if (isSelected) {
-                    UIUtil.getListSelectionForeground(true)
-                } else {
-                    UIUtil.getLabelForeground()
-                }
-            }
-            contentPanel.add(locationLabel)
-            
-            // Author and time
-            val metaText = buildString {
-                append(value.author)
-                value.timestamp?.let { append(" · $it") }
-                if (value.commentCount > 1) {
-                    append(" · ${value.commentCount} comments")
-                }
-            }
-            
-            val metaLabel = JLabel(metaText).apply {
-                font = font.deriveFont(Font.PLAIN, 10f)
-                foreground = if (isSelected) {
-                    UIUtil.getListSelectionForeground(true)
-                } else {
-                    UIUtil.getLabelDisabledForeground()
-                }
-            }
             contentPanel.add(Box.createVerticalStrut(2))
             contentPanel.add(metaLabel)
-            
+
             // Content preview
             if (value.contentPreview.isNotEmpty()) {
-                val contentLabel = JLabel("<html>${value.contentPreview}</html>").apply {
-                    font = font.deriveFont(Font.PLAIN, 11f)
-                    foreground = if (isSelected) {
-                        UIUtil.getListSelectionForeground(true)
-                    } else {
-                        UIUtil.getLabelForeground()
+                val contentLabel =
+                    JLabel("<html>${value.contentPreview}</html>").apply {
+                        font = font.deriveFont(Font.PLAIN, 11f)
+                        foreground =
+                            if (isSelected) {
+                                UIUtil.getListSelectionForeground(true)
+                            } else {
+                                UIUtil.getLabelForeground()
+                            }
                     }
-                }
                 contentPanel.add(Box.createVerticalStrut(4))
                 contentPanel.add(contentLabel)
             }
-            
+
             panel.add(contentPanel, BorderLayout.CENTER)
-            
+
             return panel
         }
-        
+
         return this
     }
-    
+
     override fun getPreferredSize(): Dimension {
         val size = super.getPreferredSize()
         return Dimension(size.width, size.height.coerceAtLeast(70))

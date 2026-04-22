@@ -6,7 +6,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
@@ -23,42 +22,48 @@ import javax.swing.*
 class CreateWorkItemDialog(
     private val project: Project,
     private val workItemTypes: List<WorkItemType>,
-    private val iterations: List<TeamIteration>
+    private val iterations: List<TeamIteration>,
 ) : DialogWrapper(project) {
-
     private val logger = Logger.getInstance(CreateWorkItemDialog::class.java)
     private val apiClient = AzureDevOpsApiClient.getInstance(project)
 
-    private val typeCombo = ComboBox(workItemTypes.mapNotNull { it.name }.toTypedArray()).apply {
-        selectedItem = workItemTypes.firstOrNull { it.name == "Task" }?.name
-            ?: workItemTypes.firstOrNull()?.name
-    }
-    private val titleField = JBTextField()
-    private val descriptionArea = JBTextArea(5, 40).apply {
-        lineWrap = true
-        wrapStyleWord = true
-    }
-    private val assignedToField = JBTextField().apply {
-        emptyText.text = "Search by name or email..."
-    }
-    private val iterationCombo = ComboBox<String>().apply {
-        addItem("(Default)")
-        iterations.forEach { iter ->
-            val prefix = if (iter.isCurrent()) "* " else ""
-            addItem("$prefix${iter.name}")
+    private val typeCombo =
+        ComboBox(workItemTypes.mapNotNull { it.name }.toTypedArray()).apply {
+            selectedItem = workItemTypes.firstOrNull { it.name == "Task" }?.name
+                ?: workItemTypes.firstOrNull()?.name
         }
-        selectedIndex = 0
-    }
+    private val titleField = JBTextField()
+    private val descriptionArea =
+        JBTextArea(5, 40).apply {
+            lineWrap = true
+            wrapStyleWord = true
+        }
+    private val assignedToField =
+        JBTextField().apply {
+            emptyText.text = "Search by name or email..."
+        }
+    private val iterationCombo =
+        ComboBox<String>().apply {
+            addItem("(Default)")
+            iterations.forEach { iter ->
+                val prefix = if (iter.isCurrent()) "* " else ""
+                addItem("$prefix${iter.name}")
+            }
+            selectedIndex = 0
+        }
     private val areaPathField = JBTextField()
-    private val priorityCombo = ComboBox(arrayOf("1 - Critical", "2 - High", "3 - Medium", "4 - Low")).apply {
-        selectedIndex = 2
-    }
-    private val tagsField = JBTextField().apply {
-        emptyText.text = "Comma-separated tags..."
-    }
-    private val storyPointsField = JBTextField().apply {
-        emptyText.text = "Story points (optional)"
-    }
+    private val priorityCombo =
+        ComboBox(arrayOf("1 - Critical", "2 - High", "3 - Medium", "4 - Low")).apply {
+            selectedIndex = 2
+        }
+    private val tagsField =
+        JBTextField().apply {
+            emptyText.text = "Comma-separated tags..."
+        }
+    private val storyPointsField =
+        JBTextField().apply {
+            emptyText.text = "Story points (optional)"
+        }
 
     private var createdWorkItem: WorkItem? = null
 
@@ -69,18 +74,22 @@ class CreateWorkItemDialog(
     }
 
     override fun createCenterPanel(): JComponent {
-        val formBuilder = FormBuilder.createFormBuilder()
-            .addLabeledComponent("Type:", typeCombo)
-            .addLabeledComponent("Title:", titleField)
-            .addLabeledComponent("Description:", JScrollPane(descriptionArea).apply {
-                preferredSize = Dimension(450, 120)
-            })
-            .addLabeledComponent("Assigned To:", assignedToField)
-            .addLabeledComponent("Iteration:", iterationCombo)
-            .addLabeledComponent("Area Path:", areaPathField)
-            .addLabeledComponent("Priority:", priorityCombo)
-            .addLabeledComponent("Tags:", tagsField)
-            .addLabeledComponent("Story Points:", storyPointsField)
+        val formBuilder =
+            FormBuilder
+                .createFormBuilder()
+                .addLabeledComponent("Type:", typeCombo)
+                .addLabeledComponent("Title:", titleField)
+                .addLabeledComponent(
+                    "Description:",
+                    JScrollPane(descriptionArea).apply {
+                        preferredSize = Dimension(450, 120)
+                    },
+                ).addLabeledComponent("Assigned To:", assignedToField)
+                .addLabeledComponent("Iteration:", iterationCombo)
+                .addLabeledComponent("Area Path:", areaPathField)
+                .addLabeledComponent("Priority:", priorityCombo)
+                .addLabeledComponent("Tags:", tagsField)
+                .addLabeledComponent("Story Points:", storyPointsField)
 
         return formBuilder.panel.apply {
             border = JBUI.Borders.empty(8)
@@ -144,7 +153,8 @@ class CreateWorkItemDialog(
         if (sp.isNotBlank()) {
             try {
                 operations.add(JsonPatchOperation("add", "/fields/Microsoft.VSTS.Scheduling.StoryPoints", sp.toDouble()))
-            } catch (_: NumberFormatException) { }
+            } catch (_: NumberFormatException) {
+            }
         }
 
         isOKActionEnabled = false
@@ -154,8 +164,11 @@ class CreateWorkItemDialog(
                 val created = apiClient.createWorkItem(type, operations)
                 createdWorkItem = created
                 ApplicationManager.getApplication().invokeLater {
-                    NotificationUtil.info(project, "Work Item Created",
-                        "${created.getWorkItemType()} #${created.id}: ${created.getTitle()}")
+                    NotificationUtil.info(
+                        project,
+                        "Work Item Created",
+                        "${created.getWorkItemType()} #${created.id}: ${created.getTitle()}",
+                    )
                     super.doOKAction()
                 }
             } catch (e: Exception) {
@@ -177,20 +190,26 @@ class CreateWorkItemDialog(
          *
          * @param onCreated callback invoked on EDT with the created work item (or null if cancelled)
          */
-        fun showDialog(project: Project, onCreated: ((WorkItem?) -> Unit)? = null): WorkItem? {
+        fun showDialog(
+            project: Project,
+            onCreated: ((WorkItem?) -> Unit)? = null,
+        ): WorkItem? {
             // If called from EDT, load data in background first
             if (ApplicationManager.getApplication().isDispatchThread) {
                 com.intellij.openapi.progress.ProgressManager.getInstance().run(
                     object : com.intellij.openapi.progress.Task.Backgroundable(
-                        project, "Loading work item types...", true
+                        project,
+                        "Loading work item types...",
+                        true,
                     ) {
                         override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
                             try {
                                 val apiClient = AzureDevOpsApiClient.getInstance(project)
-                                val types = apiClient.getWorkItemTypes().filter { type ->
-                                    val name = type.name?.lowercase() ?: return@filter false
-                                    name in listOf("bug", "task", "user story", "feature", "epic", "product backlog item", "issue")
-                                }
+                                val types =
+                                    apiClient.getWorkItemTypes().filter { type ->
+                                        val name = type.name?.lowercase() ?: return@filter false
+                                        name in listOf("bug", "task", "user story", "feature", "epic", "product backlog item", "issue")
+                                    }
                                 val iterations = apiClient.getIterations()
 
                                 ApplicationManager.getApplication().invokeLater {
@@ -210,16 +229,18 @@ class CreateWorkItemDialog(
                                 }
                             }
                         }
-                    })
+                    },
+                )
                 return null // result delivered via callback
             }
 
             // Non-EDT path (synchronous, for tests or background callers)
             val apiClient = AzureDevOpsApiClient.getInstance(project)
-            val types = apiClient.getWorkItemTypes().filter { type ->
-                val name = type.name?.lowercase() ?: return@filter false
-                name in listOf("bug", "task", "user story", "feature", "epic", "product backlog item", "issue")
-            }
+            val types =
+                apiClient.getWorkItemTypes().filter { type ->
+                    val name = type.name?.lowercase() ?: return@filter false
+                    name in listOf("bug", "task", "user story", "feature", "epic", "product backlog item", "issue")
+                }
             val iterations = apiClient.getIterations()
             if (types.isEmpty()) return null
             val dialog = CreateWorkItemDialog(project, types, iterations)

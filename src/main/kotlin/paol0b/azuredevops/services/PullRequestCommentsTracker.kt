@@ -11,21 +11,23 @@ import java.util.concurrent.ConcurrentHashMap
  * Used to show badges in the solution explorer
  */
 @Service(Service.Level.PROJECT)
-class PullRequestCommentsTracker(private val project: Project) {
-
+class PullRequestCommentsTracker(
+    private val project: Project,
+) {
     // Map: file -> list of comment threads (thread-safe for concurrent access from EDT and background threads)
     private val fileComments = ConcurrentHashMap<VirtualFile, List<CommentThread>>()
 
     companion object {
-        fun getInstance(project: Project): PullRequestCommentsTracker {
-            return project.getService(PullRequestCommentsTracker::class.java)
-        }
+        fun getInstance(project: Project): PullRequestCommentsTracker = project.getService(PullRequestCommentsTracker::class.java)
     }
 
     /**
      * Registers comments for a file
      */
-    fun setCommentsForFile(file: VirtualFile, threads: List<CommentThread>) {
+    fun setCommentsForFile(
+        file: VirtualFile,
+        threads: List<CommentThread>,
+    ) {
         fileComments[file] = threads
     }
 
@@ -46,35 +48,25 @@ class PullRequestCommentsTracker(private val project: Project) {
     /**
      * Checks if a file has PR comments
      */
-    fun hasComments(file: VirtualFile): Boolean {
-        return fileComments[file]?.isNotEmpty() == true
-    }
+    fun hasComments(file: VirtualFile): Boolean = fileComments[file]?.isNotEmpty() == true
 
     /**
      * Checks if a file has active (unresolved) comments
      */
-    fun hasActiveComments(file: VirtualFile): Boolean {
-        return fileComments[file]?.any { !it.isResolved() } == true
-    }
+    fun hasActiveComments(file: VirtualFile): Boolean = fileComments[file]?.any { !it.isResolved() } == true
 
     /**
      * Gets the total number of comments for a file
      */
-    fun getCommentCount(file: VirtualFile): Int {
-        return fileComments[file]?.size ?: 0
-    }
+    fun getCommentCount(file: VirtualFile): Int = fileComments[file]?.size ?: 0
 
     /**
      * Gets the number of active comments for a file
      */
-    fun getActiveCommentCount(file: VirtualFile): Int {
-        return fileComments[file]?.count { !it.isResolved() } ?: 0
-    }
+    fun getActiveCommentCount(file: VirtualFile): Int = fileComments[file]?.count { !it.isResolved() } ?: 0
 
     /**
      * Gets the comments for a file
      */
-    fun getCommentsForFile(file: VirtualFile): List<CommentThread> {
-        return fileComments[file] ?: emptyList()
-    }
+    fun getCommentsForFile(file: VirtualFile): List<CommentThread> = fileComments[file] ?: emptyList()
 }

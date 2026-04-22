@@ -1,0 +1,20 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+indent_style = space
+indent_size = 4
+
+[*.kt]
+# Disable wildcard imports rule - teams can choose their preference
+ktlint_standard_no-wildcard-imports = disabled
+# Maximum line length
+ktlint_standard_max-line-length = 140
+# Disable property naming rule for existing code (would require massive refactoring)
+ktlint_standard_property-naming = disabled
+# Disable function signature rule for existing code
+ktlint_standard_function-signature = disabled
+
