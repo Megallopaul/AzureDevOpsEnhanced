@@ -304,12 +304,17 @@ class StatusPill(
     init {
         val (b, f) =
             when (status) {
-                ThreadStatus.Active, ThreadStatus.Pending ->
+                ThreadStatus.Active, ThreadStatus.Pending -> {
                     TimelineTheme.ACTIVE_BG to TimelineTheme.ACTIVE_FG
-                ThreadStatus.Fixed, ThreadStatus.Closed, ThreadStatus.ByDesign, ThreadStatus.WontFix ->
+                }
+
+                ThreadStatus.Fixed, ThreadStatus.Closed, ThreadStatus.ByDesign, ThreadStatus.WontFix -> {
                     TimelineTheme.RESOLVED_BG to TimelineTheme.RESOLVED_FG
-                else ->
+                }
+
+                else -> {
                     TimelineTheme.NOVOTE_BG to TimelineTheme.NOVOTE_FG
+                }
             }
         bg = b
         pillFg = f

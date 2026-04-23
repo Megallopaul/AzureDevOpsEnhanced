@@ -44,15 +44,31 @@ fun PullRequestChange.isRemovedFile(): Boolean = hasChangeType("delete") && !has
 
 fun PullRequestChange.displayChangeLabel(): String =
     when {
-        isAddedFile() -> "Added"
-        isRemovedFile() -> "Removed"
-        hasChangeType("rename") && hasChangeType("edit") -> "Renamed + Modified"
-        hasChangeType("rename") -> "Renamed"
-        hasChangeType("edit") -> "Modified"
-        else ->
+        isAddedFile() -> {
+            "Added"
+        }
+
+        isRemovedFile() -> {
+            "Removed"
+        }
+
+        hasChangeType("rename") && hasChangeType("edit") -> {
+            "Renamed + Modified"
+        }
+
+        hasChangeType("rename") -> {
+            "Renamed"
+        }
+
+        hasChangeType("edit") -> {
+            "Modified"
+        }
+
+        else -> {
             primaryChangeType().replaceFirstChar { char ->
                 if (char.isLowerCase()) char.titlecase() else char.toString()
             }
+        }
     }
 
 fun PullRequestChange.diffSideTitles(

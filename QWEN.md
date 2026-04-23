@@ -96,6 +96,23 @@ ApplicationManager.getApplication().executeOnPooledThread {
 ./gradlew ktlintFormat
 ```
 
+## Post-Refactoring Verification
+
+**After every refactoring step, always run build and lint verification:**
+
+```bash
+./gradlew clean buildPlugin ktlintCheck
+```
+
+**Required checks:**
+1. ✅ **Build succeeds** — No compilation errors
+2. ✅ **ktlintCheck passes** — No code style violations
+3. ✅ **Tests pass** — If tests exist for modified code
+
+**Why:** Catches regressions early, ensures code quality standards are maintained throughout the refactoring process.
+
+**If any check fails:** Fix before committing. Do not commit broken builds or lint violations.
+
 ## Code Style
 
 - **Naming**: Kotlin conventions (PascalCase for classes, camelCase for methods/vars)
