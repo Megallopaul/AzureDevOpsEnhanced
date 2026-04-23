@@ -5,7 +5,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "12.2.0"
 }
 
-group = "paol0b"
+group = "azuredevops"
 version = "4.0"
 
 repositories {

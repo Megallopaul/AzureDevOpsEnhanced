@@ -123,40 +123,40 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- Azure DevOps Clone Dialog Extension - appears in left panel alongside GitHub/GitLab -->
         <openapi.vcs.ui.cloneDialog.VcsCloneDialogExtension 
-            id="paol0b.azuredevops.checkout.AzureDevOpsCloneDialogExtension" 
-            implementation="paol0b.azuredevops.checkout.AzureDevOpsCloneDialogExtension"
+            id="azuredevops.checkout.AzureDevOpsCloneDialogExtension" 
+            implementation="azuredevops.checkout.AzureDevOpsCloneDialogExtension"
             order="after org.jetbrains.plugins.github.ui.cloneDialog.GHECloneDialogExtension"/>
         <!-- Application-level service for account management -->
-        <applicationService serviceImplementation="paol0b.azuredevops.checkout.AzureDevOpsAccountManager"/>
+        <applicationService serviceImplementation="azuredevops.checkout.AzureDevOpsAccountManager"/>
         <!-- OAuth authentication service -->
-        <applicationService serviceImplementation="paol0b.azuredevops.checkout.AzureDevOpsOAuthService"/>
+        <applicationService serviceImplementation="azuredevops.checkout.AzureDevOpsOAuthService"/>
         <!-- Tracks cloned/managed repos and keeps http.extraHeader in sync with the current token -->
-        <applicationService serviceImplementation="paol0b.azuredevops.services.GitTokenManager"/>
+        <applicationService serviceImplementation="azuredevops.services.GitTokenManager"/>
         <!-- PAT validation service -->
-        <applicationService serviceImplementation="paol0b.azuredevops.services.PatValidationService"/>
+        <applicationService serviceImplementation="azuredevops.services.PatValidationService"/>
         
         <!-- Avatar caching service -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.AvatarService"/>
+        <projectService serviceImplementation="azuredevops.services.AvatarService"/>
 
         <!-- CoroutineScope for Azure DevOps operations -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.AzureDevOpsCoroutineScope"/>
+        <projectService serviceImplementation="azuredevops.services.AzureDevOpsCoroutineScope"/>
         
         <!-- Application-level configuration for accounts -->
         <applicationConfigurable 
             parentId="tools" 
-            instance="paol0b.azuredevops.ui.AzureDevOpsAccountsConfigurable"
-            id="paol0b.azuredevops.accounts"
+            instance="azuredevops.ui.AzureDevOpsAccountsConfigurable"
+            id="azuredevops.accounts"
             displayName="Azure DevOps Accounts"/>
             
         <!-- Project-level configuration -->
         <projectConfigurable
             parentId="tools"
-            instance="paol0b.azuredevops.ui.AzureDevOpsProjectConfigurable"
-            id="paol0b.azuredevops.project"
+            instance="azuredevops.ui.AzureDevOpsProjectConfigurable"
+            id="azuredevops.project"
             displayName="Azure DevOps"/>
 
         <!-- Plugin settings (polling intervals, etc.) -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.AzureDevOpsSettingsService"/>
+        <projectService serviceImplementation="azuredevops.services.AzureDevOpsSettingsService"/>
 
         <!-- Notification Group -->
         <notificationGroup
@@ -168,8 +168,8 @@
         <toolWindow
                 id="Azure DevOps PRs"
                 anchor="left"
-                icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindow"
-                factoryClass="paol0b.azuredevops.toolwindow.PullRequestToolWindowFactory"
+                icon="azuredevops.AzureDevOpsIcons.ToolWindow"
+                factoryClass="azuredevops.toolwindow.PullRequestToolWindowFactory"
                 canCloseContents="true"
                 doNotActivateOnStart="false"/>
 
@@ -177,8 +177,8 @@
         <toolWindow
                 id="Azure DevOps Pipelines"
                 anchor="left"
-                icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindowPipeline"
-                factoryClass="paol0b.azuredevops.toolwindow.pipeline.PipelineToolWindowFactory"
+                icon="azuredevops.AzureDevOpsIcons.ToolWindowPipeline"
+                factoryClass="azuredevops.toolwindow.pipeline.PipelineToolWindowFactory"
                 canCloseContents="true"
                 doNotActivateOnStart="false"/>
 
@@ -186,8 +186,8 @@
         <toolWindow
                 id="Azure DevOps Work Items"
                 anchor="left"
-                icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindowWorkItem"
-                factoryClass="paol0b.azuredevops.toolwindow.workitem.WorkItemToolWindowFactory"
+                icon="azuredevops.AzureDevOpsIcons.ToolWindowWorkItem"
+                factoryClass="azuredevops.toolwindow.workitem.WorkItemToolWindowFactory"
                 canCloseContents="true"
                 doNotActivateOnStart="false"/>
 
@@ -195,73 +195,73 @@
         <toolWindow
                 id="Azure DevOps Comments"
                 anchor="right"
-                icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindowComments"
-                factoryClass="paol0b.azuredevops.toolwindow.CommentsNavigatorToolWindow"/>
+                icon="azuredevops.AzureDevOpsIcons.ToolWindowComments"
+                factoryClass="azuredevops.toolwindow.CommentsNavigatorToolWindow"/>
 
         <!-- PR Review Tool Window (Master-Detail Diff Viewer) -->
         <!-- <toolWindow
                 id="PR Review"
                 anchor="right"
                 icon="AllIcons.Actions.Diff"
-                factoryClass="paol0b.azuredevops.toolwindow.review.PrReviewToolWindowFactory"
+                factoryClass="azuredevops.toolwindow.review.PrReviewToolWindowFactory"
                 canCloseContents="false"
                 doNotActivateOnStart="false"/> -->
 
         <!-- PR Review Editor Tab (legacy full-review in editor) -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.review.editor.PrReviewFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.review.editor.PrReviewFileEditorProvider"/>
 
         <!-- PR Diff Editor Tab (individual file diff with inline comments) -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.review.editor.PrDiffFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.review.editor.PrDiffFileEditorProvider"/>
 
         <!-- Create PR Diff Editor Tab (reusable diff tab for new PR file preview) -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.create.CreatePrDiffFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.create.CreatePrDiffFileEditorProvider"/>
 
         <!-- PR Timeline Editor Tab -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.review.editor.PrTimelineFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.review.editor.PrTimelineFileEditorProvider"/>
 
         <!-- Pipeline Log Editor Tab -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.pipeline.editor.PipelineLogFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.pipeline.editor.PipelineLogFileEditorProvider"/>
 
         <!-- Pipeline Diagram Editor Tab -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.pipeline.editor.PipelineDiagramFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.pipeline.editor.PipelineDiagramFileEditorProvider"/>
 
         <!-- Pipeline Tab Service -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.PipelineTabService"/>
+        <projectService serviceImplementation="azuredevops.services.PipelineTabService"/>
 
         <!-- Work Item Board Editor Tab -->
-        <fileEditorProvider implementation="paol0b.azuredevops.toolwindow.workitem.board.WorkItemBoardFileEditorProvider"/>
+        <fileEditorProvider implementation="azuredevops.toolwindow.workitem.board.WorkItemBoardFileEditorProvider"/>
 
         <!-- Work Item Tab Service -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.WorkItemTabService"/>
+        <projectService serviceImplementation="azuredevops.services.WorkItemTabService"/>
 
         <!-- Work Item Branch Detector -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.WorkItemBranchDetector"/>
+        <projectService serviceImplementation="azuredevops.services.WorkItemBranchDetector"/>
 
         <!-- Status Bar Widget -->
         <statusBarWidgetFactory
             id="AzureDevOps.StatusBar"
-            implementation="paol0b.azuredevops.statusbar.AzureDevOpsStatusBarWidgetFactory"
+            implementation="azuredevops.statusbar.AzureDevOpsStatusBarWidgetFactory"
             order="after encodingWidget"/>
 
         <!-- Status Bar Service -->
-        <projectService serviceImplementation="paol0b.azuredevops.services.AzureDevOpsStatusBarService"/>
+        <projectService serviceImplementation="azuredevops.services.AzureDevOpsStatusBarService"/>
 
         <!-- Work Item Commit Message Provider -->
-        <checkinHandlerFactory implementation="paol0b.azuredevops.listeners.WorkItemCommitMessageProvider"/>
+        <checkinHandlerFactory implementation="azuredevops.listeners.WorkItemCommitMessageProvider"/>
 
         <!-- File Decorator for PR Comments -->
-        <projectViewNodeDecorator implementation="paol0b.azuredevops.decorators.FileWithCommentsDecorator"/>
+        <projectViewNodeDecorator implementation="azuredevops.decorators.FileWithCommentsDecorator"/>
 
         <!-- File Editor Listener for PR detection -->
-        <projectService serviceImplementation="paol0b.azuredevops.listeners.FileOpenedListener"/>
+        <projectService serviceImplementation="azuredevops.listeners.FileOpenedListener"/>
     </extensions>
 
     <projectListeners>
         <listener
-                class="paol0b.azuredevops.listeners.FileOpenedListener"
+                class="azuredevops.listeners.FileOpenedListener"
                 topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <listener
-                class="paol0b.azuredevops.listeners.GitRepositoryChangeListener"
+                class="azuredevops.listeners.GitRepositoryChangeListener"
                 topic="com.intellij.openapi.vcs.BranchChangeListener"/>
     </projectListeners>
 
@@ -269,23 +269,23 @@
         <!-- Azure DevOps Group in Git Menu -->
         <group id="AzureDevOps.Group"
                text="Azure DevOps"
-               icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindow"
+               icon="azuredevops.AzureDevOpsIcons.ToolWindow"
                popup="true">
             <!-- Place this group immediately after the GitHub menu entry -->
             <add-to-group group-id="VcsGroups" anchor="after" relative-to-action="GitHub"/>
 
             <action
                     id="AzureDevOps.CreatePullRequest"
-                    class="paol0b.azuredevops.actions.CreatePullRequestAction"
+                    class="azuredevops.actions.CreatePullRequestAction"
                     text="Create Pull Request..."
                     description="Create a Pull Request on Azure DevOps"
-                    icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindow">
+                    icon="azuredevops.AzureDevOpsIcons.ToolWindow">
                 <keyboard-shortcut first-keystroke="alt INSERT" keymap="$default"/>
             </action>
 
             <action
                     id="AzureDevOps.OpenInBrowser"
-                    class="paol0b.azuredevops.actions.OpenRepositoryInBrowserAction"
+                    class="azuredevops.actions.OpenRepositoryInBrowserAction"
                     text="Open in Browser"
                     description="Open the repository in Azure DevOps web portal"
                     icon="AllIcons.Ide.External_link_arrow"/>
@@ -294,17 +294,17 @@
         <!-- Add to VCS menu (legacy) -->
         <action
                 id="AzureDevOps.CreatePullRequest.Legacy"
-                class="paol0b.azuredevops.actions.CreatePullRequestAction"
+                class="azuredevops.actions.CreatePullRequestAction"
                 text="Create Azure DevOps PR"
                 description="Create a Pull Request on Azure DevOps"
-                icon="paol0b.azuredevops.AzureDevOpsIcons.ToolWindow">
+                icon="azuredevops.AzureDevOpsIcons.ToolWindow">
             <add-to-group group-id="Vcs.MainMenu" anchor="last"/>
         </action>
 
         <!-- Show PR Comments in Editor (legacy action) -->
         <action
                 id="AzureDevOps.ShowPRComments"
-                class="paol0b.azuredevops.actions.ShowPullRequestCommentsAction"
+                class="azuredevops.actions.ShowPullRequestCommentsAction"
                 text="Show PR Comments"
                 description="Show Pull Request comments in the current file"
                 icon="AllIcons.Vcs.CommitNode">

@@ -1,0 +1,38 @@
+package azuredevops.listeners
+
+import azuredevops.services.AzureDevOpsRepositoryDetector
+import azuredevops.services.AzureDevOpsStatusBarService
+import azuredevops.services.WorkItemBranchDetector
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vcs.BranchChangeListener
+
+/**
+ * Listener to invalidate the detection cache when the Git repository changes
+ */
+class GitRepositoryChangeListener(
+    private val project: Project,
+) : BranchChangeListener {
+    private val logger = Logger.getInstance(GitRepositoryChangeListener::class.java)
+
+    override fun branchWillChange(branchName: String) {
+        // Not needed
+    }
+
+    override fun branchHasChanged(branchName: String) {
+        // Invalidate the cache when the branch changes
+        // (could be a different clone or a remote change)
+        val detector = AzureDevOpsRepositoryDetector.getInstance(project)
+        detector.invalidateCache()
+
+        // Detect work item ID from branch name for commit message auto-fill
+        WorkItemBranchDetector.getInstance(project).detectFromBranch(branchName)
+
+        // Immediately refresh build status in status bar on branch switch
+        try {
+            AzureDevOpsStatusBarService.getInstance(project).refreshBuildStatusOnly()
+        } catch (e: Exception) {
+            logger.warn("Failed to refresh build status after branch change to '$branchName'", e)
+        }
+    }
+}
