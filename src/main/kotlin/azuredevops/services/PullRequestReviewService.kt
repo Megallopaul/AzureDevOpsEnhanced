@@ -68,7 +68,7 @@ class PullRequestReviewService(
 
                 // Open the review dialog
                 ApplicationManager.getApplication().invokeLater {
-                    val dialog = PullRequestReviewDialog(project, pullRequest, fileChanges)
+                    val dialog = PullRequestReviewDialog(project, apiClient, pullRequest, fileChanges)
                     dialog.show()
                 }
             } catch (e: Exception) {

@@ -38,6 +38,7 @@ import javax.swing.tree.TreeSelectionModel
  */
 class PullRequestReviewDialog(
     private val project: Project,
+    private val apiClient: AzureDevOpsApiClient,
     private val pullRequest: PullRequest,
     private val fileChanges: List<PullRequestChange>,
 ) : DialogWrapper(project, true) {

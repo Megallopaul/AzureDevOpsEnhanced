@@ -8,12 +8,19 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 
 /**
  * Action to load and display PR comments in the current file
+ *
+ * Uses factory functions for dependency injection to enable testing.
  */
-class ShowPullRequestCommentsAction : AnAction() {
+class ShowPullRequestCommentsAction(
+    private val apiClientFactory: (Project) -> AzureDevOpsApiClient = { AzureDevOpsApiClient.getInstance(it) },
+    private val commentsServiceFactory: (Project) -> PullRequestCommentsService = { PullRequestCommentsService.getInstance(it) },
+    private val gitServiceFactory: (Project) -> GitRepositoryService = { GitRepositoryService.getInstance(it) },
+) : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -22,7 +29,7 @@ class ShowPullRequestCommentsAction : AnAction() {
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
 
         // Check that there is a current branch
-        val gitService = GitRepositoryService.getInstance(project)
+        val gitService = gitServiceFactory(project)
         val currentBranch =
             gitService.getCurrentBranch() ?: run {
                 Messages.showWarningDialog(
@@ -36,7 +43,7 @@ class ShowPullRequestCommentsAction : AnAction() {
         // Search for the PR associated with the branch
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                val apiClient = AzureDevOpsApiClient.getInstance(project)
+                val apiClient = apiClientFactory(project)
                 val pullRequest = apiClient.findPullRequestForBranch(currentBranch.displayName)
 
                 if (pullRequest == null) {
@@ -53,7 +60,7 @@ class ShowPullRequestCommentsAction : AnAction() {
                 }
 
                 // Load comments
-                val commentsService = PullRequestCommentsService.getInstance(project)
+                val commentsService = commentsServiceFactory(project)
                 ApplicationManager.getApplication().invokeLater {
                     commentsService.loadCommentsInEditor(editor, file, pullRequest)
 

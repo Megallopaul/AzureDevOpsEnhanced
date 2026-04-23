@@ -21,11 +21,11 @@ import javax.swing.*
  */
 class CreateWorkItemDialog(
     private val project: Project,
+    private val apiClient: AzureDevOpsApiClient,
     private val workItemTypes: List<WorkItemType>,
     private val iterations: List<TeamIteration>,
 ) : DialogWrapper(project) {
     private val logger = Logger.getInstance(CreateWorkItemDialog::class.java)
-    private val apiClient = AzureDevOpsApiClient.getInstance(project)
 
     private val typeCombo =
         ComboBox(workItemTypes.mapNotNull { it.name }.toTypedArray()).apply {
@@ -218,7 +218,8 @@ class CreateWorkItemDialog(
                                         onCreated?.invoke(null)
                                         return@invokeLater
                                     }
-                                    val dialog = CreateWorkItemDialog(project, types, iterations)
+                                    val apiClient = AzureDevOpsApiClient.getInstance(project)
+                                    val dialog = CreateWorkItemDialog(project, apiClient, types, iterations)
                                     val result = if (dialog.showAndGet()) dialog.getCreatedWorkItem() else null
                                     onCreated?.invoke(result)
                                 }
@@ -243,7 +244,7 @@ class CreateWorkItemDialog(
                 }
             val iterations = apiClient.getIterations()
             if (types.isEmpty()) return null
-            val dialog = CreateWorkItemDialog(project, types, iterations)
+            val dialog = CreateWorkItemDialog(project, apiClient, types, iterations)
             return if (dialog.showAndGet()) dialog.getCreatedWorkItem() else null
         }
     }
