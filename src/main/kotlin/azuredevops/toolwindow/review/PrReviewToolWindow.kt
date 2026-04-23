@@ -3,6 +3,7 @@ package azuredevops.toolwindow.review
 import azuredevops.model.PullRequest
 import azuredevops.services.AzureDevOpsApiClient
 import azuredevops.services.PrReviewStateService
+import azuredevops.services.PullRequestCommentsService
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
@@ -26,6 +27,7 @@ class PrReviewToolWindow(
     private val showSelector: Boolean = true,
 ) : JPanel(BorderLayout()) {
     private val logger = Logger.getInstance(PrReviewToolWindow::class.java)
+    private val commentsService = PullRequestCommentsService.getInstance(project)
 
     private var currentPullRequest: PullRequest? = null
     private var fileTreePanel: FileTreePanel? = null
@@ -514,7 +516,7 @@ class PrReviewToolWindow(
 
         // Create panels
         fileTreePanel =
-            FileTreePanel(project, pullRequest.pullRequestId).apply {
+            FileTreePanel(project, pullRequest.pullRequestId, reviewStateService).apply {
                 loadFileChanges(changes)
 
                 // Connect file selection to diff viewer
@@ -534,7 +536,7 @@ class PrReviewToolWindow(
 
         diffViewerPanel = DiffViewerPanel(project, pullRequest.pullRequestId, apiClient, externalProjectName, externalRepositoryId)
 
-        commentsPanel = CommentsPanel(project, pullRequest.pullRequestId, externalProjectName, externalRepositoryId)
+        commentsPanel = CommentsPanel(project, pullRequest.pullRequestId, apiClient, commentsService, externalProjectName, externalRepositoryId)
 
         // Layout: Left (File Tree) | Right (Diff Viewer + Comments)
         val leftRightSplitter =

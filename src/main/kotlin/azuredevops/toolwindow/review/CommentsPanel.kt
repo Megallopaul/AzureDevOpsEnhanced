@@ -27,12 +27,12 @@ import javax.swing.border.CompoundBorder
 class CommentsPanel(
     private val project: Project,
     private val pullRequestId: Int,
+    private val apiClient: AzureDevOpsApiClient,
+    private val commentsService: PullRequestCommentsService,
     private val externalProjectName: String? = null,
     private val externalRepositoryId: String? = null,
 ) : JPanel(BorderLayout()) {
     private val logger = Logger.getInstance(CommentsPanel::class.java)
-    private val apiClient = AzureDevOpsApiClient.getInstance(project)
-    private val commentsService = PullRequestCommentsService.getInstance(project)
 
     private val commentsContainer =
         JPanel().apply {

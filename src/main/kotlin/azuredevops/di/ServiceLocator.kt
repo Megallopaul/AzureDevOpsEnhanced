@@ -109,4 +109,55 @@ object ServiceLocator {
         )
 
     // endregion
+
+    // region Additional Factory Methods
+
+    /**
+     * Creates a new CommentsPanel instance with all dependencies injected
+     *
+     * @param project Current IntelliJ project
+     * @param pullRequestId ID of the pull request
+     * @param apiClient Azure DevOps API client
+     * @param commentsService Pull request comments service
+     * @param externalProjectName Optional external project name
+     * @param externalRepositoryId Optional external repository ID
+     * @return Fully initialized CommentsPanel
+     */
+    fun createCommentsPanel(
+        project: Project,
+        pullRequestId: Int,
+        apiClient: AzureDevOpsApiClient,
+        commentsService: PullRequestCommentsService,
+        externalProjectName: String? = null,
+        externalRepositoryId: String? = null,
+    ): azuredevops.toolwindow.review.CommentsPanel =
+        azuredevops.toolwindow.review.CommentsPanel(
+            project = project,
+            pullRequestId = pullRequestId,
+            apiClient = apiClient,
+            commentsService = commentsService,
+            externalProjectName = externalProjectName,
+            externalRepositoryId = externalRepositoryId,
+        )
+
+    /**
+     * Creates a new FileTreePanel instance with all dependencies injected
+     *
+     * @param project Current IntelliJ project
+     * @param pullRequestId ID of the pull request
+     * @param reviewStateService Review state service for tracking reviewed files
+     * @return Fully initialized FileTreePanel
+     */
+    fun createFileTreePanel(
+        project: Project,
+        pullRequestId: Int,
+        reviewStateService: PrReviewStateService,
+    ): azuredevops.toolwindow.review.FileTreePanel =
+        azuredevops.toolwindow.review.FileTreePanel(
+            project = project,
+            pullRequestId = pullRequestId,
+            reviewStateService = reviewStateService,
+        )
+
+    // endregion
 }

@@ -33,11 +33,11 @@ import javax.swing.*
 class PrReviewTabPanel(
     private val project: Project,
     private val pullRequest: PullRequest,
+    private val apiClient: AzureDevOpsApiClient,
+    private val avatarService: AvatarService,
+    private val reviewStateService: PrReviewStateService,
 ) : JPanel(BorderLayout()) {
     private val logger = Logger.getInstance(PrReviewTabPanel::class.java)
-    private val apiClient = AzureDevOpsApiClient.getInstance(project)
-    private val avatarService = AvatarService.getInstance(project)
-    private val reviewStateService = PrReviewStateService.getInstance(project)
 
     // Panels
     private var fileTreePanel: FileTreePanel? = null
@@ -252,7 +252,7 @@ class PrReviewTabPanel(
 
         // Create file tree panel
         fileTreePanel =
-            FileTreePanel(project, pullRequest.pullRequestId).apply {
+            FileTreePanel(project, pullRequest.pullRequestId, reviewStateService).apply {
                 addFileSelectionListener { change ->
                     openDiffForFile(change)
                 }

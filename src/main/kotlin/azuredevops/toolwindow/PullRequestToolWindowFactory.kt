@@ -1,5 +1,6 @@
 package azuredevops.toolwindow
 
+import azuredevops.di.ServiceLocator
 import azuredevops.model.PullRequest
 import azuredevops.toolwindow.create.CreatePullRequestPanel
 import azuredevops.toolwindow.metrics.PrMetricsDashboardPanel
@@ -148,7 +149,10 @@ class PullRequestToolWindowFactory :
             }
 
             // Create new review tab
-            val panel = PrReviewTabPanel(project, pullRequest)
+            val apiClient = ServiceLocator.getApiClient(project)
+            val avatarService = ServiceLocator.getAvatarService(project)
+            val reviewStateService = ServiceLocator.getReviewStateService(project)
+            val panel = PrReviewTabPanel(project, pullRequest, apiClient, avatarService, reviewStateService)
             reviewTabs[pullRequest.pullRequestId] = panel
 
             val tabTitle = "#${pullRequest.pullRequestId}"

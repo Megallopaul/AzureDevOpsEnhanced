@@ -39,9 +39,8 @@ import javax.swing.tree.TreePath
 class FileTreePanel(
     private val project: Project,
     private val pullRequestId: Int,
+    private val reviewStateService: PrReviewStateService,
 ) : JPanel(BorderLayout()) {
-    private val reviewStateService = PrReviewStateService.getInstance(project)
-
     // ── Node payload types ──────────────────────────────────────────────
 
     /** Payload held by a [CheckedTreeNode] (leaf = file). */
