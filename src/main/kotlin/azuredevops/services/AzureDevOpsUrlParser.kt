@@ -1,5 +1,6 @@
 package azuredevops.services
 
+import azuredevops.api.AzureDevOpsRepoInfo
 import com.intellij.openapi.diagnostic.Logger
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets

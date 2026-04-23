@@ -1,27 +1,10 @@
 package azuredevops.services
 
+import azuredevops.api.AzureDevOpsRepoInfo
+import azuredevops.api.RepoDetector
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-
-/**
- * Information detected from an Azure DevOps repository
- */
-data class AzureDevOpsRepoInfo(
-    val organization: String,
-    val project: String,
-    val repository: String,
-    val remoteUrl: String,
-    val useVisualStudioDomain: Boolean = false,
-    val selfHostedUrl: String? = null,
-) {
-    fun isValid(): Boolean =
-        organization.isNotBlank() &&
-            project.isNotBlank() &&
-            repository.isNotBlank()
-
-    fun isSelfHosted(): Boolean = selfHostedUrl != null
-}
 
 /**
  * Service to automatically detect if the Git repository is Azure DevOps
@@ -30,12 +13,12 @@ data class AzureDevOpsRepoInfo(
 @Service(Service.Level.PROJECT)
 class AzureDevOpsRepositoryDetector(
     private val project: Project,
-) {
+) : RepoDetector {
     private val logger = Logger.getInstance(AzureDevOpsRepositoryDetector::class.java)
 
     // Cache to avoid repeated detections
     @Volatile
-    private var cachedInfo: AzureDevOpsRepoInfo? = null
+    private var cachedInfo: azuredevops.api.AzureDevOpsRepoInfo? = null
 
     @Volatile
     private var cacheTimestamp: Long = 0
@@ -48,12 +31,12 @@ class AzureDevOpsRepositoryDetector(
     /**
      * Detects if the current repository is an Azure DevOps repository
      */
-    fun isAzureDevOpsRepository(): Boolean = detectAzureDevOpsInfo() != null
+    override fun isAzureDevOpsRepository(): Boolean = detectAzureDevOpsInfo() != null
 
     /**
      * Automatically detects Azure DevOps info from the remote URL of the repository
      */
-    fun detectAzureDevOpsInfo(): AzureDevOpsRepoInfo? {
+    override fun detectAzureDevOpsInfo(): AzureDevOpsRepoInfo? {
         // Check cache
         val now = System.currentTimeMillis()
         if (cachedInfo != null && (now - cacheTimestamp) < CACHE_VALIDITY_MS) {
@@ -129,4 +112,10 @@ class AzureDevOpsRepositoryDetector(
         val info = detectAzureDevOpsInfo() ?: return null
         return "${info.organization}/${info.project}/${info.repository}"
     }
+
+    /**
+     * Gets the detected repository information.
+     * Alias for detectAzureDevOpsInfo().
+     */
+    override fun getRepoInfo(): AzureDevOpsRepoInfo? = detectAzureDevOpsInfo()
 }

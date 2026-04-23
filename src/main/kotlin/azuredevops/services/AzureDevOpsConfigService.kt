@@ -1,5 +1,6 @@
 package azuredevops.services
 
+import azuredevops.api.ConfigService
 import azuredevops.checkout.AzureDevOpsAccountManager
 import azuredevops.checkout.AzureDevOpsOAuthService
 import azuredevops.model.AzureDevOpsConfig
@@ -26,7 +27,8 @@ import java.nio.charset.StandardCharsets
 )
 class AzureDevOpsConfigService(
     private val project: com.intellij.openapi.project.Project,
-) : PersistentStateComponent<AzureDevOpsConfigService.State> {
+) : PersistentStateComponent<AzureDevOpsConfigService.State>,
+    ConfigService {
     private var myState = State()
     private val logger = Logger.getInstance(AzureDevOpsConfigService::class.java)
 
@@ -53,7 +55,7 @@ class AzureDevOpsConfigService(
      * Gets the complete configuration including PAT from secure storage
      * and auto-detected info from the Git repository
      */
-    fun getConfig(): AzureDevOpsConfig {
+    override fun getConfig(): AzureDevOpsConfig {
         val pat = getPersonalAccessToken()
         val detector = AzureDevOpsRepositoryDetector.getInstance(project)
         val repoInfo = detector.detectAzureDevOpsInfo()
@@ -74,12 +76,27 @@ class AzureDevOpsConfigService(
     /**
      * Saves the complete configuration (optional for manual override)
      */
-    fun saveConfig(config: AzureDevOpsConfig) {
+    override fun saveConfig(config: AzureDevOpsConfig) {
         myState.manualOrganization = config.organization
         myState.manualProject = config.project
         myState.manualRepository = config.repository
         savePersonalAccessToken(config.personalAccessToken)
     }
+
+    /**
+     * Clears all stored credentials (PAT/token).
+     * Manual configuration (organization, project, repository) is preserved.
+     */
+    override fun clearCredentials() {
+        savePersonalAccessToken("")
+        // Note: OAuth accounts are managed by AzureDevOpsAccountManager
+        // Clearing would require user to manually remove accounts
+    }
+
+    /**
+     * Checks if the service is properly configured.
+     */
+    override fun isConfigured(): Boolean = getConfig().isValid()
 
     /**
      * Saves only the PAT (recommended method)
@@ -311,11 +328,6 @@ class AzureDevOpsConfigService(
         PasswordSafe.instance.set(credentialAttributes, null)
     }
 
-    /**
-     * Checks if the configuration is valid
-     */
-    fun isConfigured(): Boolean = getConfig().isValid()
-
     private fun createCredentialAttributes(): CredentialAttributes =
         CredentialAttributes(
             generateServiceName("AzureDevOps", CREDENTIAL_KEY),
@@ -326,7 +338,7 @@ class AzureDevOpsConfigService(
      * For self-hosted accounts, uses the account's server URL directly.
      * For cloud accounts, derives the URL from the organization.
      */
-    fun getApiBaseUrl(): String {
+    override fun getApiBaseUrl(): String {
         val config = getConfig()
 
         // Check if there is a self-hosted account matching the current repository
