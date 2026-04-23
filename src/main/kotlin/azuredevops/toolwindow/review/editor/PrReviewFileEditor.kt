@@ -1,5 +1,6 @@
 package azuredevops.toolwindow.review.editor
 
+import azuredevops.di.ServiceLocator
 import azuredevops.model.PullRequest
 import azuredevops.services.PrReviewTabService
 import azuredevops.toolwindow.review.PrReviewToolWindow
@@ -18,8 +19,10 @@ class PrReviewFileEditor(
     pullRequest: PullRequest,
 ) : UserDataHolderBase(),
     FileEditor {
+    private val apiClient = ServiceLocator.getApiClient(project)
+    private val reviewStateService = ServiceLocator.getReviewStateService(project)
     private val reviewPanel =
-        PrReviewToolWindow(project, showSelector = false).apply {
+        ServiceLocator.createPrReviewToolWindow(project, showSelector = false).apply {
             openPullRequest(pullRequest)
         }
 

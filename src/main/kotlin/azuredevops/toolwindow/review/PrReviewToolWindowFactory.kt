@@ -1,5 +1,6 @@
 package azuredevops.toolwindow.review
 
+import azuredevops.di.ServiceLocator
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -17,7 +18,7 @@ class PrReviewToolWindowFactory :
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        val reviewWindow = PrReviewToolWindow(project)
+        val reviewWindow = ServiceLocator.createPrReviewToolWindow(project)
         val content =
             toolWindow.contentManager.factory.createContent(
                 reviewWindow,

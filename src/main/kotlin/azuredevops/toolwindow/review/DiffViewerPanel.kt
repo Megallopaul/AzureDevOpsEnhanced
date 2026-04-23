@@ -60,12 +60,12 @@ import javax.swing.JPanel
 class DiffViewerPanel(
     private val project: Project,
     private val pullRequestId: Int,
+    private val apiClient: AzureDevOpsApiClient,
     private val externalProjectName: String? = null,
     private val externalRepositoryId: String? = null,
 ) : JPanel(BorderLayout()),
     Disposable {
     private val logger = Logger.getInstance(DiffViewerPanel::class.java)
-    private val apiClient = AzureDevOpsApiClient.getInstance(project)
     private val diffContentFactory = DiffContentFactory.getInstance()
 
     private var currentDiffPanel: DiffRequestPanel? = null

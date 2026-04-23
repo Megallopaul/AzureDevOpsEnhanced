@@ -21,11 +21,11 @@ import javax.swing.*
  */
 class PrReviewToolWindow(
     private val project: Project,
+    private val apiClient: AzureDevOpsApiClient,
+    private val reviewStateService: PrReviewStateService,
     private val showSelector: Boolean = true,
 ) : JPanel(BorderLayout()) {
     private val logger = Logger.getInstance(PrReviewToolWindow::class.java)
-    private val apiClient = AzureDevOpsApiClient.getInstance(project)
-    private val reviewStateService = PrReviewStateService.getInstance(project)
 
     private var currentPullRequest: PullRequest? = null
     private var fileTreePanel: FileTreePanel? = null
@@ -532,7 +532,7 @@ class PrReviewToolWindow(
         )
         logger.info("  PR repository info: ${pullRequest.repository}")
 
-        diffViewerPanel = DiffViewerPanel(project, pullRequest.pullRequestId, externalProjectName, externalRepositoryId)
+        diffViewerPanel = DiffViewerPanel(project, pullRequest.pullRequestId, apiClient, externalProjectName, externalRepositoryId)
 
         commentsPanel = CommentsPanel(project, pullRequest.pullRequestId, externalProjectName, externalRepositoryId)
 

@@ -1,5 +1,6 @@
 package azuredevops.toolwindow.review.editor
 
+import azuredevops.di.ServiceLocator
 import azuredevops.model.PullRequest
 import azuredevops.model.PullRequestChange
 import azuredevops.model.effectivePath
@@ -24,10 +25,12 @@ class PrDiffFileEditor(
     private var change: PullRequestChange,
 ) : UserDataHolderBase(),
     FileEditor {
+    private val apiClient = ServiceLocator.getApiClient(project)
     private val diffPanel =
         DiffViewerPanel(
             project,
             pullRequest.pullRequestId,
+            apiClient,
             pullRequest.repository?.project?.name,
             pullRequest.repository?.id,
         ).apply {
