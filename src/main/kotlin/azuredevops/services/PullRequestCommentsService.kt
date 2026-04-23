@@ -13,6 +13,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.JBColor
 import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import javax.swing.Icon
 
 /**
@@ -24,7 +26,9 @@ class PullRequestCommentsService(
     private val project: Project,
 ) {
     private val logger = Logger.getInstance(PullRequestCommentsService::class.java)
-    private val commentMarkers = mutableMapOf<VirtualFile, MutableList<RangeHighlighter>>()
+
+    // Thread-safe collection for comment markers (accessed from background threads and EDT)
+    private val commentMarkers = ConcurrentHashMap<VirtualFile, CopyOnWriteArrayList<RangeHighlighter>>()
 
     companion object {
         fun getInstance(project: Project): PullRequestCommentsService = project.getService(PullRequestCommentsService::class.java)
@@ -194,7 +198,8 @@ class PullRequestCommentsService(
             markers.add(highlighter)
         }
 
-        commentMarkers[file] = markers
+        // Store markers in thread-safe map
+        commentMarkers[file] = CopyOnWriteArrayList(markers)
     }
 
     /**
