@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "azuredevops"
-version = "4.0"
+version = "5.0"
 
 repositories {
     mavenCentral()
@@ -49,6 +49,51 @@ intellijPlatform {
 
         changeNotes =
             """
+            <h2>Version 5.0 - Major Architectural Refactoring</h2>
+
+            <p><b>This release includes a complete architectural refactoring to improve code quality, testability, and maintainability.</b></p>
+
+            <h3>🏗️ Architectural Changes</h3>
+            <ul>
+                <li><b>Dependency Injection</b> – Introduced manual constructor injection pattern with ServiceLocator for better testability</li>
+                <li><b>API Layer Refactoring</b> – Split monolithic AzureDevOpsApiClient into specialized interfaces:
+                    <ul>
+                        <li>PullRequestApi, CommentApi, WorkItemApi</li>
+                        <li>PipelineApi, RepositoryApi, IdentityApi, AuthenticationApi</li>
+                    </ul>
+                </li>
+                <li><b>HTTP Client Abstraction</b> – New HttpClient class centralizes all HTTP operations and authentication</li>
+                <li><b>Service Layer SRP</b> – ConfigService, RepoDetector, and AuthenticationService separated by responsibility</li>
+                <li><b>Error Handling</b> – Introduced ApiError sealed class and ApiResult for type-safe error handling</li>
+                <li><b>Thread Safety</b> – Fixed concurrent collections (ConcurrentHashMap, CopyOnWriteArrayList)</li>
+            </ul>
+
+            <h3>📦 Code Quality Improvements</h3>
+            <ul>
+                <li><b>Sealed Classes</b> – PullRequestStatus, ThreadStatus converted from enums for better type safety</li>
+                <li><b>Utility Objects</b> – PathNormalizer, ApiConstants, ModelExtensions for reusable utilities</li>
+                <li><b>Package Rename</b> – Removed 'paol0b' prefix: package is now 'azuredevops.*'</li>
+                <li><b>ktlint Integration</b> – Automated code formatting and style checking</li>
+                <li><b>Comprehensive Documentation</b> – Phase-by-phase refactoring plan and contracts documentation</li>
+            </ul>
+
+            <h3>🧪 Testing Infrastructure</h3>
+            <ul>
+                <li><b>MockK Integration</b> – Kotlin-friendly mocking for unit tests</li>
+                <li><b>Unit Tests</b> – 50+ tests for utilities, model extensions, and API implementations</li>
+                <li><b>Test Guide</b> – See TESTING.md for running tests from IntelliJ IDEA</li>
+            </ul>
+
+            <h3>⚠️ Breaking Changes</h3>
+            <ul>
+                <li>Package names changed from <code>paol0b.azuredevops.*</code> to <code>azuredevops.*</code></li>
+                <li>Internal API classes restructured (backward compatible for end users)</li>
+            </ul>
+
+            <p><i>No user-facing features changed. This release focuses on internal code quality and maintainability.</i></p>
+
+            <hr>
+
             <h2>Version 4.0 - Work Items, Metrics Dashboard & Status Bar</h2>
 
             <h3>New Features</h3>
